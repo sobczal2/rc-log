@@ -126,7 +126,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/config.rs` | `AppConfig::load()` reads `APP_ENV`, `DATABASE_URL`, `APP_HOST`, `APP_PORT` from env |
 | `src/state.rs` | `AppState { maneuver_uow: SqlxManeuverUnitOfWork }` — passed via axum `State` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes |
-| `src/shared/pagination.rs` | `PaginationQuery` — reusable axum `FromRequestParts` extractor |
+| `src/extractors/pagination.rs` | `PaginationQuery` — reusable axum `FromRequestParts` extractor |
 | `src/maneuver/handler.rs` | `get_maneuver_by_id`, `list_maneuvers` |
 | `src/maneuver/response.rs` | `GetManeuverByIdResponse`, `ListManeuversResponse`, `ManeuverListItemResponse` |
 | `src/maneuver/router.rs` | Mounts maneuver routes |
@@ -186,3 +186,5 @@ Early-stage React/TypeScript SPA scaffolded with Vite using **shadcn/ui** compon
    - `application` must never import from `persistance`
    - `api` may import application DTOs but must wrap them in its own named response types — never return a raw DTO from a handler
    - Only `api` (composition root) wires concrete infrastructure into use cases
+6. **Code Style**:
+   - Always prefer explicit `use` declarations (e.g., `use std::env;`) instead of inline fully-qualified paths (`std::env::var()`), unless doing so creates severe ambiguity. Expand this preference across the entire backend workspace.

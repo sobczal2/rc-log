@@ -8,8 +8,8 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::error::ApiError;
+use crate::extractors::pagination::PaginationQuery;
 use crate::maneuver::response::{GetManeuverByIdResponse, ListManeuversResponse};
-use crate::shared::pagination::PaginationQuery;
 use crate::state::AppState;
 
 #[instrument(skip(state), fields(maneuver_id = %id))]
