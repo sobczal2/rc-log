@@ -1,3 +1,7 @@
+use std::error::Error;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::future::Future;
+
 use uuid::Uuid;
 
 use crate::shared::pagination::Pagination;
@@ -8,8 +12,8 @@ pub enum RepositoryError {
     TransactionError(String),
 }
 
-impl std::fmt::Display for RepositoryError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for RepositoryError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             RepositoryError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
             RepositoryError::TransactionError(msg) => write!(f, "Transaction error: {}", msg),
@@ -17,7 +21,7 @@ impl std::fmt::Display for RepositoryError {
     }
 }
 
-impl std::error::Error for RepositoryError {}
+impl Error for RepositoryError {}
 
 pub trait Transaction<T>: Send {
     fn get_by_id(

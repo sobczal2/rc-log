@@ -1,3 +1,4 @@
+use std::env;
 use std::net::SocketAddr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,13 +35,13 @@ impl AppConfig {
 
     fn from_env_vars() -> Self {
         let environment =
-            Environment::from_str(&std::env::var("APP_ENV").expect("APP_ENV must be set"));
+            Environment::from_str(&env::var("APP_ENV").expect("APP_ENV must be set"));
 
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-        let host = std::env::var("APP_HOST").expect("APP_HOST must be set");
+        let host = env::var("APP_HOST").expect("APP_HOST must be set");
 
-        let port = std::env::var("APP_PORT")
+        let port = env::var("APP_PORT")
             .expect("APP_PORT must be set")
             .parse::<u16>()
             .expect("APP_PORT must be a valid u16");

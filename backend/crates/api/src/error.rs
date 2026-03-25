@@ -1,7 +1,7 @@
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use rc_log_application::error::ApplicationError;
 use rc_log_application::maneuver::get_by_id::error::GetManeuverByIdError;
@@ -19,10 +19,7 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::Application(ApplicationError::GetManeuverById(
                 GetManeuverByIdError::NotFound,
-            )) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "Maneuver not found" })),
-            )
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Maneuver not found" })))
                 .into_response(),
             ApiError::Application(ApplicationError::GetManeuverById(
                 GetManeuverByIdError::InvalidData(msg),

@@ -1,3 +1,4 @@
+use rc_log_domain::shared::pagination::Pagination;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6,7 +7,7 @@ pub struct PaginationDto {
     pub page_size: u32,
 }
 
-impl From<PaginationDto> for rc_log_domain::shared::pagination::Pagination {
+impl From<PaginationDto> for Pagination {
     fn from(dto: PaginationDto) -> Self {
         Self::new(dto.page, dto.page_size)
     }

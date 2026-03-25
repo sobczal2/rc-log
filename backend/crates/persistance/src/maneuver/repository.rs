@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag};
 use rc_log_domain::shared::pagination::Pagination;
@@ -190,8 +190,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .await
         .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
 
-        let mut tags_by_maneuver: std::collections::HashMap<Uuid, BTreeSet<Tag>> =
-            std::collections::HashMap::new();
+        let mut tags_by_maneuver: HashMap<Uuid, BTreeSet<Tag>> = HashMap::new();
         for row in tag_rows {
             tags_by_maneuver
                 .entry(row.maneuver_id)
