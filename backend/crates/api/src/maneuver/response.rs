@@ -1,6 +1,6 @@
 use rc_log_application::maneuver::get_by_id::model::ManeuverDto as GetManeuverByIdDto;
 use rc_log_application::maneuver::list::model::ManeuverDto as ListManeuversDto;
-use rc_log_application::shared::paginated_result::PaginatedResult;
+use rc_log_application::shared::pagination::PaginatedResult;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]

@@ -30,9 +30,9 @@ pub async fn list_maneuvers(
     pagination: PaginationQuery,
 ) -> Result<Json<ListManeuversResponse>, ApiError> {
     debug!(page = pagination.page, page_size = pagination.page_size, "Handling list maneuvers request");
-    let domain_pagination = pagination.into_pagination();
+    let application_pagination = pagination.into_dto();
     let mut use_case = ListManeuversUseCase::new(state.maneuver_uow);
-    let result = use_case.execute(domain_pagination).await?;
+    let result = use_case.execute(application_pagination).await?;
     debug!(total = result.total, count = result.items.len(), "Returning maneuver list");
     Ok(Json(ListManeuversResponse::from(result)))
 }

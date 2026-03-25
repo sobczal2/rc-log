@@ -4,7 +4,7 @@ use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
-use crate::shared::paginated_result::PaginatedResult;
+use crate::shared::pagination::{PaginatedResult, PaginationDto};
 
 use super::error::ListManeuversError;
 use super::model::ManeuverDto;
@@ -24,13 +24,14 @@ where
     #[instrument(skip(self), fields(page = pagination.page, page_size = pagination.page_size))]
     pub async fn execute(
         &mut self,
-        pagination: Pagination,
+        pagination: PaginationDto,
     ) -> Result<PaginatedResult<ManeuverDto>, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ListManeuversError::from)?;
 
         debug!("Querying maneuvers from repository");
-        let (maneuvers, total) = tx.list(pagination).await.map_err(ListManeuversError::from)?;
+        let domain_pagination = Pagination::from(pagination.clone());
+        let (maneuvers, total) = tx.list(domain_pagination).await.map_err(ListManeuversError::from)?;
 
         debug!(count = maneuvers.len(), total, "Maneuvers retrieved, committing transaction");
         tx.commit().await.map_err(ListManeuversError::from)?;

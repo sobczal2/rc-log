@@ -1,1 +1,1 @@
-pub mod paginated_result;
+pub mod pagination;

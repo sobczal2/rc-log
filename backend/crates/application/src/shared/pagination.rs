@@ -1,3 +1,17 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaginationDto {
+    pub page: u32,
+    pub page_size: u32,
+}
+
+impl From<PaginationDto> for rc_log_domain::shared::pagination::Pagination {
+    fn from(dto: PaginationDto) -> Self {
+        Self::new(dto.page, dto.page_size)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PaginatedResult<T> {
     pub items: Vec<T>,

@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use rc_log_domain::shared::pagination::Pagination;
+use rc_log_application::shared::pagination::PaginationDto;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -49,8 +49,8 @@ impl PaginationQuery {
         Ok(())
     }
 
-    pub fn into_pagination(self) -> Pagination {
-        Pagination::new(self.page, self.page_size)
+    pub fn into_dto(self) -> PaginationDto {
+        PaginationDto { page: self.page, page_size: self.page_size }
     }
 }
 
