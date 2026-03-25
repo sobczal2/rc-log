@@ -1,5 +1,6 @@
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
+use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::error::ApplicationError;
@@ -17,12 +18,19 @@ where
         Self { uow }
     }
 
+    #[instrument(skip(self), fields(maneuver_id = %id))]
     pub async fn execute(&mut self, id: Uuid) -> Result<Maneuver, ApplicationError> {
+        debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ManeuverError::from)?;
 
+        debug!("Querying maneuver from repository");
         let maneuver =
-            tx.get_by_id(id).await.map_err(ManeuverError::from)?.ok_or(ManeuverError::NotFound)?;
+            tx.get_by_id(id).await.map_err(ManeuverError::from)?.ok_or_else(|| {
+                debug!("Maneuver not found in repository");
+                ManeuverError::NotFound
+            })?;
 
+        debug!(name = maneuver.name(), "Maneuver retrieved, committing transaction");
         tx.commit().await.map_err(ManeuverError::from)?;
 
         Ok(maneuver)

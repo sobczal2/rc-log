@@ -7,3 +7,4 @@ edition = "2024"
 rc-log-domain.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+tracing.workspace = true

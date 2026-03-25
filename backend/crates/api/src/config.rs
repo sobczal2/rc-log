@@ -29,8 +29,10 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn load() -> Self {
-        dotenvy::dotenv().expect("Failed to load .env file");
+        Self::from_env_vars()
+    }
 
+    fn from_env_vars() -> Self {
         let environment =
             Environment::from_str(&std::env::var("APP_ENV").expect("APP_ENV must be set"));
 
