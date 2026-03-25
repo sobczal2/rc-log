@@ -1,3 +1,14 @@
 [workspace]
 resolver = "3"
-members = ["crates/server"]
+members = ["crates/api", "crates/application", "crates/domain", "crates/persistance"]
+
+[workspace.dependencies]
+rc-log-api = { path = "crates/api" }
+rc-log-application = { path = "crates/application" }
+rc-log-domain = { path = "crates/domain" }
+rc-log-persistance = { path = "crates/persistance" }
+
+axum = { version = "0.8.8", features = [] }
+thiserror = { version = "2.0.18", features = [] }
+sqlx = { version = "0.8", features = [] }
+uuid = { version = "1.22.0", features = [] }
