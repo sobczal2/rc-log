@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rc-log-domain.workspace = true
+sqlx = { workspace = true, features = ["runtime-tokio", "postgres", "uuid"] }
+uuid.workspace = true
