@@ -2,7 +2,6 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum RepositoryError {
-    NotFound,
     InvalidData(String),
     TransactionError(String),
 }
@@ -10,7 +9,6 @@ pub enum RepositoryError {
 impl std::fmt::Display for RepositoryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RepositoryError::NotFound => write!(f, "Entity not found"),
             RepositoryError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
             RepositoryError::TransactionError(msg) => write!(f, "Transaction error: {}", msg),
         }
@@ -20,7 +18,10 @@ impl std::fmt::Display for RepositoryError {
 impl std::error::Error for RepositoryError {}
 
 pub trait Transaction<T>: Send {
-    fn get_by_id(&mut self, id: Uuid) -> impl Future<Output = Option<T>> + Send;
+    fn get_by_id(
+        &mut self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<T>, RepositoryError>> + Send;
     fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn commit(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn rollback(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;

@@ -1,8 +1,10 @@
 use std::collections::BTreeSet;
 
-use rc_log_domain::maneuver::{difficulty::Difficulty, tag::Tag, Maneuver};
+use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag};
 use rc_log_domain::shared::repository::{RepositoryError, Transaction, UnitOfWork};
-use rc_log_domain::shared::{markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath};
+use rc_log_domain::shared::{
+    markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath,
+};
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
@@ -94,7 +96,7 @@ pub struct SqlxManeuverTransaction {
 }
 
 impl Transaction<Maneuver> for SqlxManeuverTransaction {
-    async fn get_by_id(&mut self, id: Uuid) -> Option<Maneuver> {
+    async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, RepositoryError> {
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
             SELECT id, vehicle_type, name, description, difficulty, video_path
@@ -105,9 +107,13 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(id)
         .fetch_optional(&mut *self.tx)
         .await
-        .ok()?;
+        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
 
-        let maneuver_row = maneuver_row?;
+        if maneuver_row.is_none() {
+            return Ok(None);
+        }
+
+        let maneuver_row = maneuver_row.unwrap();
 
         let tag_rows: Vec<TagRow> = sqlx::query_as(
             r#"
@@ -120,11 +126,11 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(id)
         .fetch_all(&mut *self.tx)
         .await
-        .ok()?;
+        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
 
         let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
 
-        maneuver_row.try_into_maneuver(tags)
+        Ok(maneuver_row.try_into_maneuver(tags))
     }
 
     async fn save(&mut self, maneuver: &Maneuver) -> Result<(), RepositoryError> {
@@ -177,20 +183,15 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     }
 
     async fn commit(self) -> Result<(), RepositoryError> {
-        self.tx
-            .commit()
-            .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))
+        self.tx.commit().await.map_err(|e| RepositoryError::TransactionError(e.to_string()))
     }
 
     async fn rollback(self) -> Result<(), RepositoryError> {
-        self.tx
-            .rollback()
-            .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))
+        self.tx.rollback().await.map_err(|e| RepositoryError::TransactionError(e.to_string()))
     }
 }
 
+#[derive(Clone)]
 pub struct SqlxManeuverUnitOfWork {
     pool: PgPool,
 }
