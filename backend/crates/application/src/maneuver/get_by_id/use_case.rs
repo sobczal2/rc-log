@@ -4,8 +4,8 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::error::ApplicationError;
-use crate::maneuver::error::ManeuverError;
-use crate::maneuver::model::ManeuverDto;
+use super::error::GetManeuverByIdError;
+use super::model::ManeuverDto;
 
 pub struct GetManeuverByIdUseCase<UoW> {
     uow: UoW,
@@ -22,17 +22,20 @@ where
     #[instrument(skip(self), fields(maneuver_id = %id))]
     pub async fn execute(&mut self, id: Uuid) -> Result<ManeuverDto, ApplicationError> {
         debug!("Beginning transaction");
-        let mut tx = self.uow.begin().await.map_err(ManeuverError::from)?;
+        let mut tx = self.uow.begin().await.map_err(GetManeuverByIdError::from)?;
 
         debug!("Querying maneuver from repository");
-        let maneuver =
-            tx.get_by_id(id).await.map_err(ManeuverError::from)?.ok_or_else(|| {
+        let maneuver = tx
+            .get_by_id(id)
+            .await
+            .map_err(GetManeuverByIdError::from)?
+            .ok_or_else(|| {
                 debug!("Maneuver not found in repository");
-                ManeuverError::NotFound
+                GetManeuverByIdError::NotFound
             })?;
 
         debug!(name = maneuver.name(), "Maneuver retrieved, committing transaction");
-        tx.commit().await.map_err(ManeuverError::from)?;
+        tx.commit().await.map_err(GetManeuverByIdError::from)?;
 
         Ok(ManeuverDto::from(maneuver))
     }

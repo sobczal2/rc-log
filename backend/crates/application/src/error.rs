@@ -1,7 +1,10 @@
-use crate::maneuver::error::ManeuverError;
+use crate::maneuver::get_by_id::error::GetManeuverByIdError;
+use crate::maneuver::list::error::ListManeuversError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApplicationError {
     #[error(transparent)]
-    Maneuver(#[from] ManeuverError),
+    GetManeuverById(#[from] GetManeuverByIdError),
+    #[error(transparent)]
+    ListManeuvers(#[from] ListManeuversError),
 }

@@ -4,9 +4,10 @@ use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
-use crate::maneuver::error::ManeuverError;
-use crate::maneuver::model::ManeuverDto;
 use crate::shared::paginated_result::PaginatedResult;
+
+use super::error::ListManeuversError;
+use super::model::ManeuverDto;
 
 pub struct ListManeuversUseCase<UoW> {
     uow: UoW,
@@ -26,13 +27,13 @@ where
         pagination: Pagination,
     ) -> Result<PaginatedResult<ManeuverDto>, ApplicationError> {
         debug!("Beginning transaction");
-        let mut tx = self.uow.begin().await.map_err(ManeuverError::from)?;
+        let mut tx = self.uow.begin().await.map_err(ListManeuversError::from)?;
 
         debug!("Querying maneuvers from repository");
-        let (maneuvers, total) = tx.list(pagination).await.map_err(ManeuverError::from)?;
+        let (maneuvers, total) = tx.list(pagination).await.map_err(ListManeuversError::from)?;
 
         debug!(count = maneuvers.len(), total, "Maneuvers retrieved, committing transaction");
-        tx.commit().await.map_err(ManeuverError::from)?;
+        tx.commit().await.map_err(ListManeuversError::from)?;
 
         let dtos = maneuvers.into_iter().map(ManeuverDto::from).collect();
         Ok(PaginatedResult::new(dtos, total, pagination.page, pagination.page_size))

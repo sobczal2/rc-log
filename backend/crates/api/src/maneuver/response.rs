@@ -1,30 +1,31 @@
-use rc_log_application::maneuver::model::ManeuverDto;
+use rc_log_application::maneuver::get_by_id::model::ManeuverDto as GetManeuverByIdDto;
+use rc_log_application::maneuver::list::model::ManeuverDto as ListManeuversDto;
 use rc_log_application::shared::paginated_result::PaginatedResult;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct GetManeuverByIdResponse {
     #[serde(flatten)]
-    pub data: ManeuverDto,
+    pub data: GetManeuverByIdDto,
 }
 
-impl From<ManeuverDto> for GetManeuverByIdResponse {
-    fn from(m: ManeuverDto) -> Self {
+impl From<GetManeuverByIdDto> for GetManeuverByIdResponse {
+    fn from(m: GetManeuverByIdDto) -> Self {
         Self { data: m }
     }
 }
 
 #[derive(Debug, Serialize)]
 pub struct ListManeuversResponse {
-    pub items: Vec<ManeuverDto>,
+    pub items: Vec<ListManeuversDto>,
     pub total: u64,
     pub page: u32,
     pub page_size: u32,
     pub total_pages: u64,
 }
 
-impl From<PaginatedResult<ManeuverDto>> for ListManeuversResponse {
-    fn from(result: PaginatedResult<ManeuverDto>) -> Self {
+impl From<PaginatedResult<ListManeuversDto>> for ListManeuversResponse {
+    fn from(result: PaginatedResult<ListManeuversDto>) -> Self {
         let total_pages = result.total_pages();
         Self {
             items: result.items,
