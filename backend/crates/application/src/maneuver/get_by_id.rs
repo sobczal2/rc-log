@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::error::ApplicationError;
 use crate::maneuver::error::ManeuverError;
+use crate::maneuver::model::ManeuverDto;
 
 pub struct GetManeuverByIdUseCase<UoW> {
     uow: UoW,
@@ -19,7 +20,7 @@ where
     }
 
     #[instrument(skip(self), fields(maneuver_id = %id))]
-    pub async fn execute(&mut self, id: Uuid) -> Result<Maneuver, ApplicationError> {
+    pub async fn execute(&mut self, id: Uuid) -> Result<ManeuverDto, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ManeuverError::from)?;
 
@@ -33,6 +34,6 @@ where
         debug!(name = maneuver.name(), "Maneuver retrieved, committing transaction");
         tx.commit().await.map_err(ManeuverError::from)?;
 
-        Ok(maneuver)
+        Ok(ManeuverDto::from(maneuver))
     }
 }

@@ -5,6 +5,7 @@ use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
 use crate::maneuver::error::ManeuverError;
+use crate::maneuver::model::ManeuverDto;
 use crate::shared::paginated_result::PaginatedResult;
 
 pub struct ListManeuversUseCase<UoW> {
@@ -23,7 +24,7 @@ where
     pub async fn execute(
         &mut self,
         pagination: Pagination,
-    ) -> Result<PaginatedResult<Maneuver>, ApplicationError> {
+    ) -> Result<PaginatedResult<ManeuverDto>, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ManeuverError::from)?;
 
@@ -33,6 +34,7 @@ where
         debug!(count = maneuvers.len(), total, "Maneuvers retrieved, committing transaction");
         tx.commit().await.map_err(ManeuverError::from)?;
 
-        Ok(PaginatedResult::new(maneuvers, total, pagination.page, pagination.page_size))
+        let dtos = maneuvers.into_iter().map(ManeuverDto::from).collect();
+        Ok(PaginatedResult::new(dtos, total, pagination.page, pagination.page_size))
     }
 }

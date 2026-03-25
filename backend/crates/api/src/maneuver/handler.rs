@@ -20,7 +20,7 @@ pub async fn get_maneuver_by_id(
     debug!("Handling get maneuver by id request");
     let mut use_case = GetManeuverByIdUseCase::new(state.maneuver_uow);
     let maneuver = use_case.execute(id).await?;
-    debug!(name = maneuver.name(), "Maneuver found, returning response");
+    debug!(name = maneuver.name.as_str(), "Maneuver found, returning response");
     Ok(Json(GetManeuverByIdResponse::from(maneuver)))
 }
 

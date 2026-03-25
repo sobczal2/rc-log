@@ -8,3 +8,4 @@ rc-log-domain.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 tracing.workspace = true
+serde = { workspace = true, features = ["derive"] }
