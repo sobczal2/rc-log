@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use crate::shared::pagination::Pagination;
+
 #[derive(Debug)]
 pub enum RepositoryError {
     InvalidData(String),
@@ -22,6 +24,10 @@ pub trait Transaction<T>: Send {
         &mut self,
         id: Uuid,
     ) -> impl Future<Output = Result<Option<T>, RepositoryError>> + Send;
+    fn list(
+        &mut self,
+        pagination: Pagination,
+    ) -> impl Future<Output = Result<(Vec<T>, u64), RepositoryError>> + Send;
     fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn commit(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn rollback(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;

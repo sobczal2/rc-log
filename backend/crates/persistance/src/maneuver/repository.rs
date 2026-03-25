@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag};
+use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::repository::{RepositoryError, Transaction, UnitOfWork};
 use rc_log_domain::shared::{
     markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath,
@@ -24,8 +25,22 @@ struct TagRow {
     name: String,
 }
 
+/// Used in batch list() queries where each tag row carries its owning maneuver id.
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct TagRowWithManeuver {
+    id: Uuid,
+    name: String,
+    maneuver_id: Uuid,
+}
+
 impl From<TagRow> for Tag {
     fn from(row: TagRow) -> Self {
+        Tag::new(row.id, row.name)
+    }
+}
+
+impl From<TagRowWithManeuver> for Tag {
+    fn from(row: TagRowWithManeuver) -> Self {
         Tag::new(row.id, row.name)
     }
 }
@@ -131,6 +146,74 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
 
         Ok(maneuver_row.try_into_maneuver(tags))
+    }
+
+    async fn list(
+        &mut self,
+        pagination: Pagination,
+    ) -> Result<(Vec<Maneuver>, u64), RepositoryError> {
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM maneuver.maneuver")
+            .fetch_one(&mut *self.tx)
+            .await
+            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+
+        let maneuver_rows: Vec<ManeuverRow> = sqlx::query_as(
+            r#"
+            SELECT id, vehicle_type, name, description, difficulty, video_path
+            FROM maneuver.maneuver
+            ORDER BY name
+            LIMIT $1 OFFSET $2
+            "#,
+        )
+        .bind(pagination.limit() as i64)
+        .bind(pagination.offset() as i64)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+
+        if maneuver_rows.is_empty() {
+            return Ok((vec![], total as u64));
+        }
+
+        let maneuver_ids: Vec<Uuid> = maneuver_rows.iter().map(|r| r.id).collect();
+
+        let tag_rows: Vec<TagRowWithManeuver> = sqlx::query_as(
+            r#"
+            SELECT t.id, t.name, mt.maneuver_id
+            FROM maneuver.tag t
+            INNER JOIN maneuver.maneuver_tag mt ON t.id = mt.tag_id
+            WHERE mt.maneuver_id = ANY($1)
+            "#,
+        )
+        .bind(&maneuver_ids)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+
+        let mut tags_by_maneuver: std::collections::HashMap<Uuid, BTreeSet<Tag>> =
+            std::collections::HashMap::new();
+        for row in tag_rows {
+            tags_by_maneuver
+                .entry(row.maneuver_id)
+                .or_default()
+                .insert(Tag::from(row));
+        }
+
+        let maneuvers: Result<Vec<Maneuver>, RepositoryError> = maneuver_rows
+            .into_iter()
+            .map(|row| {
+                let id = row.id;
+                let tags = tags_by_maneuver.remove(&id).unwrap_or_default();
+                row.try_into_maneuver(tags).ok_or_else(|| {
+                    RepositoryError::InvalidData(format!(
+                        "Invalid maneuver data for id {}",
+                        id
+                    ))
+                })
+            })
+            .collect();
+
+        Ok((maneuvers?, total as u64))
     }
 
     async fn save(&mut self, maneuver: &Maneuver) -> Result<(), RepositoryError> {

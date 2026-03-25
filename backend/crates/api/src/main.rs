@@ -1,6 +1,7 @@
 mod config;
 mod error;
 mod maneuver;
+mod shared;
 mod state;
 
 use sqlx::postgres::PgPoolOptions;
