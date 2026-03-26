@@ -1,0 +1,9 @@
+{
+    "vehicleType": "Helicopter",
+    "name": "Hover",
+    "description": "",
+    "difficulty": 1,
+    "tags": [
+        "Basic"
+    ]
+}

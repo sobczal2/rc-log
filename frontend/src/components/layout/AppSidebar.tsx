@@ -16,17 +16,17 @@ import { Button } from "@/components/ui/button"
 
 export function AppSidebar() {
   const location = useLocation()
-  
+
   return (
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="flex flex-row items-center h-16 px-4 gap-2">
         <Plane size={28} className="text-primary" />
         <span className="text-xl font-bold tracking-widest uppercase">rc-log</span>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Records</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Knowledge Base</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
