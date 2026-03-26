@@ -258,9 +258,11 @@ impl SqlxManeuverTransaction {
 
             if let Some(sq) = &filter.search_query {
                 add_clause(q);
-                q.push("EXISTS (SELECT 1 FROM maneuver.maneuver_tag mt JOIN maneuver.tag t ON mt.tag_id = t.id WHERE mt.maneuver_id = m.id AND t.name ILIKE '%' || ");
+                q.push("(m.name ILIKE '%' || ");
                 q.push_bind(sq.clone());
-                q.push(" || '%')");
+                q.push(" || '%' OR EXISTS (SELECT 1 FROM maneuver.maneuver_tag mt JOIN maneuver.tag t ON mt.tag_id = t.id WHERE mt.maneuver_id = m.id AND t.name ILIKE '%' || ");
+                q.push_bind(sq.clone());
+                q.push(" || '%'))");
             }
 
             if !filter.tags.is_empty() {
