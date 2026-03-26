@@ -1,4 +1,4 @@
-use rc_log_domain::shared::repository::RepositoryError;
+use rc_log_domain::shared::transaction::TransactionError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ListManeuversError {
@@ -8,11 +8,11 @@ pub enum ListManeuversError {
     RepositoryError(String),
 }
 
-impl From<RepositoryError> for ListManeuversError {
-    fn from(err: RepositoryError) -> Self {
+impl From<TransactionError> for ListManeuversError {
+    fn from(err: TransactionError) -> Self {
         match err {
-            RepositoryError::InvalidData(msg) => ListManeuversError::InvalidData(msg),
-            RepositoryError::TransactionError(msg) => ListManeuversError::RepositoryError(msg),
+            TransactionError::InvalidData(msg) => ListManeuversError::InvalidData(msg),
+            TransactionError::TransactionError(msg) => ListManeuversError::RepositoryError(msg),
         }
     }
 }

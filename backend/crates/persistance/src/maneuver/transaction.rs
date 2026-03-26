@@ -1,8 +1,9 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag};
+use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag, query::ManeuverTransaction};
 use rc_log_domain::shared::pagination::Pagination;
-use rc_log_domain::shared::repository::{RepositoryError, Transaction, UnitOfWork};
+use rc_log_domain::shared::transaction::{TransactionError, Transaction};
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::{
     markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath,
 };
@@ -113,7 +114,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     type Filter = rc_log_domain::maneuver::query::ManeuverFilter;
     type Sort = rc_log_domain::maneuver::query::ManeuverSort;
 
-    async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, RepositoryError> {
+    async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, TransactionError> {
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
             SELECT id, vehicle_type, name, description, difficulty, video_path
@@ -124,7 +125,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(id)
         .fetch_optional(&mut *self.tx)
         .await
-        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         if maneuver_row.is_none() {
             return Ok(None);
@@ -143,19 +144,78 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(id)
         .fetch_all(&mut *self.tx)
         .await
-        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
 
         Ok(maneuver_row.try_into_maneuver(tags))
     }
 
-    async fn list(
+    async fn save(&mut self, maneuver: &Maneuver) -> Result<(), TransactionError> {
+        let maneuver_row = ManeuverRow::from_maneuver(maneuver);
+
+        sqlx::query(
+            r#"
+            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty, video_path)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO UPDATE SET
+                vehicle_type = EXCLUDED.vehicle_type,
+                name = EXCLUDED.name,
+                description = EXCLUDED.description,
+                difficulty = EXCLUDED.difficulty,
+                video_path = EXCLUDED.video_path
+            "#,
+        )
+        .bind(maneuver_row.id)
+        .bind(&maneuver_row.vehicle_type)
+        .bind(&maneuver_row.name)
+        .bind(&maneuver_row.description)
+        .bind(maneuver_row.difficulty)
+        .bind(&maneuver_row.video_path)
+        .execute(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        sqlx::query("DELETE FROM maneuver.maneuver_tag WHERE maneuver_id = $1")
+            .bind(maneuver.id())
+            .execute(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        for tag in maneuver.tags() {
+            sqlx::query(
+                r#"
+                INSERT INTO maneuver.maneuver_tag (maneuver_id, tag_id)
+                VALUES ($1, $2)
+                ON CONFLICT DO NOTHING
+                "#,
+            )
+            .bind(maneuver.id())
+            .bind(tag.id())
+            .execute(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
+    async fn commit(self) -> Result<(), TransactionError> {
+        self.tx.commit().await.map_err(|e| TransactionError::TransactionError(e.to_string()))
+    }
+
+    async fn rollback(self) -> Result<(), TransactionError> {
+        self.tx.rollback().await.map_err(|e| TransactionError::TransactionError(e.to_string()))
+    }
+}
+
+impl SqlxManeuverTransaction {
+    pub async fn list(
         &mut self,
         pagination: Pagination,
-        filter: Self::Filter,
-        sort: Self::Sort,
-    ) -> Result<(Vec<Maneuver>, u64), RepositoryError> {
+        filter: <Self as Transaction<Maneuver>>::Filter,
+        sort: <Self as Transaction<Maneuver>>::Sort,
+    ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
         let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
 
@@ -218,7 +278,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .build_query_scalar()
             .fetch_one(&mut *self.tx)
             .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         use rc_log_domain::maneuver::query::{ManeuverSortField, SortDirection};
 
@@ -241,7 +301,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .build_query_as()
             .fetch_all(&mut *self.tx)
             .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         if maneuver_rows.is_empty() {
             return Ok((vec![], total as u64));
@@ -260,7 +320,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(&maneuver_ids)
         .fetch_all(&mut *self.tx)
         .await
-        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         let mut tags_by_maneuver: HashMap<Uuid, BTreeSet<Tag>> = HashMap::new();
         for row in tag_rows {
@@ -270,13 +330,13 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
                 .insert(Tag::from(row));
         }
 
-        let maneuvers: Result<Vec<Maneuver>, RepositoryError> = maneuver_rows
+        let maneuvers: Result<Vec<Maneuver>, TransactionError> = maneuver_rows
             .into_iter()
             .map(|row| {
                 let id = row.id;
                 let tags = tags_by_maneuver.remove(&id).unwrap_or_default();
                 row.try_into_maneuver(tags).ok_or_else(|| {
-                    RepositoryError::InvalidData(format!(
+                    TransactionError::InvalidData(format!(
                         "Invalid maneuver data for id {}",
                         id
                     ))
@@ -286,62 +346,17 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 
         Ok((maneuvers?, total as u64))
     }
+}
 
-    async fn save(&mut self, maneuver: &Maneuver) -> Result<(), RepositoryError> {
-        let maneuver_row = ManeuverRow::from_maneuver(maneuver);
-
-        sqlx::query(
-            r#"
-            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty, video_path)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE SET
-                vehicle_type = EXCLUDED.vehicle_type,
-                name = EXCLUDED.name,
-                description = EXCLUDED.description,
-                difficulty = EXCLUDED.difficulty,
-                video_path = EXCLUDED.video_path
-            "#,
-        )
-        .bind(maneuver_row.id)
-        .bind(&maneuver_row.vehicle_type)
-        .bind(&maneuver_row.name)
-        .bind(&maneuver_row.description)
-        .bind(maneuver_row.difficulty)
-        .bind(&maneuver_row.video_path)
-        .execute(&mut *self.tx)
-        .await
-        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
-
-        sqlx::query("DELETE FROM maneuver.maneuver_tag WHERE maneuver_id = $1")
-            .bind(maneuver.id())
-            .execute(&mut *self.tx)
-            .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
-
-        for tag in maneuver.tags() {
-            sqlx::query(
-                r#"
-                INSERT INTO maneuver.maneuver_tag (maneuver_id, tag_id)
-                VALUES ($1, $2)
-                ON CONFLICT DO NOTHING
-                "#,
-            )
-            .bind(maneuver.id())
-            .bind(tag.id())
-            .execute(&mut *self.tx)
-            .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
-        }
-
-        Ok(())
-    }
-
-    async fn commit(self) -> Result<(), RepositoryError> {
-        self.tx.commit().await.map_err(|e| RepositoryError::TransactionError(e.to_string()))
-    }
-
-    async fn rollback(self) -> Result<(), RepositoryError> {
-        self.tx.rollback().await.map_err(|e| RepositoryError::TransactionError(e.to_string()))
+impl ManeuverTransaction for SqlxManeuverTransaction {
+    async fn list(
+        &mut self,
+        pagination: Pagination,
+        filter: rc_log_domain::maneuver::query::ManeuverFilter,
+        sort: rc_log_domain::maneuver::query::ManeuverSort,
+    ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
+        // Delegate to the standalone impl
+        <Self>::list(self, pagination, filter, sort).await
     }
 }
 
@@ -359,12 +374,12 @@ impl SqlxManeuverUnitOfWork {
 impl UnitOfWork<Maneuver> for SqlxManeuverUnitOfWork {
     type Transaction = SqlxManeuverTransaction;
 
-    async fn begin(&mut self) -> Result<Self::Transaction, RepositoryError> {
+    async fn begin(&mut self) -> Result<Self::Transaction, TransactionError> {
         let tx = self
             .pool
             .begin()
             .await
-            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         Ok(SqlxManeuverTransaction { tx })
     }

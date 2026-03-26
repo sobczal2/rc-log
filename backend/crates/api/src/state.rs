@@ -1,4 +1,4 @@
-use rc_log_persistance::maneuver::repository::SqlxManeuverUnitOfWork;
+use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
 use sqlx::PgPool;
 
 #[derive(Clone)]

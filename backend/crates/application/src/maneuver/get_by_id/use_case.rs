@@ -1,5 +1,6 @@
 use rc_log_domain::maneuver::Maneuver;
-use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use rc_log_domain::shared::transaction::Transaction;
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
