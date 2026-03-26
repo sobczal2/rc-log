@@ -7,7 +7,7 @@ use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 use crate::shared::vehicle_type::VehicleTypeDto;
 
-use rc_log_domain::maneuver::query::{
+use rc_log_domain::maneuver::transaction::{
     ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
 };
 

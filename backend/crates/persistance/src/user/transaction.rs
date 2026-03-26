@@ -1,4 +1,4 @@
-use rc_log_domain::user::{User, query::UserTransaction};
+use rc_log_domain::user::{User, transaction::UserTransaction};
 use rc_log_domain::shared::transaction::{TransactionError, Transaction};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::password_hash::PasswordHash;

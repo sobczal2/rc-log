@@ -2,7 +2,7 @@ use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::transaction::Transaction;
-use rc_log_domain::maneuver::query::ManeuverTransaction;
+use rc_log_domain::maneuver::transaction::ManeuverTransaction;
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
@@ -10,7 +10,7 @@ use crate::shared::pagination::PaginatedResult;
 
 use super::error::ListManeuversError;
 use super::model::{ListManeuversInput, ManeuverDto};
-use rc_log_domain::maneuver::query::{ManeuverFilter, ManeuverSort};
+use rc_log_domain::maneuver::transaction::{ManeuverFilter, ManeuverSort};
 
 pub struct ListManeuversUseCase<UoW> {
     uow: UoW,

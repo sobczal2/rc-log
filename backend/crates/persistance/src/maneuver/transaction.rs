@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag, query::ManeuverTransaction};
+use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag, transaction::ManeuverTransaction};
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{TransactionError, Transaction};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -210,8 +210,8 @@ impl SqlxManeuverTransaction {
     pub async fn list(
         &mut self,
         pagination: Pagination,
-        filter: rc_log_domain::maneuver::query::ManeuverFilter,
-        sort: rc_log_domain::maneuver::query::ManeuverSort,
+        filter: rc_log_domain::maneuver::transaction::ManeuverFilter,
+        sort: rc_log_domain::maneuver::transaction::ManeuverSort,
     ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
         let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
@@ -279,7 +279,7 @@ impl SqlxManeuverTransaction {
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        use rc_log_domain::maneuver::query::{ManeuverSortField, SortDirection};
+        use rc_log_domain::maneuver::transaction::{ManeuverSortField, SortDirection};
 
         select_query.push(" ORDER BY ");
         match sort.field {
@@ -351,8 +351,8 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
     async fn list(
         &mut self,
         pagination: Pagination,
-        filter: rc_log_domain::maneuver::query::ManeuverFilter,
-        sort: rc_log_domain::maneuver::query::ManeuverSort,
+        filter: rc_log_domain::maneuver::transaction::ManeuverFilter,
+        sort: rc_log_domain::maneuver::transaction::ManeuverSort,
     ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
         // Delegate to the standalone impl
         <Self>::list(self, pagination, filter, sort).await

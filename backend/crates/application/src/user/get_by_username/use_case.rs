@@ -1,4 +1,4 @@
-use rc_log_domain::user::query::UserTransaction;
+use rc_log_domain::user::transaction::UserTransaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::user::User;
