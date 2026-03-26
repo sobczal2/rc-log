@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub enum DifficultyDto {
-    Level1 = 1,
-    Level2 = 2,
-    Level3 = 3,
-    Level4 = 4,
-    Level5 = 5,
-    Level6 = 6,
-    Level7 = 7,
+    Level1,
+    Level2,
+    Level3,
+    Level4,
+    Level5,
+    Level6,
+    Level7,
 }

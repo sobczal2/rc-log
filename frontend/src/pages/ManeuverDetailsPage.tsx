@@ -5,7 +5,7 @@ import { maneuversApi } from "@/lib/api/maneuvers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { getVehicleIcon, getDifficultyLabel } from "@/domain/maneuver";
+import { getVehicleIcon, getDifficultyName } from "@/domain/maneuver";
 
 export function ManeuverDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -73,9 +73,9 @@ export function ManeuverDetailsPage() {
                 </div>
                 <div className="font-bold flex items-center gap-2">
                    <Badge variant="outline" className="font-mono bg-background">
-                     L{maneuver.difficulty}
+                     {maneuver.difficulty.replace("Level", "L")}
                    </Badge>
-                   <span>{getDifficultyLabel(maneuver.vehicleType, maneuver.difficulty).replace(/^L\d+: /, "")}</span>
+                   <span>{getDifficultyName(maneuver.vehicleType, maneuver.difficulty)}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {maneuver.tags.map(tag => (

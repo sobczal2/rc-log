@@ -25,7 +25,6 @@ struct TagRow {
     name: String,
 }
 
-/// Used in batch list() queries where each tag row carries its owning maneuver id.
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct TagRowWithManeuver {
     id: Uuid,
@@ -160,7 +159,6 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
 
-        // We build the WHERE clause using a closure so we can apply it equivalently to both the SELECT COUNT and the main SELECT
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
             let mut has_where = false;
             let mut add_clause = |b: &mut QueryBuilder<'_, Postgres>| {
@@ -186,13 +184,13 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             if let Some(diff) = &filter.difficulty {
                 add_clause(q);
                 let d_val = match diff {
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level1 => 1,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level2 => 2,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level3 => 3,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level4 => 4,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level5 => 5,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level6 => 6,
-                    rc_log_domain::maneuver::difficulty::Difficulty::Level7 => 7,
+                    Difficulty::Level1 => 1,
+                    Difficulty::Level2 => 2,
+                    Difficulty::Level3 => 3,
+                    Difficulty::Level4 => 4,
+                    Difficulty::Level5 => 5,
+                    Difficulty::Level6 => 6,
+                    Difficulty::Level7 => 7,
                 };
                 q.push("m.difficulty = ");
                 q.push_bind(d_val);
@@ -200,9 +198,9 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 
             if let Some(sq) = &filter.search_query {
                 add_clause(q);
-                q.push("to_tsvector('english', m.name || ' ' || m.description) @@ plainto_tsquery('english', ");
+                q.push("EXISTS (SELECT 1 FROM maneuver.maneuver_tag mt JOIN maneuver.tag t ON mt.tag_id = t.id WHERE mt.maneuver_id = m.id AND t.name ILIKE '%' || ");
                 q.push_bind(sq.clone());
-                q.push(")");
+                q.push(" || '%')");
             }
 
             if !filter.tags.is_empty() {

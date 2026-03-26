@@ -42,7 +42,7 @@ export const maneuversApi = {
         params.append("vehicleType", req.filter.vehicleType);
       }
       if (req.filter.difficulty) {
-        params.append("difficulty", req.filter.difficulty.toString());
+        params.append("difficulty", req.filter.difficulty);
       }
       if (req.filter.searchQuery && req.filter.searchQuery.trim()) {
         params.append("searchQuery", req.filter.searchQuery.trim());

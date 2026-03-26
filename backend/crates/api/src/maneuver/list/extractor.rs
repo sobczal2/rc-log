@@ -12,6 +12,7 @@ use serde::Deserialize;
 use crate::error::ApiError;
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RawListQuery {
     page: u32,
     page_size: u32,
@@ -23,7 +24,9 @@ struct RawListQuery {
     difficulty: String,
     #[serde(default)]
     search_query: String,
+    #[serde(default)]
     sort_field: String,
+    #[serde(default)]
     sort_direction: String,
 }
 
@@ -57,15 +60,15 @@ where
         };
 
         use rc_log_application::shared::difficulty::DifficultyDto;
-        let difficulty = match raw.difficulty.parse::<u8>() {
-            Ok(1) => Some(DifficultyDto::Level1),
-            Ok(2) => Some(DifficultyDto::Level2),
-            Ok(3) => Some(DifficultyDto::Level3),
-            Ok(4) => Some(DifficultyDto::Level4),
-            Ok(5) => Some(DifficultyDto::Level5),
-            Ok(6) => Some(DifficultyDto::Level6),
-            Ok(7) => Some(DifficultyDto::Level7),
-            Ok(_) | Err(_) if raw.difficulty.is_empty() => None,
+        let difficulty = match raw.difficulty.as_str() {
+            "Level1" => Some(DifficultyDto::Level1),
+            "Level2" => Some(DifficultyDto::Level2),
+            "Level3" => Some(DifficultyDto::Level3),
+            "Level4" => Some(DifficultyDto::Level4),
+            "Level5" => Some(DifficultyDto::Level5),
+            "Level6" => Some(DifficultyDto::Level6),
+            "Level7" => Some(DifficultyDto::Level7),
+            "" => None,
             _ => return Err(ApiError::Validation(vec![rc_log_application::shared::validator::ValidationError::new("difficulty", "invalid difficulty")])),
         };
 

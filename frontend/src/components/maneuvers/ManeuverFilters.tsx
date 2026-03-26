@@ -28,13 +28,13 @@ const VEHICLE_OPTIONS = [
 ];
 
 const DIFFICULTY_OPTIONS = [
-  { value: "1", label: "Level 1 - Beginner" },
-  { value: "2", label: "Level 2" },
-  { value: "3", label: "Level 3" },
-  { value: "4", label: "Level 4" },
-  { value: "5", label: "Level 5" },
-  { value: "6", label: "Level 6" },
-  { value: "7", label: "Level 7 - Expert" },
+  { value: "Level1", label: "Level 1 - Beginner" },
+  { value: "Level2", label: "Level 2" },
+  { value: "Level3", label: "Level 3" },
+  { value: "Level4", label: "Level 4" },
+  { value: "Level5", label: "Level 5" },
+  { value: "Level6", label: "Level 6" },
+  { value: "Level7", label: "Level 7 - Expert" },
 ];
 
 const SORT_FIELD_OPTIONS = [
@@ -62,7 +62,7 @@ export function ManeuverFilters({
     filters.difficulty;
 
   const difficultyValue = filters.difficulty
-    ? filters.difficulty.toString()
+    ? filters.difficulty
     : "all";
 
   const activeFilterCount = [filters.searchQuery, filters.vehicleType, filters.difficulty].filter(Boolean).length;
@@ -129,7 +129,7 @@ export function ManeuverFilters({
           )}
           {filters.difficulty && (
             <ActiveFilterBadge
-              label={`Level ${filters.difficulty}`}
+              label={filters.difficulty.replace("Level", "Level ")}
               onRemove={() => actions.removeFilter("difficulty")}
             />
           )}
@@ -177,7 +177,7 @@ export function ManeuverFilters({
             <Select.Root
               value={difficultyValue}
               onValueChange={(value) =>
-                actions.setDifficulty(!value || value === "all" ? null : parseInt(value, 10) as DifficultyLevel)
+                actions.setDifficulty(!value || value === "all" ? null : value as DifficultyLevel)
               }
             >
               <SelectTrigger className="w-[160px]">
