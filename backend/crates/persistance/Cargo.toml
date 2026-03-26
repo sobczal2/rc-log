@@ -7,3 +7,6 @@ edition = "2024"
 rc-log-domain.workspace = true
 sqlx = { workspace = true, features = ["runtime-tokio", "postgres", "uuid"] }
 uuid.workspace = true
+
+[build-dependencies]
+glob = "0.3"

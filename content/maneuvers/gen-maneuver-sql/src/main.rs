@@ -81,7 +81,7 @@ fn main() {
         let maneuver_id = Uuid::new_v4();
         
         let video_path = if let Some(video_filename) = videos.get(&file_stem) {
-            format!("'maneuvers/{}'", video_filename)
+            format!("'{}'", video_filename)
         } else {
             "NULL".to_string()
         };

@@ -9,5 +9,13 @@ export interface Maneuver {
   difficulty: DifficultyLevel;
   tags: TagDto[];
   description: string;
-  videoUrl?: string;
+  videoPath?: string;
+}
+
+export function getManeuverVideoUrl(maneuver: Maneuver): string | null {
+  if (!maneuver.videoPath) {
+    return null;
+  }
+
+  return `/assets/${maneuver.videoPath}`;
 }

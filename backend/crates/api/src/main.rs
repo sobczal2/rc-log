@@ -8,6 +8,7 @@ use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;
 use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, fmt};
 
@@ -34,7 +35,10 @@ async fn main() {
 
     let state = AppState::new(pool);
 
-    let app = Router::new().merge(maneuver_router()).with_state(state);
+    let app = Router::new()
+        .merge(maneuver_router())
+        .with_state(state)
+        .nest_service("/assets", ServeDir::new(config.asset_path.clone()));
 
     let addr = config.socket_addr();
     let listener = TcpListener::bind(addr).await.expect("Failed to bind to address");

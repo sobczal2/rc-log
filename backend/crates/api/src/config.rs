@@ -1,5 +1,6 @@
 use std::env;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Environment {
@@ -26,6 +27,7 @@ pub struct AppConfig {
     pub database_url: String,
     pub host: String,
     pub port: u16,
+    pub asset_path: PathBuf,
 }
 
 impl AppConfig {
@@ -46,7 +48,11 @@ impl AppConfig {
             .parse::<u16>()
             .expect("APP_PORT must be a valid u16");
 
-        Self { environment, database_url, host, port }
+        let asset_path = env::var("APP_ASSET_PATH")
+            .expect("APP_ASSET_PATH must be set")
+            .into();
+
+        Self { environment, database_url, host, port, asset_path }
     }
 
     pub fn socket_addr(&self) -> SocketAddr {
