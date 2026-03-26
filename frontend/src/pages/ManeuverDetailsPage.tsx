@@ -62,26 +62,26 @@ export function ManeuverDetailsPage() {
               <ArrowLeft className="mr-2" size={16} /> Back to maneuvers
             </Button>
           </div>
-          <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-            <div className="w-full md:w-1/3 flex flex-col gap-6">
-              <div className="aspect-square bg-muted/30 rounded-xl overflow-hidden border border-border/50 shadow-sm relative shrink-0">
-                {maneuver.videoPath ? (
-                  <video
-                    src={getManeuverVideoUrl(maneuver)!}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
-                    {getVehicleIcon(maneuver.vehicleType, 64)}
-                  </div>
-                )}
-              </div>
+          <div className="flex flex-col gap-8 lg:gap-12">
+            <div className="bg-muted/30 rounded-xl overflow-hidden border border-border/50 shadow-sm relative">
+              {maneuver.videoPath ? (
+                <video
+                  src={getManeuverVideoUrl(maneuver)!}
+                  className="w-full aspect-video object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <div className="w-full aspect-video flex items-center justify-center text-muted-foreground/20">
+                  {getVehicleIcon(maneuver.vehicleType, 64)}
+                </div>
+              )}
+            </div>
 
-              <div className="flex flex-col gap-3 p-5 bg-card/50 shadow-sm border border-border/50 rounded-xl">
+            <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
+              <div className="w-full md:w-1/3 self-start flex flex-col gap-3 p-5 bg-card/50 shadow-sm border border-border/50 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <span className="text-muted-foreground">
@@ -113,16 +113,16 @@ export function ManeuverDetailsPage() {
                   ))}
                 </div>
               </div>
-            </div>
 
-            <div className="w-full md:w-2/3 flex flex-col pb-16">
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-8 leading-tight">
-                {maneuver.name}
-              </h1>
+              <div className="w-full md:w-2/3 flex flex-col pb-16">
+                <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-8 leading-tight">
+                  {maneuver.name}
+                </h1>
 
-              <article className="prose prose-zinc dark:prose-invert prose-headings:font-bold prose-h2:text-2xl mt-2 w-full max-w-none prose-a:text-primary">
-                <ReactMarkdown>{maneuver.description}</ReactMarkdown>
-              </article>
+                <article className="prose prose-zinc dark:prose-invert prose-headings:font-bold prose-h2:text-2xl mt-2 w-full max-w-none prose-a:text-primary">
+                  <ReactMarkdown>{maneuver.description}</ReactMarkdown>
+                </article>
+              </div>
             </div>
           </div>
         </div>
