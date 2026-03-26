@@ -48,11 +48,11 @@ Pure domain model. No framework dependencies. Owns:
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
-fn get_by_id(&mut self, id: Uuid) -> impl Future<Output = Result<Option<T>, RepositoryError>>;
-fn list(&mut self, pagination: Pagination) -> impl Future<Output = Result<(Vec<T>, u64), RepositoryError>>;
-fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), RepositoryError>>;
-fn commit(self) -> impl Future<Output = Result<(), RepositoryError>>;
-fn rollback(self) -> impl Future<Output = Result<(), RepositoryError>>;
+fn get_by_id(&mut self, id: Uuid) -> impl Future<Output = Result<Option<T>, TransactionError>>;
+fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), TransactionError>>;
+fn commit(self) -> impl Future<Output = Result<(), TransactionError>>;
+fn rollback(self) -> impl Future<Output = Result<(), TransactionError>>;
+```
 ```
 
 **`UnitOfWork<T>` trait**:

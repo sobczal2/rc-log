@@ -22,9 +22,6 @@ impl Display for TransactionError {
 impl Error for TransactionError {}
 
 pub trait Transaction<T>: Send {
-    type Filter: Send + Default;
-    type Sort: Send + Default;
-
     fn get_by_id(
         &mut self,
         id: Uuid,

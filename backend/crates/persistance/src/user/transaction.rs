@@ -35,9 +35,6 @@ pub struct SqlxUserTransaction {
 }
 
 impl Transaction<User> for SqlxUserTransaction {
-    type Filter = ();
-    type Sort = ();
-
     async fn get_by_id(&mut self, id: Uuid) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"

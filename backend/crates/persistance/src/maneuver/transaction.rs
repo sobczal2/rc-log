@@ -111,9 +111,6 @@ pub struct SqlxManeuverTransaction {
 }
 
 impl Transaction<Maneuver> for SqlxManeuverTransaction {
-    type Filter = rc_log_domain::maneuver::query::ManeuverFilter;
-    type Sort = rc_log_domain::maneuver::query::ManeuverSort;
-
     async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, TransactionError> {
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
@@ -213,8 +210,8 @@ impl SqlxManeuverTransaction {
     pub async fn list(
         &mut self,
         pagination: Pagination,
-        filter: <Self as Transaction<Maneuver>>::Filter,
-        sort: <Self as Transaction<Maneuver>>::Sort,
+        filter: rc_log_domain::maneuver::query::ManeuverFilter,
+        sort: rc_log_domain::maneuver::query::ManeuverSort,
     ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
         let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
