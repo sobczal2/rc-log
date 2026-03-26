@@ -37,8 +37,11 @@ Pure domain model. No framework dependencies. Owns:
 | `src/maneuver/mod.rs` | `Maneuver` aggregate (id, vehicle_type, name, tags, description, difficulty, video_path) |
 | `src/maneuver/difficulty.rs` | `Difficulty` enum (Level1–Level7) |
 | `src/maneuver/tag.rs` | `Tag` value object (id, name) |
+| `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash) |
+| `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_username()` |
 | `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
 | `src/shared/pagination.rs` | `Pagination` value object (page, page_size) with `offset()`/`limit()` helpers |
+| `src/shared/password_hash.rs` | `PasswordHash` newtype |
 | `src/shared/vehicle_type.rs` | `VehicleType` enum (Helicopter, Plane, Drone) |
 | `src/shared/markdown_text.rs` | `MarkdownText` newtype |
 | `src/shared/video_path.rs` | `VideoPath` newtype |
@@ -72,6 +75,15 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/maneuver/list/error.rs` | `ListManeuversError` |
 | `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto` |
 | `src/maneuver/list/use_case.rs` | `ListManeuversUseCase<UoW>` — returns `PaginatedResult<ManeuverDto>` |
+| `src/user/create/error.rs` | `CreateUserError` (ValidationError, UsernameTaken, EmailTaken, RepositoryError) |
+| `src/user/create/model.rs` | `CreateUserInput`, `UserDto` |
+| `src/user/create/use_case.rs` | `CreateUserUseCase<UoW>` — creates user with hashed password |
+| `src/user/get_by_id/error.rs` | `GetUserByIdError` (NotFound, InvalidData, RepositoryError) |
+| `src/user/get_by_id/model.rs` | `GetUserByIdInput`, `UserDto` |
+| `src/user/get_by_id/use_case.rs` | `GetUserByIdUseCase<UoW>` — returns `UserDto` |
+| `src/user/get_by_username/error.rs` | `GetUserByUsernameError` (NotFound, InvalidUsername, InvalidData, RepositoryError) |
+| `src/user/get_by_username/model.rs` | `GetUserByUsernameInput`, `UserDto` |
+| `src/user/get_by_username/use_case.rs` | `GetUserByUsernameUseCase<UoW>` — returns `UserDto` |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -101,7 +113,8 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 
 | Path | Contents |
 |---|---|
-| `src/maneuver/repository.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
+| `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
+| `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 
 **Key implementation details:**
 - `SqlxManeuverUnitOfWork` holds a `PgPool` (Arc-backed, `Clone`-derived).
@@ -109,10 +122,19 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `list`: three queries — `COUNT(*)`, paginated `SELECT … ORDER BY name LIMIT/OFFSET`, then one batched `WHERE maneuver_id = ANY($1)` tag fetch (no N+1 problem).
 - `ManeuverRow` / `TagRow` / `TagRowWithManeuver` are private sqlx row structs used only for DB mapping.
 
+**User repository** (`src/user/transaction.rs`):
+- `SqlxUserUnitOfWork` holds a `PgPool` and implements `UnitOfWork<User>`.
+- `SqlxUserTransaction` implements both `Transaction<User>` and `UserTransaction` trait.
+- `get_by_id(uuid)`: single query to fetch user by ID.
+- `get_by_username(username)`: single query to fetch user by username (required by `UserTransaction` extended trait).
+- `save(user)`: upsert user record (insert or update on conflict).
+- `UserRow` is private sqlx row struct for DB mapping.
+
 **Database schema** (`migrations/`):
 - `maneuver.maneuver` — core entity table
 - `maneuver.tag` — tag lookup table
 - `maneuver.maneuver_tag` — many-to-many join table
+- `user.user` — user entity table with unique constraints on username and email
 
 ---
 
