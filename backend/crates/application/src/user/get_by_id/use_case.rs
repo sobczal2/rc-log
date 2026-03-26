@@ -34,7 +34,7 @@ where
                 GetUserByIdError::NotFound
             })?;
 
-        debug!(username = user.username(), "User retrieved, committing transaction");
+        debug!(username = user.username().as_str(), "User retrieved, committing transaction");
         tx.commit().await.map_err(GetUserByIdError::from)?;
 
         Ok(UserDto::from(user))

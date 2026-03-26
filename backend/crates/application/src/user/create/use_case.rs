@@ -1,12 +1,13 @@
 use rc_log_domain::user::User;
+use rc_log_domain::user::username::Username;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::password_hash::PasswordHash;
+use rc_log_domain::shared::email::Email;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::error::ApplicationError;
-use crate::shared::validator::Validate;
 use super::error::CreateUserError;
 use super::model::{CreateUserInput, UserDto};
 
@@ -24,25 +25,18 @@ where
 
     #[instrument(skip(self), fields(username = %input.username))]
     pub async fn execute(&mut self, input: CreateUserInput) -> Result<UserDto, ApplicationError> {
-        input.validate().map_err(|errs| {
-            CreateUserError::ValidationError(
-                errs.iter()
-                    .map(|e| format!("{}: {}", e.field, e.message))
-                    .collect::<Vec<_>>()
-                    .join("; "),
-            )
-        })?;
+        let username = Username::new(input.username)
+            .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
+        let email = Email::new(input.email)
+            .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
+        let password_hash = PasswordHash::new(input.password_hash)
+            .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
 
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(CreateUserError::from)?;
 
         debug!("Creating new user");
-        let user = User::new(
-            Uuid::new_v4(),
-            input.username,
-            input.email,
-            PasswordHash::new(input.password_hash),
-        );
+        let user = User::new(Uuid::new_v4(), username, email, password_hash);
 
         debug!("Saving user to repository");
         tx.save(&user).await.map_err(CreateUserError::from)?;

@@ -30,8 +30,8 @@ impl From<User> for UserDto {
     fn from(user: User) -> Self {
         UserDto {
             id: user.id(),
-            username: user.username().to_string(),
-            email: user.email().to_string(),
+            username: user.username().as_str().to_string(),
+            email: user.email().as_str().to_string(),
         }
     }
 }

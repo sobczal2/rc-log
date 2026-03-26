@@ -1,3 +1,4 @@
+pub mod email;
 pub mod markdown_text;
 pub mod pagination;
 pub mod password_hash;

@@ -1,8 +1,11 @@
-pub mod transaction;
+pub mod query;
+pub mod username;
 
 use uuid::Uuid;
 
+use crate::shared::email::Email;
 use crate::shared::password_hash::PasswordHash;
+use username::Username;
 
 /// User aggregate root
 ///
@@ -10,38 +13,28 @@ use crate::shared::password_hash::PasswordHash;
 #[derive(Debug, Clone)]
 pub struct User {
     id: Uuid,
-    username: String,
-    email: String,
+    username: Username,
+    email: Email,
     password_hash: PasswordHash,
 }
 
 impl User {
-    /// Create a new user
-    pub fn new(id: Uuid, username: String, email: String, password_hash: PasswordHash) -> Self {
-        Self {
-            id,
-            username,
-            email,
-            password_hash,
-        }
+    pub fn new(id: Uuid, username: Username, email: Email, password_hash: PasswordHash) -> Self {
+        Self { id, username, email, password_hash }
     }
 
-    /// Get the user's ID
     pub fn id(&self) -> Uuid {
         self.id
     }
 
-    /// Get the user's username
-    pub fn username(&self) -> &str {
+    pub fn username(&self) -> &Username {
         &self.username
     }
 
-    /// Get the user's email
-    pub fn email(&self) -> &str {
+    pub fn email(&self) -> &Email {
         &self.email
     }
 
-    /// Get the user's password hash
     pub fn password_hash(&self) -> &PasswordHash {
         &self.password_hash
     }

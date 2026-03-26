@@ -1,4 +1,5 @@
-use rc_log_domain::user::{User, transaction::UserTransaction};
+use rc_log_domain::user::{User, query::UserTransaction, username::Username};
+use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::transaction::{TransactionError, Transaction};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::password_hash::PasswordHash;
@@ -13,18 +14,22 @@ struct UserRow {
     password_hash: String,
 }
 
-impl From<UserRow> for User {
-    fn from(row: UserRow) -> Self {
-        User::new(row.id, row.username, row.email, PasswordHash::new(row.password_hash))
-    }
-}
-
 impl UserRow {
+    fn try_into_user(self) -> Result<User, TransactionError> {
+        let username = Username::new(self.username)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let email = Email::new(self.email)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let password_hash = PasswordHash::new(self.password_hash)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        Ok(User::new(self.id, username, email, password_hash))
+    }
+
     fn from_user(user: &User) -> Self {
         Self {
             id: user.id(),
-            username: user.username().to_string(),
-            email: user.email().to_string(),
+            username: user.username().as_str().to_string(),
+            email: user.email().as_str().to_string(),
             password_hash: user.password_hash().as_str().to_string(),
         }
     }
@@ -48,7 +53,7 @@ impl Transaction<User> for SqlxUserTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        Ok(user_row.map(User::from))
+        user_row.map(UserRow::try_into_user).transpose()
     }
 
     async fn save(&mut self, user: &User) -> Result<(), TransactionError> {
@@ -104,7 +109,7 @@ impl UserTransaction for SqlxUserTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        Ok(user_row.map(User::from))
+        user_row.map(UserRow::try_into_user).transpose()
     }
 }
 

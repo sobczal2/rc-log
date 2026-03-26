@@ -65,14 +65,15 @@ impl ManeuverRow {
             _ => return None,
         };
 
-        let video_path = self.video_path.map(VideoPath::new);
+        let video_path = self.video_path.and_then(|vp| VideoPath::new(vp).ok());
+        let description = MarkdownText::new(self.description).ok()?;
 
         Some(Maneuver::new(
             self.id,
             vehicle_type,
             self.name,
             tags,
-            MarkdownText::new(self.description),
+            description,
             difficulty,
             video_path,
         ))
