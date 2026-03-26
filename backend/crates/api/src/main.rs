@@ -38,7 +38,7 @@ async fn main() {
     let app = Router::new()
         .merge(maneuver_router())
         .with_state(state)
-        .nest_service("/assets", ServeDir::new(config.asset_path.clone()));
+        .nest_service("/api/assets", ServeDir::new(config.asset_path.clone()));
 
     let addr = config.socket_addr();
     let listener = TcpListener::bind(addr).await.expect("Failed to bind to address");

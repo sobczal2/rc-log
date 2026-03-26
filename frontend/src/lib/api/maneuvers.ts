@@ -34,7 +34,6 @@ export const maneuversApi = {
     const { data } = await apiClient.get<GetManeuverByIdResponse>(
       `/maneuvers/${req.id}`,
     );
-    console.table(data);
     return data;
   },
 

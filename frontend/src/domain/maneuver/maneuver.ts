@@ -17,5 +17,5 @@ export function getManeuverVideoUrl(maneuver: Maneuver): string | null {
     return null;
   }
 
-  return `/assets/${maneuver.videoPath}`;
+  return `/api/assets/${maneuver.videoPath}`;
 }
