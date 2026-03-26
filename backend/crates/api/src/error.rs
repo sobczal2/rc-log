@@ -12,11 +12,17 @@ use serde_json::json;
 pub enum ApiError {
     #[error(transparent)]
     Application(#[from] ApplicationError),
+    #[error("Validation failed")]
+    Validation(Vec<rc_log_application::shared::validator::ValidationError>),
 }
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
+            ApiError::Validation(errors) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Validation failed", "details": errors }))
+            ).into_response(),
             ApiError::Application(ApplicationError::GetManeuverById(
                 GetManeuverByIdError::NotFound,
             )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Maneuver not found" })))

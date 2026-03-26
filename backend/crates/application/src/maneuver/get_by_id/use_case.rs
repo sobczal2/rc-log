@@ -1,11 +1,10 @@
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
 use tracing::{debug, instrument};
-use uuid::Uuid;
 
 use crate::error::ApplicationError;
 use super::error::GetManeuverByIdError;
-use super::model::ManeuverDto;
+use super::model::{GetManeuverByIdInput, ManeuverDto};
 
 pub struct GetManeuverByIdUseCase<UoW> {
     uow: UoW,
@@ -19,14 +18,14 @@ where
         Self { uow }
     }
 
-    #[instrument(skip(self), fields(maneuver_id = %id))]
-    pub async fn execute(&mut self, id: Uuid) -> Result<ManeuverDto, ApplicationError> {
+    #[instrument(skip(self), fields(maneuver_id = %input.id))]
+    pub async fn execute(&mut self, input: GetManeuverByIdInput) -> Result<ManeuverDto, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(GetManeuverByIdError::from)?;
 
         debug!("Querying maneuver from repository");
         let maneuver = tx
-            .get_by_id(id)
+            .get_by_id(input.id)
             .await
             .map_err(GetManeuverByIdError::from)?
             .ok_or_else(|| {

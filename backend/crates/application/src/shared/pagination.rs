@@ -1,3 +1,4 @@
+use crate::shared::validator::{Validate, ValidationError};
 use rc_log_domain::shared::pagination::Pagination;
 use serde::{Deserialize, Serialize};
 
@@ -7,13 +8,31 @@ pub struct PaginationDto {
     pub page_size: u32,
 }
 
+impl Validate for PaginationDto {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        let mut errors = Vec::new();
+        if self.page < 1 {
+            errors.push(ValidationError::new("page", "must be greater than or equal to 1"));
+        }
+        if self.page_size < 1 || self.page_size > 100 {
+            errors.push(ValidationError::new("page_size", "must be between 1 and 100"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 impl From<PaginationDto> for Pagination {
     fn from(dto: PaginationDto) -> Self {
         Self::new(dto.page, dto.page_size)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PaginatedResult<T> {
     pub items: Vec<T>,
     pub total: u64,

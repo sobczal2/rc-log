@@ -2,16 +2,15 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { maneuversApi } from "@/lib/api/maneuvers";
-import { mapManeuverDto } from "@/domain/maneuver/mapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plane, Helicopter, Drone, Loader2, AlertCircle } from "lucide-react";
-import { getDifficultyInfo } from "@/domain/maneuver";
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { getVehicleIcon, getDifficultyLabel } from "@/domain/maneuver";
 
 export function ManeuverDetailsPage() {
   const { id } = useParams<{ id: string }>();
   
-  const { data: apiManeuver, isLoading, isError, error } = useQuery({
+  const { data: maneuver, isLoading, isError, error } = useQuery({
     queryKey: ['maneuver', id],
     queryFn: () => maneuversApi.getById({ id: id! }),
     enabled: !!id,
@@ -25,7 +24,7 @@ export function ManeuverDetailsPage() {
       );
   }
 
-  if (isError || !apiManeuver) {
+  if (isError || !maneuver) {
     return (
       <div className="p-8 text-center flex flex-col items-center justify-center h-full gap-4">
         <AlertCircle className="w-12 h-12 text-destructive/50" />
@@ -36,18 +35,6 @@ export function ManeuverDetailsPage() {
       </div>
     );
   }
-
-  const maneuver = mapManeuverDto(apiManeuver);
-
-  const getVehicleIcon = (size = 18) => {
-    switch (maneuver.vehicleType) {
-      case "Plane": return <Plane size={size} />;
-      case "Helicopter": return <Helicopter size={size} />;
-      case "Drone": return <Drone size={size} />;
-    }
-  }
-
-  const difficultyInfo = getDifficultyInfo(maneuver.vehicleType, maneuver.difficulty);
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
@@ -72,7 +59,7 @@ export function ManeuverDetailsPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
-                    {getVehicleIcon(64)}
+                    {getVehicleIcon(maneuver.vehicleType, 64)}
                   </div>
                 )}
               </div>
@@ -80,15 +67,15 @@ export function ManeuverDetailsPage() {
               <div className="flex flex-col gap-3 p-5 bg-card/50 shadow-sm border border-border/50 rounded-xl">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                     <span className="text-muted-foreground">{getVehicleIcon()}</span>
+                     <span className="text-muted-foreground">{getVehicleIcon(maneuver.vehicleType)}</span>
                      <span>{maneuver.vehicleType}</span>
                    </div>
                 </div>
                 <div className="font-bold flex items-center gap-2">
                    <Badge variant="outline" className="font-mono bg-background">
-                     L{difficultyInfo.levelNumber}
+                     L{maneuver.difficulty}
                    </Badge>
-                   <span>{difficultyInfo.name}</span>
+                   <span>{getDifficultyLabel(maneuver.vehicleType, maneuver.difficulty).replace(/^L\d+: /, "")}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {maneuver.tags.map(tag => (

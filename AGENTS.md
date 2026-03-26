@@ -170,12 +170,124 @@ Initialized in `main.rs` from `RUST_LOG` (read from `.env` before subscriber ini
 
 ---
 
-## Frontend
+## Frontend — Domain-Driven TypeScript Architecture
 
 React/TypeScript SPA scaffolded with Vite using **shadcn/ui** components and Tailwind CSS. Source lives in `frontend/src/`.
-- **Styling**: `dark` theme enabled by default, defined in `index.css` with an okLCH palette matching RC hobby aesthetics.
-- **Routing**: Client-side routing via `react-router-dom` defined in `src/App.tsx`.
-- **Layout**: Main layout (`AppLayout`) features a collapsible vertical sidebar (`AppSidebar`) holding primary navigation (Home, Maneuvers) and mock authentication buttons.
+
+### Architecture Overview
+
+```
+frontend/src/
+├── domain/              # Domain layer — business types and formatting logic
+│   └── maneuver/        # Maneuver aggregate
+│       ├── maneuver.ts     # Maneuver interface (matches backend DTO)
+│       ├── difficulty.ts   # DifficultyLevel type (1-7) + formatting functions
+│       ├── vehicle.tsx     # VehicleType type + icon component
+│       ├── tag.ts          # Tag interface
+│       ├── filters.ts      # Filter/sort/pagination types
+│       └── index.ts        # Barrel export
+├── lib/api/             # API layer — HTTP client and request/response types
+│   ├── api-client.ts    # Axios instance with interceptors
+│   └── maneuvers.ts     # API functions (list, getById)
+├── hooks/               # Custom React hooks
+│   ├── useManeuverFilters.ts  # URL-synced filter state
+│   └── useDebounce.ts
+├── components/          # React components
+│   ├── maneuvers/       # Maneuver-specific components
+│   │   ├── ManeuverCard.tsx
+│   │   ├── ManeuverFilters.tsx
+│   │   └── ActiveFilterBadge.tsx
+│   ├── layout/         # Layout components
+│   └── ui/             # shadcn/ui components
+└── pages/               # Page components
+    ├── ManeuversPage.tsx
+    └── ManeuverDetailsPage.tsx
+```
+
+### Domain Layer (`domain/`)
+
+**Principles:**
+- Types directly reflect backend DTOs (camelCase field names)
+- Use **types** (interfaces/type aliases), not interfaces for data
+- Formatting logic lives in domain functions, not components
+- No mappers needed — domain types match API response exactly
+
+**Example — difficulty formatting:**
+```typescript
+// domain/maneuver/difficulty.ts
+export type DifficultyLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export function getDifficultyColor(difficulty: DifficultyLevel): string {
+  const colors: Record<DifficultyLevel, string> = {
+    1: "bg-green-500/10 text-green-500 border-green-500/20",
+    // ...
+  };
+  return colors[difficulty];
+}
+
+export function getDifficultyLabel(vehicleType: VehicleType, difficulty: DifficultyLevel): string {
+  // Returns "L1: Beginner", "L5: Basic 3D", etc.
+}
+```
+
+**Example — vehicle icons:**
+```typescript
+// domain/maneuver/vehicle.tsx (JSX file for React component return)
+export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
+  switch (vehicleType) {
+    case "Plane": return <Plane size={size} />;
+    case "Helicopter": return <Helicopter size={size} />;
+    case "Drone": return <Drone size={size} />;
+  }
+}
+```
+
+### API Layer (`lib/api/`)
+
+**Principles:**
+- Handles HTTP specifics (building query params, axios calls)
+- Re-exports domain types for convenience
+- Request/response types reference domain types directly (no duplication)
+
+**Example:**
+```typescript
+// lib/api/maneuvers.ts
+import type { Maneuver, ManeuverFilter, ManeuverSort } from "@/domain/maneuver";
+
+export interface ListManeuversRequest extends PaginationOptions {
+  filter?: ManeuverFilter;
+  sort?: ManeuverSort;
+}
+
+export const maneuversApi = {
+  list: async (req: ListManeuversRequest): Promise<ListManeuversResponse> => {
+    const params = new URLSearchParams();
+    // ... build query params
+    const { data } = await apiClient.get<ListManeuversResponse>("/maneuvers", { params });
+    return data;
+  },
+};
+```
+
+### Backend Serialization
+
+Backend DTOs use `#[serde(rename_all = "camelCase")]` to serialize fields as camelCase:
+- `vehicle_type` → `vehicleType`
+- `page_size` → `pageSize`
+- `video_path` → `videoPath`
+- `total_pages` → `totalPages`
+
+Difficulty serializes as number (1-7), not string.
+
+### Adding a New Feature — Frontend Checklist
+
+1. **Domain**: Add types in `domain/<entity>/` matching backend DTOs. Add formatting functions for display logic.
+2. **API**: Add request/response types in `lib/api/<entity>.ts`. Request types reference domain types.
+3. **Components**: Use domain types and domain formatting functions — never duplicate display logic.
+4. **Import rules**:
+   - Components import from `@/domain/maneuver` for types and formatting
+   - API layer imports from `@/domain/maneuver` for type references
+   - Never duplicate domain types in API layer
 
 ---
 

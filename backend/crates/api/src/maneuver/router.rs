@@ -1,6 +1,7 @@
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 
-use crate::maneuver::handler::{get_maneuver_by_id, list_maneuvers};
+use crate::maneuver::get_by_id::get_maneuver_by_id;
+use crate::maneuver::list::list_maneuvers;
 use crate::state::AppState;
 
 pub fn maneuver_router() -> Router<AppState> {

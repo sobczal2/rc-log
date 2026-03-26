@@ -2,7 +2,7 @@ import type { VehicleType } from "./vehicle";
 import type { DifficultyLevel } from "./difficulty";
 import type { TagDto } from "./tag";
 
-export interface ManeuverDto {
+export interface Maneuver {
   id: string;
   name: string;
   vehicleType: VehicleType;
