@@ -8,5 +8,6 @@ export interface ManeuverDto {
   vehicleType: VehicleType;
   difficulty: DifficultyLevel;
   tags: TagDto[];
+  description: string;
   videoUrl?: string;
 }
