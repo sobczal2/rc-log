@@ -8,8 +8,8 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::extractors::pagination::PaginationQuery;
 use crate::maneuver::response::{GetManeuverByIdResponse, ListManeuversResponse};
+use crate::maneuver::request::ListManeuversQuery;
 use crate::state::AppState;
 
 #[instrument(skip(state), fields(maneuver_id = %id))]
@@ -27,12 +27,12 @@ pub async fn get_maneuver_by_id(
 #[instrument(skip(state))]
 pub async fn list_maneuvers(
     State(state): State<AppState>,
-    pagination: PaginationQuery,
+    axum::extract::Query(query): axum::extract::Query<ListManeuversQuery>,
 ) -> Result<Json<ListManeuversResponse>, ApiError> {
-    debug!(page = pagination.page, page_size = pagination.page_size, "Handling list maneuvers request");
-    let application_pagination = pagination.into_dto();
+    debug!("Handling list maneuvers request");
+    let input = query.into_dto();
     let mut use_case = ListManeuversUseCase::new(state.maneuver_uow);
-    let result = use_case.execute(application_pagination).await?;
+    let result = use_case.execute(input).await?;
     debug!(total = result.total, count = result.items.len(), "Returning maneuver list");
     Ok(Json(ListManeuversResponse::from(result)))
 }

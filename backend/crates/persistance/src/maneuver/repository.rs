@@ -6,7 +6,7 @@ use rc_log_domain::shared::repository::{RepositoryError, Transaction, UnitOfWork
 use rc_log_domain::shared::{
     markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath,
 };
-use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
+use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction, QueryBuilder};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -111,6 +111,9 @@ pub struct SqlxManeuverTransaction {
 }
 
 impl Transaction<Maneuver> for SqlxManeuverTransaction {
+    type Filter = rc_log_domain::maneuver::query::ManeuverFilter;
+    type Sort = rc_log_domain::maneuver::query::ManeuverSort;
+
     async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, RepositoryError> {
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
@@ -151,25 +154,96 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     async fn list(
         &mut self,
         pagination: Pagination,
+        filter: Self::Filter,
+        sort: Self::Sort,
     ) -> Result<(Vec<Maneuver>, u64), RepositoryError> {
-        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM maneuver.maneuver")
+        let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
+        let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
+
+        // We build the WHERE clause using a closure so we can apply it equivalently to both the SELECT COUNT and the main SELECT
+        let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
+            let mut has_where = false;
+            let mut add_clause = |b: &mut QueryBuilder<'_, Postgres>| {
+                if !has_where {
+                    b.push(" WHERE ");
+                    has_where = true;
+                } else {
+                    b.push(" AND ");
+                }
+            };
+
+            if let Some(vt) = &filter.vehicle_type {
+                add_clause(q);
+                let vt_str = match vt {
+                    VehicleType::Helicopter => "Helicopter",
+                    VehicleType::Plane => "Plane",
+                    VehicleType::Drone => "Drone",
+                };
+                q.push("m.vehicle_type = ");
+                q.push_bind(vt_str);
+            }
+
+            if let Some(diff) = &filter.difficulty {
+                add_clause(q);
+                let d_val = match diff {
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level1 => 1,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level2 => 2,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level3 => 3,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level4 => 4,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level5 => 5,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level6 => 6,
+                    rc_log_domain::maneuver::difficulty::Difficulty::Level7 => 7,
+                };
+                q.push("m.difficulty = ");
+                q.push_bind(d_val);
+            }
+
+            if let Some(sq) = &filter.search_query {
+                add_clause(q);
+                q.push("to_tsvector('english', m.name || ' ' || m.description) @@ plainto_tsquery('english', ");
+                q.push_bind(sq.clone());
+                q.push(")");
+            }
+
+            if !filter.tags.is_empty() {
+                add_clause(q);
+                q.push("EXISTS (SELECT 1 FROM maneuver.maneuver_tag mt JOIN maneuver.tag t ON mt.tag_id = t.id WHERE mt.maneuver_id = m.id AND t.name = ANY(");
+                q.push_bind(filter.tags.clone());
+                q.push("))");
+            }
+        };
+
+        apply_conditions(&mut count_query);
+        apply_conditions(&mut select_query);
+
+        let total: i64 = count_query
+            .build_query_scalar()
             .fetch_one(&mut *self.tx)
             .await
             .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
 
-        let maneuver_rows: Vec<ManeuverRow> = sqlx::query_as(
-            r#"
-            SELECT id, vehicle_type, name, description, difficulty, video_path
-            FROM maneuver.maneuver
-            ORDER BY name
-            LIMIT $1 OFFSET $2
-            "#,
-        )
-        .bind(pagination.limit() as i64)
-        .bind(pagination.offset() as i64)
-        .fetch_all(&mut *self.tx)
-        .await
-        .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
+        use rc_log_domain::maneuver::query::{ManeuverSortField, SortDirection};
+
+        select_query.push(" ORDER BY ");
+        match sort.field {
+            ManeuverSortField::Name => { select_query.push("m.name "); }
+            ManeuverSortField::Difficulty => { select_query.push("m.difficulty "); }
+        }
+        match sort.direction {
+            SortDirection::Asc => { select_query.push("ASC"); }
+            SortDirection::Desc => { select_query.push("DESC"); }
+        }
+
+        select_query.push(" LIMIT ");
+        select_query.push_bind(pagination.limit() as i64);
+        select_query.push(" OFFSET ");
+        select_query.push_bind(pagination.offset() as i64);
+
+        let maneuver_rows: Vec<ManeuverRow> = select_query
+            .build_query_as()
+            .fetch_all(&mut *self.tx)
+            .await
+            .map_err(|e| RepositoryError::TransactionError(e.to_string()))?;
 
         if maneuver_rows.is_empty() {
             return Ok((vec![], total as u64));

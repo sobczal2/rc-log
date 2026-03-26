@@ -1,4 +1,5 @@
 pub mod difficulty;
+pub mod query;
 pub mod tag;
 
 use std::collections::BTreeSet;

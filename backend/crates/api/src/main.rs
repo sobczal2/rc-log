@@ -1,16 +1,15 @@
 mod config;
 mod error;
 mod maneuver;
-mod extractors;
 mod state;
 
-use axum::{serve, Router};
+use axum::{Router, serve};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use state::AppState;
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;

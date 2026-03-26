@@ -4,10 +4,11 @@ use rc_log_domain::shared::repository::{Transaction, UnitOfWork};
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
-use crate::shared::pagination::{PaginatedResult, PaginationDto};
+use crate::shared::pagination::PaginatedResult;
 
 use super::error::ListManeuversError;
-use super::model::ManeuverDto;
+use super::model::{ListManeuversInput, ManeuverDto};
+use rc_log_domain::maneuver::query::{ManeuverFilter, ManeuverSort};
 
 pub struct ListManeuversUseCase<UoW> {
     uow: UoW,
@@ -16,27 +17,31 @@ pub struct ListManeuversUseCase<UoW> {
 impl<UoW> ListManeuversUseCase<UoW>
 where
     UoW: UnitOfWork<Maneuver>,
+    UoW::Transaction: Transaction<Maneuver, Filter = ManeuverFilter, Sort = ManeuverSort>,
 {
     pub fn new(uow: UoW) -> Self {
         Self { uow }
     }
 
-    #[instrument(skip(self), fields(page = pagination.page, page_size = pagination.page_size))]
+    #[instrument(skip(self), fields(page = input.pagination.page, page_size = input.pagination.page_size))]
     pub async fn execute(
         &mut self,
-        pagination: PaginationDto,
+        input: ListManeuversInput,
     ) -> Result<PaginatedResult<ManeuverDto>, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ListManeuversError::from)?;
 
         debug!("Querying maneuvers from repository");
-        let domain_pagination = Pagination::from(pagination.clone());
-        let (maneuvers, total) = tx.list(domain_pagination).await.map_err(ListManeuversError::from)?;
+        let domain_pagination = Pagination::from(input.pagination.clone());
+        let domain_filter = ManeuverFilter::from(input.filter);
+        let domain_sort = ManeuverSort::from(input.sort);
+
+        let (maneuvers, total) = tx.list(domain_pagination, domain_filter, domain_sort).await.map_err(ListManeuversError::from)?;
 
         debug!(count = maneuvers.len(), total, "Maneuvers retrieved, committing transaction");
         tx.commit().await.map_err(ListManeuversError::from)?;
 
         let dtos = maneuvers.into_iter().map(ManeuverDto::from).collect();
-        Ok(PaginatedResult::new(dtos, total, pagination.page, pagination.page_size))
+        Ok(PaginatedResult::new(dtos, total, input.pagination.page, input.pagination.page_size))
     }
 }

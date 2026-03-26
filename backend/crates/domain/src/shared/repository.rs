@@ -24,14 +24,21 @@ impl Display for RepositoryError {
 impl Error for RepositoryError {}
 
 pub trait Transaction<T>: Send {
+    type Filter: Send + Default;
+    type Sort: Send + Default;
+
     fn get_by_id(
         &mut self,
         id: Uuid,
     ) -> impl Future<Output = Result<Option<T>, RepositoryError>> + Send;
+    
     fn list(
         &mut self,
         pagination: Pagination,
+        filter: Self::Filter,
+        sort: Self::Sort,
     ) -> impl Future<Output = Result<(Vec<T>, u64), RepositoryError>> + Send;
+    
     fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn commit(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;
     fn rollback(self) -> impl Future<Output = Result<(), RepositoryError>> + Send;
