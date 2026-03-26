@@ -1,19 +1,27 @@
-import { useEffect, useState } from "react";
-import { Button } from "./components/ui/button";
-import { maneuversApi } from "./lib/api/maneuvers";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { AppLayout } from "./components/layout/AppLayout";
+import { HomePage } from "./pages/HomePage";
+import { ManeuversPage } from "./pages/ManeuversPage";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <AppLayout />,
+    children: [
+      {
+        path: "/",
+        element: <HomePage />,
+      },
+      {
+        path: "/maneuvers",
+        element: <ManeuversPage />,
+      },
+    ],
+  },
+]);
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    // Proof of integration
-    maneuversApi
-      .list({ page: 1, pageSize: 20 })
-      .then((res) => console.log("API response:", res))
-      .catch((err) => console.error("API error:", err));
-  }, []);
-
-  return <Button onClick={() => setCount((c) => c + 1)}>Test {count}</Button>;
+  return <RouterProvider router={router} />;
 }
 
 export default App;

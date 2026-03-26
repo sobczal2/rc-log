@@ -172,7 +172,10 @@ Initialized in `main.rs` from `RUST_LOG` (read from `.env` before subscriber ini
 
 ## Frontend
 
-Early-stage React/TypeScript SPA scaffolded with Vite using **shadcn/ui** components. Source lives in `frontend/src/`. Not yet connected to the backend.
+React/TypeScript SPA scaffolded with Vite using **shadcn/ui** components and Tailwind CSS. Source lives in `frontend/src/`.
+- **Styling**: `dark` theme enabled by default, defined in `index.css` with an okLCH palette matching RC hobby aesthetics.
+- **Routing**: Client-side routing via `react-router-dom` defined in `src/App.tsx`.
+- **Layout**: Main layout (`AppLayout`) features a collapsible vertical sidebar (`AppSidebar`) holding primary navigation (Home, Maneuvers) and mock authentication buttons.
 
 ---
 
