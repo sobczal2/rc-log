@@ -51,6 +51,8 @@ Pure domain model. No framework dependencies. Owns:
 | `src/asset/size.rs` | `AssetSize` enum (`Small`, `Medium`, `Large`) |
 | `src/asset/video.rs` | `Video` aggregate + `resolve_path(&self, AssetSize) -> &AssetPath` (fallback: Large→Medium→Small) |
 | `src/asset/photo.rs` | `Photo` aggregate (identical structure to `Video`) |
+| `src/asset/video_resolver.rs` | `VideoResolver` trait — `get(&self, &AssetName) -> Option<Video>` |
+| `src/asset/photo_resolver.rs` | `PhotoResolver` trait — `get(&self, &AssetName) -> Option<Photo>` |
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
@@ -96,6 +98,12 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/user/sign_up/error.rs` | `SignUpError` (ValidationError, UsernameTaken, EmailTaken, HashingError, RepositoryError) |
 | `src/user/sign_up/model.rs` | `SignUpInput`, `UserDto` |
 | `src/user/sign_up/use_case.rs` | `SignUpUseCase<UoW>` — hashes password with argon2, saves user, returns `UserDto` |
+| `src/video/resolve/error.rs` | `ResolveVideoError` (NotFound, InvalidName, InvalidData, ResolverError) |
+| `src/video/resolve/model.rs` | `ResolveVideoInput`, `VideoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
+| `src/video/resolve/use_case.rs` | `ResolveVideoUseCase<R: VideoResolver>` — looks up video by name, returns `VideoPathsDto` |
+| `src/photo/resolve/error.rs` | `ResolvePhotoError` (NotFound, InvalidName, InvalidData, ResolverError) |
+| `src/photo/resolve/model.rs` | `ResolvePhotoInput`, `PhotoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
+| `src/photo/resolve/use_case.rs` | `ResolvePhotoUseCase<R: PhotoResolver>` — looks up photo by name, returns `PhotoPathsDto` |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -112,6 +120,22 @@ impl<UoW: UnitOfWork<Entity>> FooUseCase<UoW> {
     }
 }
 ```
+
+**Use case pattern for resolver-based use cases** (no transaction/UoW — resolvers are injected directly):
+```rust
+pub struct FooResolveUseCase<R> { resolver: R }
+
+impl<R: FooResolver> FooResolveUseCase<R> {
+    #[instrument(skip(self), fields(name = %input.name))]
+    pub async fn execute(&self, input: FooInput) -> Result<FooDto, ApplicationError> {
+        let name = AssetName::new(input.name).map_err(|e| FooError::InvalidName(e.to_string()))?;
+        let asset = self.resolver.get(&name).await.map_err(FooError::from)?.ok_or(FooError::NotFound)?;
+        Ok(FooDto::from(asset))
+    }
+}
+```
+
+> Note: `execute` takes `&self` (not `&mut self`) for resolver-based use cases since no mutable state is needed.
 
 > **Layer boundary rule**: Use cases accept and return only application-layer types (`FooDto`, `PaginatedResult<FooDto>`, primitive types). Domain types (`Maneuver`, `Difficulty`, etc.) are internal to the application layer — never exposed to or imported by `api`. The `From<DomainType> for FooDto` impl in `model.rs` is the only place where domain→DTO conversion happens.
 
@@ -150,7 +174,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 
 **Asset resolvers** (`src/asset/video.rs`, `src/asset/photo.rs`):
 - `SqlxVideoResolver` / `SqlxPhotoResolver` each hold a `PgPool` and a `moka::future::Cache<String, Arc<Video/Photo>>` keyed on asset name.
-- Both expose a concrete `resolve(&self, &AssetName, AssetSize) -> impl Future<…>` inherent method (no domain resolver trait).
+- Both expose a concrete `resolve(&self, &AssetName, AssetSize) -> impl Future<…>` inherent method and implement the `VideoResolver` / `PhotoResolver` domain trait (`get(&self, &AssetName) -> Option<Video/Photo>`).
 - `::new(pool, capacity: u64)` — capacity is the maximum number of cached asset records (set via `RC_LOG_ASSET_CACHE_SIZE`).
 - **Cache strategy**: per-asset (one cache entry per name; all sizes derived from that entry). On a cache miss the full row is fetched from DB, inserted into the cache, then `resolve_path(size)` is called on the cached value.
 - **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
@@ -187,15 +211,18 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/auth/router.rs` | Mounts auth routes |
 | `src/user/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` extractor |
 | `src/user/router.rs` | Mounts user routes |
+| `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
+| `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
+| `src/asset_paths/router.rs` | Mounts asset-path routes |
 
 **Error mapping (`ApiError`):**
 | Error | HTTP |
 |---|---|
-| `NotFound` (maneuver/user) | 404 |
+| `NotFound` (maneuver/user/asset) | 404 |
 | `InvalidData` | 500 (bad DB data is a server problem) |
-| `RepositoryError` | 500 (internal details not leaked) |
+| `RepositoryError` / `ResolverError` | 500 (internal details not leaked) |
 | `UsernameTaken` / `EmailTaken` | 409 |
-| `ValidationError` | 400 |
+| `ValidationError` / `InvalidName` | 400 |
 | `InvalidCredentials` (sign-in) | 401 |
 | `Unauthorized` (missing/invalid JWT) | 401 |
 
@@ -208,6 +235,9 @@ POST /api/auth/sign-up                    → SignUpResponse  { token, user }
 POST /api/auth/sign-in                    → SignInResponse  { token, user }
 
 GET  /api/users/{id}          [JWT required]  → GetByIdResponse
+
+GET  /api/asset-paths/video/{name}        → ResolveVideoResponse  { name, smallPath, mediumPath?, largePath? }
+GET  /api/asset-paths/photo/{name}        → ResolvePhotoResponse  { name, smallPath, mediumPath?, largePath? }
 ```
 
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.
@@ -399,9 +429,11 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 
 ## Adding a New Feature — Checklist
 
-1. **Domain**: add any new value objects / entity methods needed.
+1. **Domain**: add any new value objects / entity methods needed. For asset-type lookups define a `FooResolver` trait in `src/asset/foo_resolver.rs` following the `VideoResolver` / `PhotoResolver` pattern.
 2. **Application**: create a nested directory for the use case (e.g., `src/<entity>/<use_case>/`). Inside, create `error.rs`, `model.rs` (DTOs + `From<DomainType>` impls), `use_case.rs`, and `mod.rs`. Use cases must return DTO types, not domain types. Add error variant to `ApplicationError`.
-3. **Persistence**: implement new `Transaction` methods on the sqlx transaction struct.
+   - UoW-based use cases: `execute(&mut self, ...)` — begin transaction, call repository, commit.
+   - Resolver-based use cases: `execute(&self, ...)` — inject resolver directly via generic `R: FooResolver`, no transaction needed.
+3. **Persistence**: implement new `Transaction` methods on the sqlx transaction struct. For resolvers, implement the domain resolver trait (`VideoResolver`, `PhotoResolver`) on the concrete sqlx resolver struct.
 4. **API**: add `src/<entity>/response.rs` — define a **distinct response struct** per endpoint. It may embed application DTOs directly as fields (they derive `Serialize`). Do not import from `rc_log_domain` directly.
 5. **Import rules**:
    - `application` must never import from `persistance`
@@ -411,3 +443,6 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
    - Always prefer explicit `use` declarations (e.g., `use std::env;`) instead of inline fully-qualified paths (`std::env::var()`), unless doing so creates severe ambiguity. Expand this preference across the entire backend workspace.
    - Each API operation lives in its own subdirectory under the entity: `src/<entity>/<operation>/` with `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs`.
    - `DifficultyLevel` serializes as lowercase strings (`level1`–`level7`) from the backend.
+   - `lib.rs` in each crate only declares top-level modules with `pub mod`, never re-exports directly.
+   - `mod.rs` in each operation subdirectory re-exports the use case struct: `pub use use_case::FooUseCase`.
+   - Asset paths stored in DB are relative to `RC_LOG_ASSET_PATH` (e.g. `videos/foo_small.mp4`). Frontend clients prepend `/api/assets/` to get the full URL served by `ServeDir`.

@@ -1,3 +1,4 @@
+mod asset_paths;
 mod auth;
 mod config;
 mod error;
@@ -16,6 +17,7 @@ use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, fmt};
 
+use crate::asset_paths::router::asset_paths_router;
 use crate::auth::router::auth_router;
 use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;
@@ -45,6 +47,7 @@ async fn main() {
         .merge(maneuver_router())
         .merge(auth_router())
         .merge(user_router())
+        .merge(asset_paths_router())
         .with_state(state)
         .nest_service("/api/assets", ServeDir::new(config.asset_path.clone()));
 

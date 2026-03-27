@@ -3,8 +3,8 @@ use std::sync::Arc;
 use moka::future::Cache;
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::asset::path::AssetPath;
-use rc_log_domain::asset::size::AssetSize;
 use rc_log_domain::asset::video::Video;
+use rc_log_domain::asset::video_resolver::VideoResolver;
 use rc_log_domain::shared::transaction::TransactionError;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -49,16 +49,14 @@ impl SqlxVideoResolver {
         let cache = Cache::new(capacity);
         Self { pool, cache }
     }
+}
 
-    pub async fn resolve(
-        &self,
-        name: &AssetName,
-        size: AssetSize,
-    ) -> Result<Option<AssetPath>, TransactionError> {
+impl VideoResolver for SqlxVideoResolver {
+    async fn get(&self, name: &AssetName) -> Result<Option<Video>, TransactionError> {
         let key = name.as_str().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {
-            return Ok(Some(cached.resolve_path(size).clone()));
+            return Ok(Some((*cached).clone()));
         }
 
         let row: Option<VideoRow> = sqlx::query_as(
@@ -77,9 +75,9 @@ impl SqlxVideoResolver {
             None => Ok(None),
             Some(row) => {
                 let video = Arc::new(row.try_into_video()?);
-                let path = video.resolve_path(size).clone();
+                let result = (*video).clone();
                 self.cache.insert(key, video).await;
-                Ok(Some(path))
+                Ok(Some(result))
             }
         }
     }

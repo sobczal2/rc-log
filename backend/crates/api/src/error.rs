@@ -4,15 +4,17 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use rc_log_application::error::ApplicationError;
-use tracing::error;
 use rc_log_application::maneuver::get_by_id::error::GetManeuverByIdError;
 use rc_log_application::maneuver::list::error::ListManeuversError;
+use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::create::error::CreateUserError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::sign_in::error::SignInError;
 use rc_log_application::user::sign_up::error::SignUpError;
+use rc_log_application::video::resolve::error::ResolveVideoError;
 use serde_json::json;
+use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
@@ -143,6 +145,44 @@ impl IntoResponse for ApiError {
                 .into_response(),
             ApiError::Application(ApplicationError::SignIn(SignInError::InvalidData(_)))
             | ApiError::Application(ApplicationError::SignIn(SignInError::RepositoryError(_))) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Video asset paths errors
+            ApiError::Application(ApplicationError::ResolveVideo(ResolveVideoError::NotFound)) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Video asset not found" })),
+            )
+                .into_response(),
+            ApiError::Application(ApplicationError::ResolveVideo(
+                ResolveVideoError::InvalidName(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::ResolveVideo(
+                ResolveVideoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::ResolveVideo(
+                ResolveVideoError::ResolverError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Photo asset paths errors
+            ApiError::Application(ApplicationError::ResolvePhoto(ResolvePhotoError::NotFound)) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Photo asset not found" })),
+            )
+                .into_response(),
+            ApiError::Application(ApplicationError::ResolvePhoto(
+                ResolvePhotoError::InvalidName(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::ResolvePhoto(
+                ResolvePhotoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::ResolvePhoto(
+                ResolvePhotoError::ResolverError(_),
+            )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
             )

@@ -4,7 +4,7 @@ use moka::future::Cache;
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::asset::path::AssetPath;
 use rc_log_domain::asset::photo::Photo;
-use rc_log_domain::asset::size::AssetSize;
+use rc_log_domain::asset::photo_resolver::PhotoResolver;
 use rc_log_domain::shared::transaction::TransactionError;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -49,16 +49,14 @@ impl SqlxPhotoResolver {
         let cache = Cache::new(capacity);
         Self { pool, cache }
     }
+}
 
-    pub async fn resolve(
-        &self,
-        name: &AssetName,
-        size: AssetSize,
-    ) -> Result<Option<AssetPath>, TransactionError> {
+impl PhotoResolver for SqlxPhotoResolver {
+    async fn get(&self, name: &AssetName) -> Result<Option<Photo>, TransactionError> {
         let key = name.as_str().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {
-            return Ok(Some(cached.resolve_path(size).clone()));
+            return Ok(Some((*cached).clone()));
         }
 
         let row: Option<PhotoRow> = sqlx::query_as(
@@ -77,9 +75,9 @@ impl SqlxPhotoResolver {
             None => Ok(None),
             Some(row) => {
                 let photo = Arc::new(row.try_into_photo()?);
-                let path = photo.resolve_path(size).clone();
+                let result = (*photo).clone();
                 self.cache.insert(key, photo).await;
-                Ok(Some(path))
+                Ok(Some(result))
             }
         }
     }

@@ -1,12 +1,4 @@
 [
   { "id": "d6fc047a-3585-4da4-aff0-aff17515c66e", "name": "Basic" },
-  { "id": "f0ac8837-7607-4d76-9ad4-ba758fc1ed1c", "name": "Fundamentals" },
-  { "id": "e9861e16-a426-4e69-b1c3-33f2f43619fc", "name": "Advanced 3D" },
-  { "id": "561b5a6b-cd04-49d1-880a-b8ee53cd62dc", "name": "High Energy" },
-  { "id": "e65ac5c2-0b18-4b97-98e8-30c6491f3a6a", "name": "Intermediate 3D" },
-  { "id": "1ab80d9b-c12a-49a5-9f01-04791b10b80a", "name": "Collective Management" },
-  { "id": "bbd5306d-f93c-419b-8344-55d9230cb199", "name": "Basic 3D" },
-  { "id": "daf92af8-e68b-4271-8237-32d158d26586", "name": "Orientation" },
-  { "id": "861213a5-1540-4b07-ac5c-e80b7d87608b", "name": "Basic Sport" },
-  { "id": "8a4e300a-10c6-4c1a-bb6c-1456ebb7830e", "name": "Aerobatics" }
+  { "id": "f0ac8837-7607-4d76-9ad4-ba758fc1ed1c", "name": "Fundamentals" }
 ]
