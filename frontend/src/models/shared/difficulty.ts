@@ -1,4 +1,4 @@
-import type { VehicleType } from "./vehicle";
+import type { VehicleType } from "./vehicle-type";
 
 export type DifficultyLevel =
   | "level1"

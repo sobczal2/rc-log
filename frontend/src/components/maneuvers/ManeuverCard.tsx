@@ -4,19 +4,24 @@ import { Link } from "react-router-dom";
 import {
   getDifficultyLevelColor,
   getDifficultyLevelLabel,
-  getManeuverVideoUrl,
-  type Maneuver,
-} from "@/domain/maneuver";
-import { getVehicleIcon } from "@/domain/maneuver";
+  getVehicleIcon,
+} from "@/models/shared";
+import type { ListManeuverDto } from "@/models/maneuver";
+import { useVideoPath } from "@/hooks/useVideoPath";
+import { getVideoUrl } from "@/models/asset/video";
 
-export function ManeuverCard({ maneuver }: { maneuver: Maneuver }) {
+export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
+  const { data: videoPathData } = useVideoPath(
+    maneuver.defaultVariationVideoAssetName,
+  );
+  const videoSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   return (
     <Link to={`/maneuvers/${maneuver.id}`}>
       <Card className="group relative overflow-hidden flex flex-col aspect-square hover:border-sidebar-ring transition-colors bg-card shadow-sm cursor-pointer p-0 gap-0">
         <div className="relative w-full h-[55%] flex-shrink-0 bg-muted/30 overflow-hidden border-b border-border/50">
-          {maneuver.videoPath ? (
+          {videoSrc ? (
             <video
-              src={getManeuverVideoUrl(maneuver)!}
+              src={videoSrc}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               autoPlay
               loop

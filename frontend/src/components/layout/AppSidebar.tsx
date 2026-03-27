@@ -13,7 +13,7 @@ import {
 import { List, LogIn, LogOut, Plane, UserPlus } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/hooks/useAuth"
 
 export function AppSidebar() {
   const location = useLocation()

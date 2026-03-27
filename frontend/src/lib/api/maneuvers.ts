@@ -1,31 +1,26 @@
 import type {
-  Maneuver,
-  ManeuverFilter,
-  ManeuverSort,
-  PaginationOptions,
-} from "@/domain/maneuver";
+  ListManeuverDto,
+  ListManeuverFilter,
+  ListManeuverSort,
+  GetByIdManeuverDto,
+} from "@/models/maneuver";
+import type { PaginationOptions, PaginatedResult } from "@/models/shared";
 import { apiClient } from "../apiClient";
 
-export type { ManeuverFilter, ManeuverSort, PaginationOptions };
+export type { ListManeuverFilter, ListManeuverSort, PaginationOptions };
 
 export interface GetManeuverByIdRequest {
   id: string;
 }
 
-export type GetManeuverByIdResponse = Maneuver;
+export type GetManeuverByIdResponse = GetByIdManeuverDto;
 
 export interface ListManeuversRequest extends PaginationOptions {
-  filter?: ManeuverFilter;
-  sort?: ManeuverSort;
+  filter?: ListManeuverFilter;
+  sort?: ListManeuverSort;
 }
 
-export type ListManeuversResponse = {
-  items: Maneuver[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-};
+export type ListManeuversResponse = PaginatedResult<ListManeuverDto>;
 
 export const maneuversApi = {
   getById: async (

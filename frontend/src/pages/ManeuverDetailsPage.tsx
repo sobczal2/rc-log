@@ -5,11 +5,9 @@ import { maneuversApi } from "@/lib/api/maneuvers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import {
-  getVehicleIcon,
-  getDifficultyLevelName,
-  getManeuverVideoUrl,
-} from "@/domain/maneuver";
+import { getVehicleIcon, getDifficultyLevelName } from "@/models/shared";
+import { useVideoPath } from "@/hooks/useVideoPath";
+import { getVideoUrl } from "@/models/asset/video";
 
 export function ManeuverDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +22,10 @@ export function ManeuverDetailsPage() {
     queryFn: () => maneuversApi.getById({ id: id! }),
     enabled: !!id,
   });
+
+  const assetName = maneuver?.defaultVariation?.videoAssetName ?? "";
+  const { data: videoPathData } = useVideoPath(assetName);
+  const videoSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
 
   if (isLoading) {
     return (
@@ -64,9 +66,9 @@ export function ManeuverDetailsPage() {
           </div>
           <div className="flex flex-col gap-8 lg:gap-12">
             <div className="bg-muted/30 rounded-xl overflow-hidden border border-border/50 shadow-sm relative">
-              {maneuver.videoPath ? (
+              {videoSrc ? (
                 <video
-                  src={getManeuverVideoUrl(maneuver)!}
+                  src={videoSrc}
                   className="w-full aspect-video object-cover"
                   autoPlay
                   loop

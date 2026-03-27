@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { VehicleType, DifficultyLevel } from "@/domain/maneuver";
+import type { VehicleType, DifficultyLevel } from "@/models/shared";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ManeuverFilters, ManeuverFiltersActions } from "@/hooks/useManeuverFilters";
 import { ActiveFilterBadge } from "./ActiveFilterBadge";

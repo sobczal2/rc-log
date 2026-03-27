@@ -1,4 +1,4 @@
-import type { User } from "@/domain/user";
+import type { User } from "@/models/user";
 import { apiClient } from "../apiClient";
 
 export interface SignInRequest {

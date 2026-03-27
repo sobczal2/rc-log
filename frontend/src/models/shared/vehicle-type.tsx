@@ -5,9 +5,12 @@ export type VehicleType = "Helicopter" | "Plane" | "Drone";
 
 export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
   switch (vehicleType) {
-    case "Plane": return <Plane size={size} />;
-    case "Helicopter": return <Helicopter size={size} />;
-    case "Drone": return <Drone size={size} />;
+    case "Plane":
+      return <Plane size={size} />;
+    case "Helicopter":
+      return <Helicopter size={size} />;
+    case "Drone":
+      return <Drone size={size} />;
   }
 }
 

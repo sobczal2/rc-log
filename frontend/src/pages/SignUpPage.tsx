@@ -4,7 +4,7 @@ import { Loader2, UserPlus } from "lucide-react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export function SignUpPage() {
   const { signUp } = useAuth();
