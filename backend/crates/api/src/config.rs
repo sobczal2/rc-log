@@ -9,6 +9,7 @@ struct ConfigNames {
     pub port: &'static str,
     pub asset_path: &'static str,
     pub jwt_secret: &'static str,
+    pub asset_cache_size: &'static str,
 }
 
 const CONFIG_NAMES: ConfigNames = ConfigNames {
@@ -18,6 +19,7 @@ const CONFIG_NAMES: ConfigNames = ConfigNames {
     port: "RC_LOG_PORT",
     asset_path: "RC_LOG_ASSET_PATH",
     jwt_secret: "RC_LOG_JWT_SECRET",
+    asset_cache_size: "RC_LOG_ASSET_CACHE_SIZE",
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,6 +49,7 @@ pub struct AppConfig {
     pub port: u16,
     pub asset_path: PathBuf,
     pub jwt_secret: String,
+    pub asset_cache_size: u64,
 }
 
 impl AppConfig {
@@ -73,7 +76,12 @@ impl AppConfig {
 
         let jwt_secret = env::var(CONFIG_NAMES.jwt_secret).expect("RC_LOG_JWT_SECRET must be set");
 
-        Self { environment, database_url, host, port, asset_path, jwt_secret }
+        let asset_cache_size = env::var(CONFIG_NAMES.asset_cache_size)
+            .expect("RC_LOG_ASSET_CACHE_SIZE must be set")
+            .parse::<u64>()
+            .expect("RC_LOG_ASSET_CACHE_SIZE must be a valid u64");
+
+        Self { environment, database_url, host, port, asset_path, jwt_secret, asset_cache_size }
     }
 
     pub fn socket_addr(&self) -> SocketAddr {

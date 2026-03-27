@@ -45,6 +45,12 @@ Pure domain model. No framework dependencies. Owns:
 | `src/shared/vehicle_type.rs` | `VehicleType` enum (Helicopter, Plane, Drone) |
 | `src/shared/markdown_text.rs` | `MarkdownText` newtype |
 | `src/shared/video_path.rs` | `VideoPath` newtype |
+| `src/asset/mod.rs` | Re-exports all asset types and traits |
+| `src/asset/name.rs` | `AssetName` newtype (non-empty, trimmed, ≤255 chars) + `AssetNameError` |
+| `src/asset/path.rs` | `AssetPath` newtype (non-empty, trimmed) + `AssetPathError` |
+| `src/asset/size.rs` | `AssetSize` enum (`Small`, `Medium`, `Large`) |
+| `src/asset/video.rs` | `Video` aggregate + `resolve_path(&self, AssetSize) -> &AssetPath` (fallback: Large→Medium→Small) |
+| `src/asset/photo.rs` | `Photo` aggregate (identical structure to `Video`) |
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
@@ -121,6 +127,8 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 |---|---|
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
+| `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
+| `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
 
 **Conventions:**
 - Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
@@ -139,11 +147,21 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `save(user)`: upsert user record (insert or update on conflict).
 - `UserRow` is private sqlx row struct for DB mapping.
 
+**Asset resolvers** (`src/asset/video.rs`, `src/asset/photo.rs`):
+- `SqlxVideoResolver` / `SqlxPhotoResolver` each hold a `PgPool` and a `moka::future::Cache<String, Arc<Video/Photo>>` keyed on asset name.
+- Both expose a concrete `resolve(&self, &AssetName, AssetSize) -> impl Future<…>` inherent method (no domain resolver trait).
+- `::new(pool, capacity: u64)` — capacity is the maximum number of cached asset records (set via `RC_LOG_ASSET_CACHE_SIZE`).
+- **Cache strategy**: per-asset (one cache entry per name; all sizes derived from that entry). On a cache miss the full row is fetched from DB, inserted into the cache, then `resolve_path(size)` is called on the cached value.
+- **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
+- Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
+
 **Database schema** (`migrations/`):
 - `maneuver.maneuver` — core entity table
 - `maneuver.tag` — tag lookup table
 - `maneuver.maneuver_tag` — many-to-many join table
 - `user.user` — user entity table with unique constraints on username and email
+- `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
+- `asset.photo` — identical structure to `asset.video`
 
 ---
 
@@ -154,8 +172,8 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | Path | Contents |
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
-| `src/config.rs` | `AppConfig::load()` reads `APP_ENV`, `DATABASE_URL`, `APP_HOST`, `APP_PORT`, `APP_ASSET_PATH`, `JWT_SECRET` from env |
-| `src/state.rs` | `AppState { maneuver_uow, user_uow, jwt_secret }` — passed via axum `State` |
+| `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
+| `src/state.rs` | `AppState { maneuver_uow, user_uow, video_resolver, photo_resolver, jwt_secret }` — passed via axum `State` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
@@ -204,15 +222,17 @@ GET  /api/users/{id}          [JWT required]  → GetByIdResponse
 ## Configuration (`.env`)
 
 ```env
-APP_ENV=development        # or: production, prod, dev
-DATABASE_URL=              # PostgreSQL connection string
-APP_HOST=127.0.0.1
-APP_PORT=3000
-JWT_SECRET=                # Required — secret key for HS256 JWT signing
+RC_LOG_ENV=development          # or: production, prod, dev
+RC_LOG_DATABASE_URL=            # PostgreSQL connection string
+RC_LOG_HOST=127.0.0.1
+RC_LOG_PORT=3000
+RC_LOG_ASSET_PATH=              # Filesystem path served at /api/assets
+RC_LOG_JWT_SECRET=              # Required — secret key for HS256 JWT signing
+RC_LOG_ASSET_CACHE_SIZE=1024    # Max number of asset records held in the in-memory resolver cache
 RUST_LOG=rc_log_api=debug,rc_log_application=debug,sqlx=warn,info
 ```
 
-`APP_ENV` affects log level defaults. All variables are **required** — no silent defaults outside `.env`.
+All variables are **required** — no silent defaults outside `.env`. `RC_LOG_ENV` affects log level defaults.
 
 ---
 

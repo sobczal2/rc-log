@@ -39,7 +39,7 @@ async fn main() {
 
     info!("Database connection pool established");
 
-    let state = AppState::new(pool, config.jwt_secret.clone());
+    let state = AppState::new(pool, config.jwt_secret.clone(), config.asset_cache_size);
 
     let app = Router::new()
         .merge(maneuver_router())
