@@ -27,7 +27,7 @@ pub struct ManeuverDto {
     pub tags: Vec<TagDto>,
     pub description: String,
     pub difficulty: DifficultyDto,
-    pub video_path: Option<String>,
+    pub default_variation_video_asset_name: String,
 }
 
 impl From<Maneuver> for ManeuverDto {
@@ -60,7 +60,11 @@ impl From<Maneuver> for ManeuverDto {
             tags,
             description: m.description().as_str().to_string(),
             difficulty,
-            video_path: m.video_path().map(|vp| vp.as_str().to_string()),
+            default_variation_video_asset_name: m
+                .default_variation()
+                .video_asset_name()
+                .as_str()
+                .to_string(),
         }
     }
 }

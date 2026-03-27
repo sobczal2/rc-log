@@ -1,0 +1,8 @@
+{
+  "id": "ef3b9c23-d357-4126-9a60-716e18f0603e",
+  "vehicleType": "Helicopter",
+  "name": "Funnel",
+  "difficulty": 5,
+  "tags": ["Basic 3D", "Orientation"],
+  "description": "A Funnel resembles a hurricane but is flown nose-down (or tail-down) in a much tighter, inverted cone shape. The helicopter slides rapidly sideways in a tight circular orbit with the rotor disc pitched nearly vertically inward."
+}

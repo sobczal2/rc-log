@@ -1,13 +1,17 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::maneuver::{Maneuver, difficulty::Difficulty, tag::Tag, transaction::ManeuverTransaction};
+use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::maneuver::difficulty::Difficulty;
+use rc_log_domain::maneuver::tag::Tag;
+use rc_log_domain::maneuver::transaction::ManeuverTransaction;
+use rc_log_domain::maneuver::variation::Variation;
+use rc_log_domain::maneuver::Maneuver;
+use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
-use rc_log_domain::shared::transaction::{TransactionError, Transaction};
+use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::{
-    markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath,
-};
-use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction, QueryBuilder};
+use rc_log_domain::shared::vehicle_type::VehicleType;
+use sqlx::{PgPool, Postgres, QueryBuilder, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -17,7 +21,16 @@ struct ManeuverRow {
     name: String,
     description: String,
     difficulty: i32,
-    video_path: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct VariationRow {
+    id: Uuid,
+    maneuver_id: Uuid,
+    name: String,
+    description: String,
+    video_asset_name: String,
+    is_default: bool,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -45,13 +58,33 @@ impl From<TagRowWithManeuver> for Tag {
     }
 }
 
+impl VariationRow {
+    fn try_into_variation(self) -> Result<Variation, TransactionError> {
+        let description = MarkdownText::new(self.description)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let video_asset_name = AssetName::new(self.video_asset_name)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        Ok(Variation::new(self.id, self.name, description, video_asset_name))
+    }
+}
+
 impl ManeuverRow {
-    fn try_into_maneuver(self, tags: BTreeSet<Tag>) -> Option<Maneuver> {
+    fn try_into_maneuver(
+        self,
+        tags: BTreeSet<Tag>,
+        default_variation: Variation,
+        other_variations: Vec<Variation>,
+    ) -> Result<Maneuver, TransactionError> {
         let vehicle_type = match self.vehicle_type.as_str() {
             "Helicopter" => VehicleType::Helicopter,
             "Plane" => VehicleType::Plane,
             "Drone" => VehicleType::Drone,
-            _ => return None,
+            other => {
+                return Err(TransactionError::InvalidData(format!(
+                    "Unknown vehicle_type: {}",
+                    other
+                )))
+            }
         };
 
         let difficulty = match self.difficulty {
@@ -62,25 +95,30 @@ impl ManeuverRow {
             5 => Difficulty::Level5,
             6 => Difficulty::Level6,
             7 => Difficulty::Level7,
-            _ => return None,
+            other => {
+                return Err(TransactionError::InvalidData(format!(
+                    "Unknown difficulty: {}",
+                    other
+                )))
+            }
         };
 
-        let video_path = self.video_path.and_then(|vp| VideoPath::new(vp).ok());
-        let description = MarkdownText::new(self.description).ok()?;
+        let description = MarkdownText::new(self.description)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
 
-        Some(Maneuver::new(
+        Ok(Maneuver::new(
             self.id,
             vehicle_type,
             self.name,
             tags,
             description,
             difficulty,
-            video_path,
+            default_variation,
+            other_variations,
         ))
     }
 
     fn from_maneuver(maneuver: &Maneuver) -> Self {
-        let video_path = maneuver.video_path().map(|vp| vp.as_str().to_string());
         let vehicle_type = match maneuver.vehicle_type() {
             VehicleType::Helicopter => "Helicopter".to_string(),
             VehicleType::Plane => "Plane".to_string(),
@@ -102,7 +140,6 @@ impl ManeuverRow {
             name: maneuver.name().to_string(),
             description: maneuver.description().as_str().to_string(),
             difficulty,
-            video_path,
         }
     }
 }
@@ -115,7 +152,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, TransactionError> {
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
-            SELECT id, vehicle_type, name, description, difficulty, video_path
+            SELECT id, vehicle_type, name, description, difficulty
             FROM maneuver.maneuver
             WHERE id = $1
             "#,
@@ -125,11 +162,10 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        if maneuver_row.is_none() {
-            return Ok(None);
-        }
-
-        let maneuver_row = maneuver_row.unwrap();
+        let maneuver_row = match maneuver_row {
+            None => return Ok(None),
+            Some(r) => r,
+        };
 
         let tag_rows: Vec<TagRow> = sqlx::query_as(
             r#"
@@ -144,9 +180,37 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
+        let variation_rows: Vec<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default
+            FROM maneuver.variation
+            WHERE maneuver_id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
         let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
 
-        Ok(maneuver_row.try_into_maneuver(tags))
+        let mut default_variation: Option<Variation> = None;
+        let mut other_variations: Vec<Variation> = Vec::new();
+        for row in variation_rows {
+            let is_default = row.is_default;
+            let variation = row.try_into_variation()?;
+            if is_default {
+                default_variation = Some(variation);
+            } else {
+                other_variations.push(variation);
+            }
+        }
+
+        let default_variation = default_variation.ok_or_else(|| {
+            TransactionError::InvalidData(format!("Maneuver {} has no default variation", id))
+        })?;
+
+        Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
     }
 
     async fn save(&mut self, maneuver: &Maneuver) -> Result<(), TransactionError> {
@@ -154,14 +218,13 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty, video_path)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 vehicle_type = EXCLUDED.vehicle_type,
                 name = EXCLUDED.name,
                 description = EXCLUDED.description,
-                difficulty = EXCLUDED.difficulty,
-                video_path = EXCLUDED.video_path
+                difficulty = EXCLUDED.difficulty
             "#,
         )
         .bind(maneuver_row.id)
@@ -169,7 +232,6 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(&maneuver_row.name)
         .bind(&maneuver_row.description)
         .bind(maneuver_row.difficulty)
-        .bind(&maneuver_row.video_path)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -195,6 +257,45 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
         }
 
+        sqlx::query("DELETE FROM maneuver.variation WHERE maneuver_id = $1")
+            .bind(maneuver.id())
+            .execute(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let default_var = maneuver.default_variation();
+        sqlx::query(
+            r#"
+            INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default)
+            VALUES ($1, $2, $3, $4, $5, TRUE)
+            "#,
+        )
+        .bind(default_var.id())
+        .bind(maneuver.id())
+        .bind(default_var.name())
+        .bind(default_var.description().as_str())
+        .bind(default_var.video_asset_name().as_str())
+        .execute(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        for var in maneuver.other_variations() {
+            sqlx::query(
+                r#"
+                INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default)
+                VALUES ($1, $2, $3, $4, $5, FALSE)
+                "#,
+            )
+            .bind(var.id())
+            .bind(maneuver.id())
+            .bind(var.name())
+            .bind(var.description().as_str())
+            .bind(var.video_asset_name().as_str())
+            .execute(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+        }
+
         Ok(())
     }
 
@@ -215,7 +316,7 @@ impl SqlxManeuverTransaction {
         sort: rc_log_domain::maneuver::transaction::ManeuverSort,
     ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
         let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
-        let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty, m.video_path FROM maneuver.maneuver m");
+        let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty FROM maneuver.maneuver m");
 
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
             let mut has_where = false;
@@ -330,17 +431,38 @@ impl SqlxManeuverTransaction {
                 .insert(Tag::from(row));
         }
 
+        let default_variation_rows: Vec<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default
+            FROM maneuver.variation
+            WHERE maneuver_id = ANY($1) AND is_default = TRUE
+            "#,
+        )
+        .bind(&maneuver_ids)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let mut default_vars_by_maneuver: HashMap<Uuid, Variation> = HashMap::new();
+        for row in default_variation_rows {
+            let maneuver_id = row.maneuver_id;
+            let variation = row.try_into_variation()?;
+            default_vars_by_maneuver.insert(maneuver_id, variation);
+        }
+
         let maneuvers: Result<Vec<Maneuver>, TransactionError> = maneuver_rows
             .into_iter()
             .map(|row| {
                 let id = row.id;
                 let tags = tags_by_maneuver.remove(&id).unwrap_or_default();
-                row.try_into_maneuver(tags).ok_or_else(|| {
-                    TransactionError::InvalidData(format!(
-                        "Invalid maneuver data for id {}",
-                        id
-                    ))
-                })
+                let default_variation =
+                    default_vars_by_maneuver.remove(&id).ok_or_else(|| {
+                        TransactionError::InvalidData(format!(
+                            "Maneuver {} has no default variation",
+                            id
+                        ))
+                    })?;
+                row.try_into_maneuver(tags, default_variation, vec![])
             })
             .collect();
 

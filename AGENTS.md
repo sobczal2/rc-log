@@ -34,9 +34,10 @@ Pure domain model. No framework dependencies. Owns:
 
 | Path | Contents |
 |---|---|
-| `src/maneuver/mod.rs` | `Maneuver` aggregate (id, vehicle_type, name, tags, description, difficulty, video_path) |
+| `src/maneuver/mod.rs` | `Maneuver` aggregate (id, vehicle_type, name, tags, description, difficulty, default_variation, other_variations) |
 | `src/maneuver/difficulty.rs` | `Difficulty` enum (Level1–Level7) |
 | `src/maneuver/tag.rs` | `Tag` value object (id, name) |
+| `src/maneuver/variation.rs` | `Variation` entity (id, name, description: MarkdownText, video_asset_name: AssetName) |
 | `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash) |
 | `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_username()` |
 | `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
@@ -44,7 +45,6 @@ Pure domain model. No framework dependencies. Owns:
 | `src/shared/password_hash.rs` | `PasswordHash` newtype |
 | `src/shared/vehicle_type.rs` | `VehicleType` enum (Helicopter, Plane, Drone) |
 | `src/shared/markdown_text.rs` | `MarkdownText` newtype |
-| `src/shared/video_path.rs` | `VideoPath` newtype |
 | `src/asset/mod.rs` | Re-exports all asset types and traits |
 | `src/asset/name.rs` | `AssetName` newtype (non-empty, trimmed, ≤255 chars) + `AssetNameError` |
 | `src/asset/path.rs` | `AssetPath` newtype (non-empty, trimmed) + `AssetPathError` |
@@ -76,10 +76,10 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 |---|---|
 | `src/error.rs` | `ApplicationError` — wraps use case errors via `#[from]` |
 | `src/maneuver/get_by_id/error.rs` | `GetManeuverByIdError` (NotFound, InvalidData, RepositoryError) |
-| `src/maneuver/get_by_id/model.rs` | `ManeuverDto`, `TagDto` — stable application DTOs |
+| `src/maneuver/get_by_id/model.rs` | `ManeuverDto`, `TagDto`, `VariationDto` — stable application DTOs; `ManeuverDto` includes `default_variation: VariationDto` and `variations: Vec<VariationDto>` |
 | `src/maneuver/get_by_id/use_case.rs` | `GetManeuverByIdUseCase<UoW>` — returns `ManeuverDto` |
 | `src/maneuver/list/error.rs` | `ListManeuversError` |
-| `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto` |
+| `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto`; `ManeuverDto` includes `default_variation_video_asset_name: String` (from the default variation only) |
 | `src/maneuver/list/use_case.rs` | `ListManeuversUseCase<UoW>` — returns `PaginatedResult<ManeuverDto>` |
 | `src/user/create/error.rs` | `CreateUserError` (ValidationError, UsernameTaken, EmailTaken, RepositoryError) |
 | `src/user/create/model.rs` | `CreateUserInput`, `UserDto` |
@@ -135,9 +135,10 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 
 **Key implementation details:**
 - `SqlxManeuverUnitOfWork` holds a `PgPool` (Arc-backed, `Clone`-derived).
-- `get_by_id`: two queries — fetch maneuver row, then fetch its tags.
-- `list`: three queries — `COUNT(*)`, paginated `SELECT … ORDER BY name LIMIT/OFFSET`, then one batched `WHERE maneuver_id = ANY($1)` tag fetch (no N+1 problem).
-- `ManeuverRow` / `TagRow` / `TagRowWithManeuver` are private sqlx row structs used only for DB mapping.
+- `get_by_id`: three queries — fetch maneuver row, fetch its tags, fetch all its variations; splits variations into `default_variation` (required) and `other_variations`.
+- `list`: four queries — `COUNT(*)`, paginated `SELECT … ORDER BY LIMIT/OFFSET`, batched tag fetch (`WHERE maneuver_id = ANY($1)`), batched default-variation fetch (`WHERE maneuver_id = ANY($1) AND is_default = TRUE`); no N+1 problems.
+- `save`: upserts maneuver row (no `video_path`), deletes/re-inserts tags, deletes/re-inserts all variations (default with `is_default=TRUE`, others with `is_default=FALSE`).
+- `ManeuverRow` / `TagRow` / `TagRowWithManeuver` / `VariationRow` are private sqlx row structs used only for DB mapping.
 
 **User repository** (`src/user/transaction.rs`):
 - `SqlxUserUnitOfWork` holds a `PgPool` and implements `UnitOfWork<User>`.
@@ -156,9 +157,10 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
 
 **Database schema** (`migrations/`):
-- `maneuver.maneuver` — core entity table
+- `maneuver.maneuver` — core entity table (no `video_path` column)
 - `maneuver.tag` — tag lookup table
 - `maneuver.maneuver_tag` — many-to-many join table
+- `maneuver.variation` — `id UUID PK`, `maneuver_id UUID FK`, `name TEXT NOT NULL`, `description TEXT NOT NULL`, `video_asset_name TEXT NOT NULL`, `is_default BOOLEAN NOT NULL`; unique partial index `(maneuver_id) WHERE is_default = TRUE` enforces exactly one default per maneuver
 - `user.user` — user entity table with unique constraints on username and email
 - `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
 - `asset.photo` — identical structure to `asset.video`
@@ -376,7 +378,8 @@ export const maneuversApi = {
 Backend DTOs use `#[serde(rename_all = "camelCase")]` to serialize fields as camelCase:
 - `vehicle_type` → `vehicleType`
 - `page_size` → `pageSize`
-- `video_path` → `videoPath`
+- `defaultVariationVideoAssetName` (in list response)
+- `defaultVariation` / `variations` (in get-by-id response)
 - `total_pages` → `totalPages`
 
 Difficulty serializes as lowercase string (`level1`–`level7`), not integer.

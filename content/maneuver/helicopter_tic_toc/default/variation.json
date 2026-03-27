@@ -1,0 +1,7 @@
+{
+  "id": "5c85bfd2-3c4a-43f7-95b6-d4771234580d",
+  "videoAssetName": "helicopter_tic_toc_default",
+  "videoAssetId": "369f4ffc-35aa-476e-bdcb-e66efea2b527",
+  "name": "Default",
+  "description": "### Execution Steps\n1. Pop the helicopter up pointing perfectly vertical (nose straight up to the sky inside a stationary hover).\n2. Apply strong positive collective while briefly pushing the elevator forward, brutally launching the helicopter backward.\n3. Immediately flip the elevator backward and simultaneously pull total negative collective, reversing the momentum and throwing the helicopter forcefully forward.\n4. Rhythmically bounce between maximum positive collective and maximum negative collective at the extreme ends of the pendulum swing.\n5. Balance elevator timing intimately so the helicopter remains completely suspended in place over the same patch of grass while snapping between pitches.\n\n### Common Problems\n- **Losing Altitude ('Sinking Tic-Tocs'):** If the collective isn't applied fast or aggressively enough at the apex of each extreme swing, the helicopter bleeds altitude with every stroke.\n- **Traveling:** If you spend slightly more time on positive collective than negative collective, the helicopter will 'walk' forward or backward. The strokes must be perfectly symmetrical.\n- **Bogging the Motor:** Mashing complete collective pitch before the elevator finishes pitching heavily drags down the head-speed. 'Lead' the movement softly with the cyclic, then punch the collective pitch to finish the stroke."
+}

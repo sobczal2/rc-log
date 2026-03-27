@@ -1,0 +1,8 @@
+{
+  "id": "a56b9ef1-41fd-432d-aeba-380214f1f669",
+  "vehicleType": "Helicopter",
+  "name": "Hover",
+  "difficulty": 1,
+  "tags": ["Basic", "Fundamentals"],
+  "description": "Hovering is the absolute foundation of collective pitch helicopter flight. It involves maintaining the craft in a stationary, controlled position in the air, instantly reacting to wind and counter-torque to keep it perfectly still."
+}

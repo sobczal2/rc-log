@@ -1,14 +1,15 @@
 pub mod difficulty;
-pub mod transaction;
 pub mod tag;
+pub mod transaction;
+pub mod variation;
 
 use std::collections::BTreeSet;
 
 use uuid::Uuid;
 
 use crate::{
-    maneuver::{difficulty::Difficulty, tag::Tag},
-    shared::{markdown_text::MarkdownText, vehicle_type::VehicleType, video_path::VideoPath},
+    maneuver::{difficulty::Difficulty, tag::Tag, variation::Variation},
+    shared::{markdown_text::MarkdownText, vehicle_type::VehicleType},
 };
 
 #[derive(Debug, Clone)]
@@ -19,7 +20,8 @@ pub struct Maneuver {
     tags: BTreeSet<Tag>,
     description: MarkdownText,
     difficulty: Difficulty,
-    video_path: Option<VideoPath>,
+    default_variation: Variation,
+    other_variations: Vec<Variation>,
 }
 
 impl Maneuver {
@@ -30,9 +32,10 @@ impl Maneuver {
         tags: BTreeSet<Tag>,
         description: MarkdownText,
         difficulty: Difficulty,
-        video_path: Option<VideoPath>,
+        default_variation: Variation,
+        other_variations: Vec<Variation>,
     ) -> Self {
-        Self { id, vehicle_type, name, tags, description, difficulty, video_path }
+        Self { id, vehicle_type, name, tags, description, difficulty, default_variation, other_variations }
     }
 
     pub fn id(&self) -> Uuid {
@@ -59,8 +62,12 @@ impl Maneuver {
         self.difficulty
     }
 
-    pub fn video_path(&self) -> Option<&VideoPath> {
-        self.video_path.as_ref()
+    pub fn default_variation(&self) -> &Variation {
+        &self.default_variation
+    }
+
+    pub fn other_variations(&self) -> &[Variation] {
+        &self.other_variations
     }
 
     pub fn add_tag(&mut self, tag: Tag) {
@@ -73,9 +80,5 @@ impl Maneuver {
 
     pub fn update_description(&mut self, description: MarkdownText) {
         self.description = description;
-    }
-
-    pub fn update_video_path(&mut self, video_path: Option<VideoPath>) {
-        self.video_path = video_path;
     }
 }

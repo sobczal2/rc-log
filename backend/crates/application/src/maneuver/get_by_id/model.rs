@@ -29,6 +29,15 @@ pub struct TagDto {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct VariationDto {
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub video_asset_name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ManeuverDto {
     pub id: Uuid,
     pub vehicle_type: VehicleTypeDto,
@@ -36,7 +45,8 @@ pub struct ManeuverDto {
     pub tags: Vec<TagDto>,
     pub description: String,
     pub difficulty: DifficultyDto,
-    pub video_path: Option<String>,
+    pub default_variation: VariationDto,
+    pub variations: Vec<VariationDto>,
 }
 
 impl From<Maneuver> for ManeuverDto {
@@ -62,6 +72,24 @@ impl From<Maneuver> for ManeuverDto {
         let tags =
             m.tags().iter().map(|t| TagDto { id: t.id(), name: t.name().to_string() }).collect();
 
+        let default_variation = VariationDto {
+            id: m.default_variation().id(),
+            name: m.default_variation().name().to_string(),
+            description: m.default_variation().description().as_str().to_string(),
+            video_asset_name: m.default_variation().video_asset_name().as_str().to_string(),
+        };
+
+        let variations = m
+            .other_variations()
+            .iter()
+            .map(|v| VariationDto {
+                id: v.id(),
+                name: v.name().to_string(),
+                description: v.description().as_str().to_string(),
+                video_asset_name: v.video_asset_name().as_str().to_string(),
+            })
+            .collect();
+
         Self {
             id: m.id(),
             vehicle_type,
@@ -69,7 +97,8 @@ impl From<Maneuver> for ManeuverDto {
             tags,
             description: m.description().as_str().to_string(),
             difficulty,
-            video_path: m.video_path().map(|vp| vp.as_str().to_string()),
+            default_variation,
+            variations,
         }
     }
 }

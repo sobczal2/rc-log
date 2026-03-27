@@ -1,0 +1,7 @@
+{
+  "id": "318c2830-582d-4907-b686-f3f3dfc0d88a",
+  "videoAssetName": "helicopter_hurricane_default",
+  "videoAssetId": "3a4d9d9d-4000-4b4a-be00-c2617e3d0012",
+  "name": "Default",
+  "description": "### Execution Steps\n1. From an upright hover, push the tail directly up into forward flight, then sharply pivot 180 degrees to begin flying at high speed tail-first.\n2. Apply continuous side-cyclic (aileron) in the direction of the desired circle, tilting the rotor disc heavily inward toward the center.\n3. Maintain constant forward elevator (which pushes the tail aggressively backwards in this orientation) to keep the speed extremely high.\n4. Inject large amounts of collective pitch to combat the extreme bank angle of the rotor disc and prevent the helicopter from losing altitude throughout the sweep.\n5. Adjust rudder constantly to keep the tail leading flawlessly along the outer flight path circumference.\n\n### Common Problems\n- **Loss of Speed:** If the elevator isn't held forward enough, the tail won't drive through the circle. Keeping speed high generates the required centrifugal 'lock' for a clean hurricane.\n- **Altitude Bleed:** A steep inward bank angle rapidly dumps vertical lift. You must aggressively pull collective to keep the helicopter floating while banked.\n- **Velocity Disorientation:** Given the speed and backward orientation, misinterpreting the tail's track quickly leads to catastrophic dirt naps. Practice slow backwards circuits extensively before attempting hurricane speeds."
+}
