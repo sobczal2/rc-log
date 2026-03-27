@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import type { VehicleType, DifficultyLevel } from "@/domain/maneuver";
 
 const VALID_VEHICLE_TYPES = ["Helicopter", "Plane", "Drone"] as const;
-const VALID_DIFFICULTIES = ["Level1", "Level2", "Level3", "Level4", "Level5", "Level6", "Level7"] as const;
+const VALID_DIFFICULTIES = ["level1", "level2", "level3", "level4", "level5", "level6", "level7"] as const;
 const VALID_SORT_FIELDS = ["name", "difficulty"] as const;
 const VALID_SORT_DIRECTIONS = ["asc", "desc"] as const;
 

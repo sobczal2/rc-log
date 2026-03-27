@@ -84,6 +84,12 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/user/get_by_username/error.rs` | `GetUserByUsernameError` (NotFound, InvalidUsername, InvalidData, RepositoryError) |
 | `src/user/get_by_username/model.rs` | `GetUserByUsernameInput`, `UserDto` |
 | `src/user/get_by_username/use_case.rs` | `GetUserByUsernameUseCase<UoW>` — returns `UserDto` |
+| `src/user/sign_in/error.rs` | `SignInError` (InvalidCredentials, InvalidData, RepositoryError) |
+| `src/user/sign_in/model.rs` | `SignInInput`, `UserDto` |
+| `src/user/sign_in/use_case.rs` | `SignInUseCase<UoW>` — verifies argon2 hash, returns `UserDto` |
+| `src/user/sign_up/error.rs` | `SignUpError` (ValidationError, UsernameTaken, EmailTaken, HashingError, RepositoryError) |
+| `src/user/sign_up/model.rs` | `SignUpInput`, `UserDto` |
+| `src/user/sign_up/use_case.rs` | `SignUpUseCase<UoW>` — hashes password with argon2, saves user, returns `UserDto` |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -116,6 +122,9 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 
+**Conventions:**
+- Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
+
 **Key implementation details:**
 - `SqlxManeuverUnitOfWork` holds a `PgPool` (Arc-backed, `Clone`-derived).
 - `get_by_id`: two queries — fetch maneuver row, then fetch its tags.
@@ -145,28 +154,50 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | Path | Contents |
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
-| `src/config.rs` | `AppConfig::load()` reads `APP_ENV`, `DATABASE_URL`, `APP_HOST`, `APP_PORT` from env |
-| `src/state.rs` | `AppState { maneuver_uow: SqlxManeuverUnitOfWork }` — passed via axum `State` |
-| `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes |
-| `src/extractors/pagination.rs` | `PaginationQuery` — reusable axum `FromRequestParts` extractor |
-| `src/maneuver/handler.rs` | `get_maneuver_by_id`, `list_maneuvers` |
-| `src/maneuver/response.rs` | `GetManeuverByIdResponse`, `ListManeuversResponse`, `ManeuverListItemResponse` |
+| `src/config.rs` | `AppConfig::load()` reads `APP_ENV`, `DATABASE_URL`, `APP_HOST`, `APP_PORT`, `APP_ASSET_PATH`, `JWT_SECRET` from env |
+| `src/state.rs` | `AppState { maneuver_uow, user_uow, jwt_secret }` — passed via axum `State` |
+| `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
+| `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
+| `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
+| `src/maneuver/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
+| `src/maneuver/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/maneuver/router.rs` | Mounts maneuver routes |
+| `src/auth/sign_in/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
+| `src/auth/sign_up/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
+| `src/auth/router.rs` | Mounts auth routes |
+| `src/user/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` extractor |
+| `src/user/router.rs` | Mounts user routes |
 
 **Error mapping (`ApiError`):**
-| `ManeuverError` | HTTP |
+| Error | HTTP |
 |---|---|
-| `NotFound` | 404 |
+| `NotFound` (maneuver/user) | 404 |
 | `InvalidData` | 500 (bad DB data is a server problem) |
 | `RepositoryError` | 500 (internal details not leaked) |
+| `UsernameTaken` / `EmailTaken` | 409 |
+| `ValidationError` | 400 |
+| `InvalidCredentials` (sign-in) | 401 |
+| `Unauthorized` (missing/invalid JWT) | 401 |
 
 **HTTP Endpoints:**
 ```
-GET /api/maneuvers?page=1&page_size=20   → ListManeuversResponse
-GET /api/maneuvers/{id}                  → GetManeuverByIdResponse
+GET  /api/maneuvers?page=1&page_size=20   → ListManeuversResponse
+GET  /api/maneuvers/{id}                  → GetManeuverByIdResponse
+
+POST /api/auth/sign-up                    → SignUpResponse  { token, user }
+POST /api/auth/sign-in                    → SignInResponse  { token, user }
+
+GET  /api/users/{id}          [JWT required]  → GetByIdResponse
 ```
 
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.
+
+**JWT / authentication conventions:**
+- Tokens are HS256-signed JWTs with a 24 h expiry. The secret is read from `JWT_SECRET` env var.
+- `JwtClaims` carries `sub` (user UUID) and `username`.
+- Routes that require authentication add `AuthenticatedUser` as a handler parameter — axum resolves it via `FromRequestParts` which validates the `Authorization: Bearer <token>` header. No JWT middleware layer is used; protection is per-handler.
+- Password hashing is done in the `sign_up` use case via **argon2** (`Argon2::default()`, random salt). Verification is in the `sign_in` use case.
+- The `sign_in` and `sign_up` handlers both return `{ token, user }` so the client can bootstrap immediately after registration.
 
 ---
 
@@ -177,6 +208,7 @@ APP_ENV=development        # or: production, prod, dev
 DATABASE_URL=              # PostgreSQL connection string
 APP_HOST=127.0.0.1
 APP_PORT=3000
+JWT_SECRET=                # Required — secret key for HS256 JWT signing
 RUST_LOG=rc_log_api=debug,rc_log_application=debug,sqlx=warn,info
 ```
 
@@ -189,6 +221,8 @@ RUST_LOG=rc_log_api=debug,rc_log_application=debug,sqlx=warn,info
 Initialized in `main.rs` from `RUST_LOG` (read from `.env` before subscriber init). Every use case method and handler is annotated with `#[instrument]`. Key fields in spans:
 - `maneuver_id` on get-by-id
 - `page`, `page_size` on list
+- `username` on sign-in/sign-up and user use cases
+- `user_id` on get-user-by-id
 
 ---
 
@@ -200,30 +234,41 @@ React/TypeScript SPA scaffolded with Vite using **shadcn/ui** components and Tai
 
 ```
 frontend/src/
+├── context/             # React context providers
+│   └── AuthContext.tsx  # AuthProvider, useAuth hook — JWT + user state
 ├── domain/              # Domain layer — business types and formatting logic
-│   └── maneuver/        # Maneuver aggregate
-│       ├── maneuver.ts     # Maneuver interface (matches backend DTO)
-│       ├── difficulty.ts   # DifficultyLevel type (1-7) + formatting functions
-│       ├── vehicle.tsx     # VehicleType type + icon component
-│       ├── tag.ts          # Tag interface
-│       ├── filters.ts      # Filter/sort/pagination types
+│   ├── maneuver/        # Maneuver aggregate
+│   │   ├── maneuver.ts     # Maneuver interface (matches backend DTO)
+│   │   ├── difficulty.ts   # DifficultyLevel type (level1-level7) + formatting functions
+│   │   ├── vehicle.tsx     # VehicleType type + icon component
+│   │   ├── tag.ts          # Tag interface
+│   │   ├── filters.ts      # Filter/sort/pagination types
+│   │   └── index.ts        # Barrel export
+│   └── user/            # User aggregate
+│       ├── user.ts         # User interface (id, username, email)
 │       └── index.ts        # Barrel export
 ├── lib/api/             # API layer — HTTP client and request/response types
-│   ├── api-client.ts    # Axios instance with interceptors
-│   └── maneuvers.ts     # API functions (list, getById)
+│   ├── apiClient.ts     # Axios instance with JWT request interceptor and 401 response interceptor
+│   ├── auth.ts          # authApi (signIn, signUp) — returns { token, user }
+│   └── maneuvers.ts     # maneuversApi (list, getById)
 ├── hooks/               # Custom React hooks
 │   ├── useManeuverFilters.ts  # URL-synced filter state
 │   └── useDebounce.ts
 ├── components/          # React components
+│   ├── auth/            # Auth-related components
+│   │   └── ProtectedRoute.tsx  # Redirects to /sign-in when not authenticated
 │   ├── maneuvers/       # Maneuver-specific components
 │   │   ├── ManeuverCard.tsx
 │   │   ├── ManeuverFilters.tsx
 │   │   └── ActiveFilterBadge.tsx
-│   ├── layout/         # Layout components
-│   └── ui/             # shadcn/ui components
+│   ├── layout/          # Layout components
+│   └── ui/              # shadcn/ui components
 └── pages/               # Page components
+    ├── HomePage.tsx
+    ├── ManeuverDetailsPage.tsx
     ├── ManeuversPage.tsx
-    └── ManeuverDetailsPage.tsx
+    ├── SignInPage.tsx    # Username + password form — calls authApi.signIn
+    └── SignUpPage.tsx    # Username + email + password form — calls authApi.signUp
 ```
 
 ### Domain Layer (`domain/`)
@@ -237,18 +282,12 @@ frontend/src/
 **Example — difficulty formatting:**
 ```typescript
 // domain/maneuver/difficulty.ts
-export type DifficultyLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type DifficultyLevel = "level1" | "level2" | ... | "level7";
 
-export function getDifficultyColor(difficulty: DifficultyLevel): string {
-  const colors: Record<DifficultyLevel, string> = {
-    1: "bg-green-500/10 text-green-500 border-green-500/20",
-    // ...
-  };
-  return colors[difficulty];
-}
+export function getDifficultyColor(difficulty: DifficultyLevel): string { ... }
 
-export function getDifficultyLabel(vehicleType: VehicleType, difficulty: DifficultyLevel): string {
-  // Returns "L1: Beginner", "L5: Basic 3D", etc.
+export function getDifficultyLevelName(vehicleType: VehicleType, difficulty: DifficultyLevel): string {
+  // Returns "Beginner", "Basic 3D", etc.
 }
 ```
 
@@ -263,6 +302,27 @@ export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
   }
 }
 ```
+
+### Authentication (`context/AuthContext.tsx`, `lib/api/auth.ts`)
+
+**`AuthProvider`** wraps the whole app (in `App.tsx`). It persists `token` and `user` to `localStorage` and exposes them via `useAuth()`.
+
+**`useAuth()` returns:**
+- `user: User | null` — deserialized from localStorage on init
+- `token: string | null` — JWT string
+- `isAuthenticated: boolean`
+- `signIn(req)` / `signUp(req)` — call the API and store the returned token + user
+- `signOut()` — clears localStorage and resets state
+
+**Axios interceptors (`lib/apiClient.ts`):**
+- **Request**: attaches `Authorization: Bearer <token>` if a token is present in `localStorage`.
+- **Response**: on 401, clears `token` and `user` from `localStorage` and redirects to `/sign-in`.
+
+**`ProtectedRoute`** (`components/auth/ProtectedRoute.tsx`) — wraps any route element that requires auth; redirects to `/sign-in` when `isAuthenticated` is `false`.
+
+**Routes:** `/sign-in` → `SignInPage`, `/sign-up` → `SignUpPage`.
+
+The sidebar footer shows **Sign In / Register** buttons when logged out, and a **Sign Out** button with the username when logged in.
 
 ### API Layer (`lib/api/`)
 
@@ -299,16 +359,17 @@ Backend DTOs use `#[serde(rename_all = "camelCase")]` to serialize fields as cam
 - `video_path` → `videoPath`
 - `total_pages` → `totalPages`
 
-Difficulty serializes as number (1-7), not string.
+Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 
 ### Adding a New Feature — Frontend Checklist
 
 1. **Domain**: Add types in `domain/<entity>/` matching backend DTOs. Add formatting functions for display logic.
 2. **API**: Add request/response types in `lib/api/<entity>.ts`. Request types reference domain types.
 3. **Components**: Use domain types and domain formatting functions — never duplicate display logic.
-4. **Import rules**:
-   - Components import from `@/domain/maneuver` for types and formatting
-   - API layer imports from `@/domain/maneuver` for type references
+4. **Auth-gated routes**: Wrap the route element in `<ProtectedRoute>` in `App.tsx`.
+5. **Import rules**:
+   - Components import from `@/domain/maneuver` (or other entity) for types and formatting
+   - API layer imports from `@/domain/<entity>` for type references
    - Never duplicate domain types in API layer
 
 ---
@@ -325,3 +386,5 @@ Difficulty serializes as number (1-7), not string.
    - Only `api` (composition root) wires concrete infrastructure into use cases
 6. **Code Style**:
    - Always prefer explicit `use` declarations (e.g., `use std::env;`) instead of inline fully-qualified paths (`std::env::var()`), unless doing so creates severe ambiguity. Expand this preference across the entire backend workspace.
+   - Each API operation lives in its own subdirectory under the entity: `src/<entity>/<operation>/` with `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs`.
+   - `DifficultyLevel` serializes as lowercase strings (`level1`–`level7`) from the backend.

@@ -1,7 +1,11 @@
+mod auth;
 mod config;
 mod error;
+mod extractors;
+mod jwt;
 mod maneuver;
 mod state;
+mod user;
 
 use axum::{Router, serve};
 use dotenvy::dotenv;
@@ -12,8 +16,10 @@ use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, fmt};
 
+use crate::auth::router::auth_router;
 use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;
+use crate::user::router::user_router;
 
 #[tokio::main]
 async fn main() {
@@ -33,10 +39,12 @@ async fn main() {
 
     info!("Database connection pool established");
 
-    let state = AppState::new(pool);
+    let state = AppState::new(pool, config.jwt_secret.clone());
 
     let app = Router::new()
         .merge(maneuver_router())
+        .merge(auth_router())
+        .merge(user_router())
         .with_state(state)
         .nest_service("/api/assets", ServeDir::new(config.asset_path.clone()));
 

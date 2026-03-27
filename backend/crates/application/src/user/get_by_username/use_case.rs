@@ -32,7 +32,7 @@ where
 
         debug!("Querying user by username from repository");
         let user = tx
-            .get_by_username(username.as_str())
+            .get_by_username(&username)
             .await
             .map_err(GetUserByUsernameError::from)?
             .ok_or_else(|| {

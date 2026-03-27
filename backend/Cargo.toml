@@ -9,14 +9,16 @@ rc-log-domain = { path = "crates/domain" }
 rc-log-persistance = { path = "crates/persistance" }
 
 axum = { version = "0.8.8" }
+argon2 = { version = "0.5.3" }
+jsonwebtoken = { version = "10.3.0" }
 thiserror = { version = "2.0.18" }
-sqlx = { version = "0.8" }
-uuid = { version = "1.22.0", features = ["v4"] }
-serde = { version = "1.0" }
-serde_json = { version = "1.0" }
-tokio = { version = "1" }
-dotenvy = { version = "0.15" }
-tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3" }
+sqlx = { version = "0.8.6" }
+uuid = { version = "1.22.0" }
+serde = { version = "1.0.228" }
+serde_json = { version = "1.0.149" }
+tokio = { version = "1.50.0" }
+dotenvy = { version = "0.15.7" }
+tracing = { version = "0.1.44" }
+tracing-subscriber = { version = "0.3.23" }
 tower-http = { version = "0.6.8" }
 

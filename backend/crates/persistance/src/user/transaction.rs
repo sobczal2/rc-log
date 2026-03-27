@@ -96,7 +96,7 @@ impl Transaction<User> for SqlxUserTransaction {
 }
 
 impl UserTransaction for SqlxUserTransaction {
-    async fn get_by_username(&mut self, username: &str) -> Result<Option<User>, TransactionError> {
+    async fn get_by_username(&mut self, username: &Username) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
             SELECT id, username, email, password_hash
@@ -104,7 +104,7 @@ impl UserTransaction for SqlxUserTransaction {
             WHERE username = $1
             "#,
         )
-        .bind(username)
+        .bind(username.as_str())
         .fetch_optional(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
