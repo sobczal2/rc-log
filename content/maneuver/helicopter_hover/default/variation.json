@@ -2,6 +2,6 @@
   "id": "28302640-dc0e-4ac8-b214-a4c367288d07",
   "videoAssetName": "helicopter_hover_default",
   "videoAssetId": "e0833c26-a107-4e14-b743-aa53dd4e2637",
-  "name": "Default",
+  "name": "Tail-in Hover",
   "description": "### Execution Steps\n1. Ensure the helicopter is placed on a flat, clear surface facing away from you (tail-in).\n2. Smoothly increase the collective pitch/throttle until the helicopter becomes light on its skids.\n3. Add a touch more collective to gently break ground effect and lift off to about eye level (roughly 4-6 feet high).\n4. Constantly input micro-corrections on the cyclic (elevator and aileron) to stay over the spot.\n5. Use the rudder (tail rotor) to keep the nose pointed directly away from you.\n6. To land, slowly decrease collective until the skids touch down, then lower fully to idle.\n\n### Common Problems\n- **Over-correcting (Pilot Induced Oscillations):** Beginners often make control inputs that are too large, leading to swinging. Keep your thumb/finger movements extremely small (micromillimeters) and wait a split second for the helicopter to react.\n- **Losing Orientation:** If the nose starts drifting to the side, don't panic. Gently apply rudder to bring the tail back to pointing straight at you. Focus on the nose of the canopy.\n- **Ground Effect Turbulence:** Hovering too low (under 2 feet) traps the helicopter in its own chaotic downwash. Punch completely through the ground effect to reach a higher, smoother hover."
 }
