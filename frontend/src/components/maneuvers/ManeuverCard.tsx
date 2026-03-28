@@ -17,19 +17,19 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
   const videoSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   return (
     <Link to={`/maneuvers/${maneuver.id}`}>
-      <Card className="group relative overflow-hidden flex flex-col aspect-square hover:border-sidebar-ring transition-colors bg-card shadow-sm cursor-pointer p-0 gap-0">
+      <Card className="group relative overflow-hidden flex flex-col aspect-square transition-colors bg-card shadow-sm cursor-pointer p-0 gap-0">
         <div className="relative w-full h-[55%] flex-shrink-0 bg-muted/30 overflow-hidden border-b border-border/50">
           {videoSrc ? (
             <video
               src={videoSrc}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover transition-transform duration-700 ease-out"
               autoPlay
               loop
               muted
               playsInline
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700 ease-out">
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 transition-transform duration-700 ease-out">
               {getVehicleIcon(maneuver.vehicleType, 48)}
             </div>
           )}
