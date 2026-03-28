@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { getVehicleIcon, getDifficultyLevelName } from "@/models/shared";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
+import { VariationCard } from "@/components/maneuvers/VariationCard";
 
 export function ManeuverDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +26,7 @@ export function ManeuverDetailsPage() {
 
   const assetName = maneuver?.defaultVariation?.videoAssetName ?? "";
   const { data: videoPathData } = useVideoPath(assetName);
-  const videoSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
+  const videoSrc = videoPathData ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath) : null;
 
   if (isLoading) {
     return (
@@ -124,6 +125,21 @@ export function ManeuverDetailsPage() {
                 <article className="prose prose-zinc dark:prose-invert prose-headings:font-bold prose-h2:text-2xl mt-2 w-full max-w-none prose-a:text-primary">
                   <ReactMarkdown>{maneuver.description}</ReactMarkdown>
                 </article>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Variations
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <VariationCard
+                  variation={maneuver.defaultVariation}
+                  isDefault
+                />
+                {maneuver.variations.map((v) => (
+                  <VariationCard key={v.id} variation={v} />
+                ))}
               </div>
             </div>
           </div>
