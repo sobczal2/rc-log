@@ -510,3 +510,153 @@ impl UnitOfWork<Maneuver> for SqlxManeuverUnitOfWork {
         Ok(SqlxManeuverTransaction { tx })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use uuid::Uuid;
+
+    use super::{ManeuverRow, VariationRow};
+
+    fn make_variation_row(description: &str, asset_name: &str) -> VariationRow {
+        VariationRow {
+            id: Uuid::new_v4(),
+            maneuver_id: Uuid::new_v4(),
+            name: "default".to_string(),
+            description: description.to_string(),
+            video_asset_name: asset_name.to_string(),
+            is_default: true,
+        }
+    }
+
+    fn make_maneuver_row(vehicle_type: &str, difficulty: i32) -> ManeuverRow {
+        ManeuverRow {
+            id: Uuid::new_v4(),
+            vehicle_type: vehicle_type.to_string(),
+            name: "Test Maneuver".to_string(),
+            description: "A valid description".to_string(),
+            difficulty,
+        }
+    }
+
+    // --- VariationRow ---
+
+    #[test]
+    fn variation_row_valid_converts_to_variation() {
+        let row = make_variation_row("description text", "video_small");
+        assert!(row.try_into_variation().is_ok());
+    }
+
+    #[test]
+    fn variation_row_empty_description_fails() {
+        let row = make_variation_row("", "video_small");
+        assert!(row.try_into_variation().is_err());
+    }
+
+    #[test]
+    fn variation_row_empty_asset_name_fails() {
+        let row = make_variation_row("valid description", "");
+        assert!(row.try_into_variation().is_err());
+    }
+
+    // --- ManeuverRow ---
+
+    fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
+        use rc_log_domain::asset::name::AssetName;
+        use rc_log_domain::shared::markdown_text::MarkdownText;
+        rc_log_domain::maneuver::variation::Variation::new(
+            Uuid::new_v4(),
+            "default".to_string(),
+            MarkdownText::new("desc".to_string()).unwrap(),
+            AssetName::new("asset".to_string()).unwrap(),
+        )
+    }
+
+    #[test]
+    fn maneuver_row_helicopter_converts() {
+        let row = make_maneuver_row("Helicopter", 1);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn maneuver_row_plane_converts() {
+        let row = make_maneuver_row("Plane", 3);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn maneuver_row_drone_converts() {
+        let row = make_maneuver_row("Drone", 7);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn maneuver_row_all_difficulties_convert() {
+        for d in 1..=7i32 {
+            let row = make_maneuver_row("Helicopter", d);
+            let result =
+                row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+            assert!(result.is_ok(), "difficulty {d} should convert");
+        }
+    }
+
+    #[test]
+    fn maneuver_row_unknown_vehicle_type_fails() {
+        let row = make_maneuver_row("Submarine", 1);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn maneuver_row_difficulty_zero_fails() {
+        let row = make_maneuver_row("Helicopter", 0);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn maneuver_row_difficulty_eight_fails() {
+        let row = make_maneuver_row("Helicopter", 8);
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn maneuver_row_empty_description_fails() {
+        let mut row = make_maneuver_row("Helicopter", 1);
+        row.description = String::new();
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn maneuver_row_from_maneuver_round_trip() {
+        use std::collections::BTreeSet;
+        use rc_log_domain::maneuver::Maneuver;
+        use rc_log_domain::maneuver::difficulty::Difficulty;
+        use rc_log_domain::shared::markdown_text::MarkdownText;
+        use rc_log_domain::shared::vehicle_type::VehicleType;
+
+        let id = Uuid::new_v4();
+        let maneuver = Maneuver::new(
+            id,
+            VehicleType::Plane,
+            "Stall Turn".to_string(),
+            BTreeSet::new(),
+            MarkdownText::new("A description".to_string()).unwrap(),
+            Difficulty::Level4,
+            make_default_variation(),
+            vec![],
+        );
+        let row = ManeuverRow::from_maneuver(&maneuver);
+        assert_eq!(row.id, id);
+        assert_eq!(row.vehicle_type, "Plane");
+        assert_eq!(row.difficulty, 4);
+        assert_eq!(row.name, "Stall Turn");
+        assert_eq!(row.description, "A description");
+    }
+}

@@ -35,3 +35,36 @@ impl Username {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Username, UsernameError};
+
+    #[test]
+    fn valid_username() {
+        let u = Username::new("alice".to_string()).unwrap();
+        assert_eq!(u.as_str(), "alice");
+    }
+
+    #[test]
+    fn empty_is_err() {
+        assert_eq!(Username::new("".to_string()), Err(UsernameError::Empty));
+    }
+
+    #[test]
+    fn whitespace_only_is_err() {
+        assert_eq!(Username::new("   ".to_string()), Err(UsernameError::Empty));
+    }
+
+    #[test]
+    fn exactly_255_chars_is_ok() {
+        let s = "a".repeat(255);
+        assert!(Username::new(s).is_ok());
+    }
+
+    #[test]
+    fn over_255_chars_is_err() {
+        let s = "a".repeat(256);
+        assert_eq!(Username::new(s), Err(UsernameError::TooLong));
+    }
+}

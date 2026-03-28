@@ -182,3 +182,146 @@ impl Validate for ListManeuversInput {
         if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::shared::pagination::PaginationDto;
+    use crate::shared::validator::Validate;
+
+    use super::{ListManeuversInput, ManeuverFilterDto, ManeuverSortDto};
+
+    fn valid_filter() -> ManeuverFilterDto {
+        ManeuverFilterDto { tags: vec![], vehicle_type: None, difficulty: None, search_query: None }
+    }
+
+    fn valid_sort() -> ManeuverSortDto {
+        ManeuverSortDto { field: String::new(), direction: String::new() }
+    }
+
+    fn valid_pagination() -> PaginationDto {
+        PaginationDto { page: 1, page_size: 20 }
+    }
+
+    // --- ManeuverFilterDto ---
+
+    #[test]
+    fn filter_empty_passes() {
+        assert!(valid_filter().validate().is_ok());
+    }
+
+    #[test]
+    fn filter_search_query_100_chars_passes() {
+        let mut f = valid_filter();
+        f.search_query = Some("a".repeat(100));
+        assert!(f.validate().is_ok());
+    }
+
+    #[test]
+    fn filter_search_query_101_chars_fails() {
+        let mut f = valid_filter();
+        f.search_query = Some("a".repeat(101));
+        let errs = f.validate().unwrap_err();
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].field, "search_query");
+    }
+
+    #[test]
+    fn filter_tag_50_chars_passes() {
+        let mut f = valid_filter();
+        f.tags = vec!["a".repeat(50)];
+        assert!(f.validate().is_ok());
+    }
+
+    #[test]
+    fn filter_tag_51_chars_fails() {
+        let mut f = valid_filter();
+        f.tags = vec!["a".repeat(51)];
+        let errs = f.validate().unwrap_err();
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].field, "tags[0]");
+    }
+
+    #[test]
+    fn filter_multiple_bad_tags_report_all_errors() {
+        let mut f = valid_filter();
+        f.tags = vec!["a".repeat(51), "b".repeat(51)];
+        assert_eq!(f.validate().unwrap_err().len(), 2);
+    }
+
+    // --- ManeuverSortDto ---
+
+    #[test]
+    fn sort_empty_strings_pass() {
+        assert!(valid_sort().validate().is_ok());
+    }
+
+    #[test]
+    fn sort_name_asc_passes() {
+        let s = ManeuverSortDto { field: "name".to_string(), direction: "asc".to_string() };
+        assert!(s.validate().is_ok());
+    }
+
+    #[test]
+    fn sort_difficulty_desc_passes() {
+        let s = ManeuverSortDto { field: "difficulty".to_string(), direction: "desc".to_string() };
+        assert!(s.validate().is_ok());
+    }
+
+    #[test]
+    fn sort_invalid_field_fails() {
+        let s = ManeuverSortDto { field: "bogus".to_string(), direction: "asc".to_string() };
+        let errs = s.validate().unwrap_err();
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].field, "sort.field");
+    }
+
+    #[test]
+    fn sort_invalid_direction_fails() {
+        let s = ManeuverSortDto { field: "name".to_string(), direction: "sideways".to_string() };
+        let errs = s.validate().unwrap_err();
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].field, "sort.direction");
+    }
+
+    #[test]
+    fn sort_both_invalid_reports_two_errors() {
+        let s = ManeuverSortDto { field: "bad".to_string(), direction: "bad".to_string() };
+        assert_eq!(s.validate().unwrap_err().len(), 2);
+    }
+
+    // --- ListManeuversInput ---
+
+    #[test]
+    fn list_input_all_valid_passes() {
+        let input = ListManeuversInput {
+            pagination: valid_pagination(),
+            filter: valid_filter(),
+            sort: valid_sort(),
+        };
+        assert!(input.validate().is_ok());
+    }
+
+    #[test]
+    fn list_input_invalid_pagination_propagates_errors() {
+        let input = ListManeuversInput {
+            pagination: PaginationDto { page: 0, page_size: 0 },
+            filter: valid_filter(),
+            sort: valid_sort(),
+        };
+        let errs = input.validate().unwrap_err();
+        // page and page_size both invalid
+        assert!(errs.len() >= 2);
+    }
+
+    #[test]
+    fn list_input_invalid_filter_propagates_errors() {
+        let mut filter = valid_filter();
+        filter.search_query = Some("x".repeat(101));
+        let input = ListManeuversInput {
+            pagination: valid_pagination(),
+            filter,
+            sort: valid_sort(),
+        };
+        assert!(input.validate().is_err());
+    }
+}

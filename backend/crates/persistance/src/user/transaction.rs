@@ -134,3 +134,70 @@ impl UnitOfWork<User> for SqlxUserUnitOfWork {
         Ok(SqlxUserTransaction { tx })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::UserRow;
+
+    fn make_user_row(username: &str, email: &str, password_hash: &str) -> UserRow {
+        UserRow {
+            id: Uuid::new_v4(),
+            username: username.to_string(),
+            email: email.to_string(),
+            password_hash: password_hash.to_string(),
+        }
+    }
+
+    #[test]
+    fn valid_user_row_converts() {
+        let row = make_user_row("alice", "alice@example.com", "$argon2id$hash");
+        assert!(row.try_into_user().is_ok());
+    }
+
+    #[test]
+    fn empty_username_fails() {
+        let row = make_user_row("", "alice@example.com", "$argon2id$hash");
+        assert!(row.try_into_user().is_err());
+    }
+
+    #[test]
+    fn whitespace_only_username_fails() {
+        let row = make_user_row("   ", "alice@example.com", "$argon2id$hash");
+        assert!(row.try_into_user().is_err());
+    }
+
+    #[test]
+    fn invalid_email_fails() {
+        let row = make_user_row("alice", "not-an-email", "$argon2id$hash");
+        assert!(row.try_into_user().is_err());
+    }
+
+    #[test]
+    fn empty_password_hash_fails() {
+        let row = make_user_row("alice", "alice@example.com", "");
+        assert!(row.try_into_user().is_err());
+    }
+
+    #[test]
+    fn from_user_preserves_all_fields() {
+        use rc_log_domain::shared::email::Email;
+        use rc_log_domain::shared::password_hash::PasswordHash;
+        use rc_log_domain::user::User;
+        use rc_log_domain::user::username::Username;
+
+        let id = Uuid::new_v4();
+        let user = User::new(
+            id,
+            Username::new("bob".to_string()).unwrap(),
+            Email::new("bob@example.com".to_string()).unwrap(),
+            PasswordHash::new("hash123".to_string()).unwrap(),
+        );
+        let row = UserRow::from_user(&user);
+        assert_eq!(row.id, id);
+        assert_eq!(row.username, "bob");
+        assert_eq!(row.email, "bob@example.com");
+        assert_eq!(row.password_hash, "hash123");
+    }
+}

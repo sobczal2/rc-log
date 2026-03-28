@@ -84,10 +84,106 @@ impl Maneuver {
     }
 
     pub fn remove_tag(&mut self, tag_id: Uuid) -> Option<Tag> {
-        self.tags.take(&Tag::new(tag_id, String::new()))
+        let found = self.tags.iter().find(|t| t.id() == tag_id).cloned()?;
+        self.tags.remove(&found);
+        Some(found)
     }
 
     pub fn update_description(&mut self, description: MarkdownText) {
         self.description = description;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use uuid::Uuid;
+
+    use crate::asset::name::AssetName;
+    use crate::maneuver::difficulty::Difficulty;
+    use crate::maneuver::tag::Tag;
+    use crate::maneuver::variation::Variation;
+    use crate::shared::markdown_text::MarkdownText;
+    use crate::shared::vehicle_type::VehicleType;
+
+    use super::Maneuver;
+
+    fn make_variation() -> Variation {
+        Variation::new(
+            Uuid::new_v4(),
+            "default".to_string(),
+            MarkdownText::new("description".to_string()).unwrap(),
+            AssetName::new("asset".to_string()).unwrap(),
+        )
+    }
+
+    fn make_maneuver() -> Maneuver {
+        Maneuver::new(
+            Uuid::new_v4(),
+            VehicleType::Helicopter,
+            "test maneuver".to_string(),
+            BTreeSet::new(),
+            MarkdownText::new("some description".to_string()).unwrap(),
+            Difficulty::Level1,
+            make_variation(),
+            vec![],
+        )
+    }
+
+    #[test]
+    fn add_tag_inserts_tag() {
+        let mut m = make_maneuver();
+        let tag = Tag::new(Uuid::new_v4(), "beginner".to_string());
+        m.add_tag(tag.clone());
+        assert!(m.tags().contains(&tag));
+    }
+
+    #[test]
+    fn add_tag_duplicate_is_idempotent() {
+        let mut m = make_maneuver();
+        let tag = Tag::new(Uuid::new_v4(), "beginner".to_string());
+        m.add_tag(tag.clone());
+        m.add_tag(tag.clone());
+        assert_eq!(m.tags().len(), 1);
+    }
+
+    #[test]
+    fn remove_tag_returns_tag_and_removes_it() {
+        let mut m = make_maneuver();
+        let tag_id = Uuid::new_v4();
+        let tag = Tag::new(tag_id, "beginner".to_string());
+        m.add_tag(tag.clone());
+        assert_eq!(m.tags().len(), 1);
+        let removed = m.remove_tag(tag_id);
+        assert_eq!(removed, Some(tag));
+        assert_eq!(m.tags().len(), 0);
+    }
+
+    #[test]
+    fn remove_tag_with_non_empty_name_works() {
+        // Regression: the previous implementation using BTreeSet::take with an
+        // empty-name sentinel would silently return None for any tag with a
+        // non-empty name because the Ord-based lookup would not find it.
+        let mut m = make_maneuver();
+        let tag_id = Uuid::new_v4();
+        m.add_tag(Tag::new(tag_id, "a-tag-with-a-real-name".to_string()));
+        let removed = m.remove_tag(tag_id);
+        assert!(removed.is_some(), "remove_tag must find tags by id regardless of name");
+        assert_eq!(m.tags().len(), 0);
+    }
+
+    #[test]
+    fn remove_tag_nonexistent_returns_none() {
+        let mut m = make_maneuver();
+        assert_eq!(m.remove_tag(Uuid::new_v4()), None);
+    }
+
+    #[test]
+    fn update_description_changes_content() {
+        let mut m = make_maneuver();
+        let new_desc = MarkdownText::new("updated description".to_string()).unwrap();
+        m.update_description(new_desc);
+        assert_eq!(m.description().as_str(), "updated description");
     }
 }

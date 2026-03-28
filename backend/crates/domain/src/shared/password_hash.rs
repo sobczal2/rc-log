@@ -30,3 +30,25 @@ impl PasswordHash {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{PasswordHash, PasswordHashError};
+
+    #[test]
+    fn valid_hash() {
+        let h = PasswordHash::new("$argon2id$v=19$hash".to_string()).unwrap();
+        assert_eq!(h.as_str(), "$argon2id$v=19$hash");
+    }
+
+    #[test]
+    fn empty_is_err() {
+        assert_eq!(PasswordHash::new("".to_string()), Err(PasswordHashError::Empty));
+    }
+
+    #[test]
+    fn non_empty_whitespace_is_ok() {
+        // PasswordHash only rejects truly empty strings; whitespace is unusual but valid
+        assert!(PasswordHash::new(" ".to_string()).is_ok());
+    }
+}

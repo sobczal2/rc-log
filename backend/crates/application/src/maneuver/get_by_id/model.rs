@@ -102,3 +102,26 @@ impl From<Maneuver> for ManeuverDto {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use crate::shared::validator::Validate;
+
+    use super::GetManeuverByIdInput;
+
+    #[test]
+    fn non_nil_uuid_passes_validation() {
+        let input = GetManeuverByIdInput { id: Uuid::new_v4() };
+        assert!(input.validate().is_ok());
+    }
+
+    #[test]
+    fn nil_uuid_fails_validation() {
+        let input = GetManeuverByIdInput { id: Uuid::nil() };
+        let errs = input.validate().unwrap_err();
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].field, "id");
+    }
+}

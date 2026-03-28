@@ -40,3 +40,43 @@ impl Email {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Email, EmailError};
+
+    #[test]
+    fn valid_email() {
+        let e = Email::new("user@example.com".to_string()).unwrap();
+        assert_eq!(e.as_str(), "user@example.com");
+    }
+
+    #[test]
+    fn empty_is_err() {
+        assert_eq!(Email::new("".to_string()), Err(EmailError::Empty));
+    }
+
+    #[test]
+    fn whitespace_only_is_err() {
+        assert_eq!(Email::new("   ".to_string()), Err(EmailError::Empty));
+    }
+
+    #[test]
+    fn missing_at_sign_is_err() {
+        assert_eq!(Email::new("userexample.com".to_string()), Err(EmailError::InvalidFormat));
+    }
+
+    #[test]
+    fn exactly_255_chars_is_ok() {
+        // "a".repeat(251) + "@b.c" = 255 chars
+        let email = format!("{}@b.c", "a".repeat(251));
+        assert_eq!(email.len(), 255);
+        assert!(Email::new(email).is_ok());
+    }
+
+    #[test]
+    fn over_255_chars_is_err() {
+        let email = format!("{}@b.c", "a".repeat(252));
+        assert_eq!(Email::new(email), Err(EmailError::TooLong));
+    }
+}
