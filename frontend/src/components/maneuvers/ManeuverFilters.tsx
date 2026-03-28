@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { VehicleType, DifficultyLevel } from "@/models/shared";
-import { useDebounce } from "@/hooks/useDebounce";
 import type { ManeuverFilters, ManeuverFiltersActions } from "@/hooks/useManeuverFilters";
 import { ActiveFilterBadge } from "./ActiveFilterBadge";
 
@@ -28,13 +27,13 @@ const VEHICLE_OPTIONS = [
 ];
 
 const DIFFICULTY_OPTIONS = [
-  { value: "Level1", label: "Level 1 - Beginner" },
-  { value: "Level2", label: "Level 2" },
-  { value: "Level3", label: "Level 3" },
-  { value: "Level4", label: "Level 4" },
-  { value: "Level5", label: "Level 5" },
-  { value: "Level6", label: "Level 6" },
-  { value: "Level7", label: "Level 7 - Expert" },
+  { value: "level1", label: "Level 1 - Beginner" },
+  { value: "level2", label: "Level 2" },
+  { value: "level3", label: "Level 3" },
+  { value: "level4", label: "Level 4" },
+  { value: "level5", label: "Level 5" },
+  { value: "level6", label: "Level 6" },
+  { value: "level7", label: "Level 7 - Expert" },
 ];
 
 const SORT_FIELD_OPTIONS = [
@@ -49,7 +48,6 @@ const SORT_DIRECTION_OPTIONS = [
 
 export function ManeuverFilters({ filters, actions, isOpen, onToggle }: ManeuverFiltersProps) {
   const [searchInput, setSearchInput] = useState("");
-  useDebounce(searchInput, 300);
 
   const hasActiveFilters = filters.searchQuery || filters.vehicleType || filters.difficulty;
 
@@ -116,7 +114,7 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
           )}
           {filters.difficulty && (
             <ActiveFilterBadge
-              label={filters.difficulty.replace("Level", "Level ")}
+              label={filters.difficulty.replace("level", "Level ")}
               onRemove={() => actions.removeFilter("difficulty")}
             />
           )}

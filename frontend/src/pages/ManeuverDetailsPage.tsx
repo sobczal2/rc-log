@@ -97,7 +97,7 @@ export function ManeuverDetailsPage() {
                 </div>
                 <div className="font-bold flex items-center gap-2">
                   <Badge variant="outline" className="font-mono bg-background">
-                    {maneuver.difficulty.replace("Level", "L")}
+                    {maneuver.difficulty.replace("level", "L")}
                   </Badge>
                   <span>{getDifficultyLevelName(maneuver.vehicleType, maneuver.difficulty)}</span>
                 </div>

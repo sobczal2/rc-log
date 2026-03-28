@@ -9,6 +9,7 @@ use crate::jwt::verify_token;
 use crate::state::AppState;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct AuthenticatedUser {
     pub id: Uuid,
     pub username: String,

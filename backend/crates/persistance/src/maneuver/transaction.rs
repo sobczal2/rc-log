@@ -306,7 +306,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 }
 
 impl SqlxManeuverTransaction {
-    pub async fn list(
+    async fn list(
         &mut self,
         pagination: Pagination,
         filter: rc_log_domain::maneuver::transaction::ManeuverFilter,

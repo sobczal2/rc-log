@@ -34,7 +34,9 @@ where
         let mut tx = self.uow.begin().await.map_err(ListManeuversError::from)?;
 
         debug!("Querying maneuvers from repository");
-        let domain_pagination = Pagination::from(input.pagination.clone());
+        let page = input.pagination.page;
+        let page_size = input.pagination.page_size;
+        let domain_pagination = Pagination::from(input.pagination);
         let domain_filter = ManeuverFilter::from(input.filter);
         let domain_sort = ManeuverSort::from(input.sort);
 
@@ -47,6 +49,6 @@ where
         tx.commit().await.map_err(ListManeuversError::from)?;
 
         let dtos = maneuvers.into_iter().map(ManeuverDto::from).collect();
-        Ok(PaginatedResult::new(dtos, total, input.pagination.page, input.pagination.page_size))
+        Ok(PaginatedResult::new(dtos, total, page, page_size))
     }
 }

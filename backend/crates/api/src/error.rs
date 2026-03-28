@@ -7,7 +7,6 @@ use rc_log_application::error::ApplicationError;
 use rc_log_application::maneuver::get_by_id::error::GetManeuverByIdError;
 use rc_log_application::maneuver::list::error::ListManeuversError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
-use rc_log_application::user::create::error::CreateUserError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::sign_in::error::SignInError;
@@ -71,17 +70,6 @@ impl IntoResponse for ApiError {
             )) => {
                 (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
             }
-            ApiError::Application(ApplicationError::CreateUser(CreateUserError::UsernameTaken)) => {
-                (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
-                    .into_response()
-            }
-            ApiError::Application(ApplicationError::CreateUser(CreateUserError::EmailTaken)) => {
-                (StatusCode::CONFLICT, Json(json!({ "error": "Email already exists" })))
-                    .into_response()
-            }
-            ApiError::Application(ApplicationError::CreateUser(
-                CreateUserError::ValidationError(msg),
-            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
             ApiError::Application(ApplicationError::GetUserByUsername(
                 GetUserByUsernameError::InvalidUsername,
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid username" })))
@@ -101,9 +89,6 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::GetUserByUsername(
                 GetUserByUsernameError::RepositoryError(_),
-            ))
-            | ApiError::Application(ApplicationError::CreateUser(
-                CreateUserError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

@@ -17,7 +17,7 @@ pub enum SignUpError {
 impl From<TransactionError> for SignUpError {
     fn from(err: TransactionError) -> Self {
         match err {
-            TransactionError::InvalidData(msg) | TransactionError::TransactionError(msg) => {
+            TransactionError::InvalidData(msg) => {
                 if msg.contains("username") {
                     SignUpError::UsernameTaken
                 } else if msg.contains("email") {
@@ -26,6 +26,7 @@ impl From<TransactionError> for SignUpError {
                     SignUpError::RepositoryError(msg)
                 }
             }
+            TransactionError::TransactionError(msg) => SignUpError::RepositoryError(msg),
         }
     }
 }

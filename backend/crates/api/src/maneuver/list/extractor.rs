@@ -71,13 +71,13 @@ where
 
         use rc_log_application::shared::difficulty::DifficultyDto;
         let difficulty = match raw.difficulty.as_str() {
-            "Level1" => Some(DifficultyDto::Level1),
-            "Level2" => Some(DifficultyDto::Level2),
-            "Level3" => Some(DifficultyDto::Level3),
-            "Level4" => Some(DifficultyDto::Level4),
-            "Level5" => Some(DifficultyDto::Level5),
-            "Level6" => Some(DifficultyDto::Level6),
-            "Level7" => Some(DifficultyDto::Level7),
+            "level1" => Some(DifficultyDto::Level1),
+            "level2" => Some(DifficultyDto::Level2),
+            "level3" => Some(DifficultyDto::Level3),
+            "level4" => Some(DifficultyDto::Level4),
+            "level5" => Some(DifficultyDto::Level5),
+            "level6" => Some(DifficultyDto::Level6),
+            "level7" => Some(DifficultyDto::Level7),
             "" => None,
             _ => {
                 return Err(ApiError::Validation(vec![

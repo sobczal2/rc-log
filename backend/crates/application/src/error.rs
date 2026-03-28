@@ -1,7 +1,6 @@
 use crate::maneuver::get_by_id::error::GetManeuverByIdError;
 use crate::maneuver::list::error::ListManeuversError;
 use crate::photo::resolve::error::ResolvePhotoError;
-use crate::user::create::error::CreateUserError;
 use crate::user::get_by_id::error::GetUserByIdError;
 use crate::user::get_by_username::error::GetUserByUsernameError;
 use crate::user::sign_in::error::SignInError;
@@ -14,8 +13,6 @@ pub enum ApplicationError {
     GetManeuverById(#[from] GetManeuverByIdError),
     #[error(transparent)]
     ListManeuvers(#[from] ListManeuversError),
-    #[error(transparent)]
-    CreateUser(#[from] CreateUserError),
     #[error(transparent)]
     GetUserById(#[from] GetUserByIdError),
     #[error(transparent)]

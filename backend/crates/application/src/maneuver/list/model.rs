@@ -132,11 +132,11 @@ pub struct ManeuverSortDto {
 impl Validate for ManeuverSortDto {
     fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
-        let valid_fields = ["name", "difficulty"];
+        let valid_fields = ["", "name", "difficulty"];
         if !valid_fields.contains(&self.field.as_str()) {
             errors.push(ValidationError::new("sort.field", "must be 'name' or 'difficulty'"));
         }
-        let valid_dirs = ["asc", "desc"];
+        let valid_dirs = ["", "asc", "desc"];
         if !valid_dirs.contains(&self.direction.as_str()) {
             errors.push(ValidationError::new("sort.direction", "must be 'asc' or 'desc'"));
         }
