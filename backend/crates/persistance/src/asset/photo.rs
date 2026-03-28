@@ -20,8 +20,8 @@ struct PhotoRow {
 
 impl PhotoRow {
     fn try_into_photo(self) -> Result<Photo, TransactionError> {
-        let name = AssetName::new(self.name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let name =
+            AssetName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let small_path = AssetPath::new(self.small_path)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self

@@ -17,17 +17,10 @@ pub fn create_token(
     claims: &JwtClaims,
     secret: &str,
 ) -> Result<String, jsonwebtoken::errors::Error> {
-    encode(
-        &Header::default(),
-        claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    )
+    encode(&Header::default(), claims, &EncodingKey::from_secret(secret.as_bytes()))
 }
 
-pub fn verify_token(
-    token: &str,
-    secret: &str,
-) -> Result<JwtClaims, jsonwebtoken::errors::Error> {
+pub fn verify_token(token: &str, secret: &str) -> Result<JwtClaims, jsonwebtoken::errors::Error> {
     let data = decode::<JwtClaims>(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),

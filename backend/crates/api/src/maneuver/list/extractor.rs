@@ -40,15 +40,18 @@ where
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Query(raw) = Query::<RawListQuery>::from_request_parts(parts, state)
-            .await
-            .map_err(|e| ApiError::Validation(vec![rc_log_application::shared::validator::ValidationError::new("query", e.to_string())]))?;
+        let Query(raw) =
+            Query::<RawListQuery>::from_request_parts(parts, state).await.map_err(|e| {
+                ApiError::Validation(vec![
+                    rc_log_application::shared::validator::ValidationError::new(
+                        "query",
+                        e.to_string(),
+                    ),
+                ])
+            })?;
 
-        let tags = raw.tags
-            .split(',')
-            .map(|t| t.trim().to_string())
-            .filter(|t| !t.is_empty())
-            .collect();
+        let tags =
+            raw.tags.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect();
 
         use rc_log_application::shared::vehicle_type::VehicleTypeDto;
         let vehicle_type = match raw.vehicle_type.as_str() {
@@ -56,7 +59,14 @@ where
             "Plane" => Some(VehicleTypeDto::Plane),
             "Drone" => Some(VehicleTypeDto::Drone),
             "" => None,
-            _ => return Err(ApiError::Validation(vec![rc_log_application::shared::validator::ValidationError::new("vehicle_type", "invalid vehicle type")])),
+            _ => {
+                return Err(ApiError::Validation(vec![
+                    rc_log_application::shared::validator::ValidationError::new(
+                        "vehicle_type",
+                        "invalid vehicle type",
+                    ),
+                ]));
+            }
         };
 
         use rc_log_application::shared::difficulty::DifficultyDto;
@@ -69,23 +79,22 @@ where
             "Level6" => Some(DifficultyDto::Level6),
             "Level7" => Some(DifficultyDto::Level7),
             "" => None,
-            _ => return Err(ApiError::Validation(vec![rc_log_application::shared::validator::ValidationError::new("difficulty", "invalid difficulty")])),
+            _ => {
+                return Err(ApiError::Validation(vec![
+                    rc_log_application::shared::validator::ValidationError::new(
+                        "difficulty",
+                        "invalid difficulty",
+                    ),
+                ]));
+            }
         };
 
         let search_query = if raw.search_query.is_empty() { None } else { Some(raw.search_query) };
 
         let input = ListManeuversInput {
             pagination: PaginationDto { page: raw.page, page_size: raw.page_size },
-            filter: ManeuverFilterDto {
-                tags,
-                vehicle_type,
-                difficulty,
-                search_query,
-            },
-            sort: ManeuverSortDto {
-                field: raw.sort_field,
-                direction: raw.sort_direction,
-            },
+            filter: ManeuverFilterDto { tags, vehicle_type, difficulty, search_query },
+            sort: ManeuverSortDto { field: raw.sort_field, direction: raw.sort_direction },
         };
 
         if let Err(errors) = input.validate() {

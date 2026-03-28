@@ -1,3 +1,3 @@
 pub mod transaction;
 
-pub use transaction::{SqlxUserUnitOfWork, SqlxUserTransaction};
+pub use transaction::{SqlxUserTransaction, SqlxUserUnitOfWork};

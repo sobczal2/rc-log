@@ -9,21 +9,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { List, LogIn, LogOut, Plane, UserPlus } from "lucide-react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/useAuth"
+} from "@/components/ui/sidebar";
+import { List, LogIn, LogOut, Plane, UserPlus } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AppSidebar() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { isAuthenticated, user, signOut } = useAuth()
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, signOut } = useAuth();
 
   const handleSignOut = () => {
-    signOut()
-    navigate("/")
-  }
+    signOut();
+    navigate("/");
+  };
 
   return (
     <Sidebar className="border-r border-border/50">
@@ -34,11 +34,17 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">Knowledge Base</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground/70">
+            Knowledge Base
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton render={<Link to="/maneuvers" />} isActive={location.pathname === "/maneuvers"} tooltip="Maneuvers">
+                <SidebarMenuButton
+                  render={<Link to="/maneuvers" />}
+                  isActive={location.pathname === "/maneuvers"}
+                  tooltip="Maneuvers"
+                >
                   <List size={20} />
                   <span>Maneuvers</span>
                 </SidebarMenuButton>
@@ -88,5 +94,5 @@ export function AppSidebar() {
         )}
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

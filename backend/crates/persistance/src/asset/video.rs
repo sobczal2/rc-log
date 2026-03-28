@@ -20,8 +20,8 @@ struct VideoRow {
 
 impl VideoRow {
     fn try_into_video(self) -> Result<Video, TransactionError> {
-        let name = AssetName::new(self.name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let name =
+            AssetName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let small_path = AssetPath::new(self.small_path)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self

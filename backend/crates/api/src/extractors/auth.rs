@@ -30,9 +30,7 @@ where
             .and_then(|v| v.to_str().ok())
             .ok_or(ApiError::Unauthorized)?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or(ApiError::Unauthorized)?;
+        let token = auth_header.strip_prefix("Bearer ").ok_or(ApiError::Unauthorized)?;
 
         let claims =
             verify_token(token, &app_state.jwt_secret).map_err(|_| ApiError::Unauthorized)?;

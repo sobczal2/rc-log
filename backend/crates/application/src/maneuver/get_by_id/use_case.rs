@@ -1,11 +1,11 @@
 use rc_log_domain::maneuver::Maneuver;
-use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::transaction::Transaction;
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::{debug, instrument};
 
-use crate::error::ApplicationError;
 use super::error::GetManeuverByIdError;
 use super::model::{GetManeuverByIdInput, ManeuverDto};
+use crate::error::ApplicationError;
 
 pub struct GetManeuverByIdUseCase<UoW> {
     uow: UoW,
@@ -20,16 +20,16 @@ where
     }
 
     #[instrument(skip(self), fields(maneuver_id = %input.id))]
-    pub async fn execute(&mut self, input: GetManeuverByIdInput) -> Result<ManeuverDto, ApplicationError> {
+    pub async fn execute(
+        &mut self,
+        input: GetManeuverByIdInput,
+    ) -> Result<ManeuverDto, ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(GetManeuverByIdError::from)?;
 
         debug!("Querying maneuver from repository");
-        let maneuver = tx
-            .get_by_id(input.id)
-            .await
-            .map_err(GetManeuverByIdError::from)?
-            .ok_or_else(|| {
+        let maneuver =
+            tx.get_by_id(input.id).await.map_err(GetManeuverByIdError::from)?.ok_or_else(|| {
                 debug!("Maneuver not found in repository");
                 GetManeuverByIdError::NotFound
             })?;

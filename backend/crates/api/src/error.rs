@@ -30,11 +30,9 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         error!(error = %self, "request failed");
         match self {
-            ApiError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "error": "Unauthorized" })),
-            )
-                .into_response(),
+            ApiError::Unauthorized => {
+                (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" }))).into_response()
+            }
             ApiError::Validation(errors) => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({ "error": "Validation failed", "details": errors })),
@@ -65,34 +63,28 @@ impl IntoResponse for ApiError {
             )
                 .into_response(),
             // User errors
-            ApiError::Application(ApplicationError::GetUserById(GetUserByIdError::NotFound)) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "User not found" })),
-            )
-                .into_response(),
+            ApiError::Application(ApplicationError::GetUserById(GetUserByIdError::NotFound)) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
+            }
             ApiError::Application(ApplicationError::GetUserByUsername(
                 GetUserByUsernameError::NotFound,
-            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" })))
-                .into_response(),
-            ApiError::Application(ApplicationError::CreateUser(CreateUserError::UsernameTaken)) => (
-                StatusCode::CONFLICT,
-                Json(json!({ "error": "Username already exists" })),
-            )
-                .into_response(),
-            ApiError::Application(ApplicationError::CreateUser(CreateUserError::EmailTaken)) => (
-                StatusCode::CONFLICT,
-                Json(json!({ "error": "Email already exists" })),
-            )
-                .into_response(),
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::CreateUser(CreateUserError::UsernameTaken)) => {
+                (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
+                    .into_response()
+            }
+            ApiError::Application(ApplicationError::CreateUser(CreateUserError::EmailTaken)) => {
+                (StatusCode::CONFLICT, Json(json!({ "error": "Email already exists" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::CreateUser(
                 CreateUserError::ValidationError(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
             ApiError::Application(ApplicationError::GetUserByUsername(
                 GetUserByUsernameError::InvalidUsername,
-            )) => (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": "Invalid username" })),
-            )
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid username" })))
                 .into_response(),
             ApiError::Application(ApplicationError::GetUserById(
                 GetUserByIdError::InvalidData(msg),
@@ -118,16 +110,14 @@ impl IntoResponse for ApiError {
             )
                 .into_response(),
             // Sign-up errors
-            ApiError::Application(ApplicationError::SignUp(SignUpError::UsernameTaken)) => (
-                StatusCode::CONFLICT,
-                Json(json!({ "error": "Username already exists" })),
-            )
-                .into_response(),
-            ApiError::Application(ApplicationError::SignUp(SignUpError::EmailTaken)) => (
-                StatusCode::CONFLICT,
-                Json(json!({ "error": "Email already exists" })),
-            )
-                .into_response(),
+            ApiError::Application(ApplicationError::SignUp(SignUpError::UsernameTaken)) => {
+                (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
+                    .into_response()
+            }
+            ApiError::Application(ApplicationError::SignUp(SignUpError::EmailTaken)) => {
+                (StatusCode::CONFLICT, Json(json!({ "error": "Email already exists" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::SignUp(SignUpError::ValidationError(msg))) => {
                 (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response()
             }
@@ -138,11 +128,10 @@ impl IntoResponse for ApiError {
             )
                 .into_response(),
             // Sign-in errors
-            ApiError::Application(ApplicationError::SignIn(SignInError::InvalidCredentials)) => (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "error": "Invalid credentials" })),
-            )
-                .into_response(),
+            ApiError::Application(ApplicationError::SignIn(SignInError::InvalidCredentials)) => {
+                (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Invalid credentials" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::SignIn(SignInError::InvalidData(_)))
             | ApiError::Application(ApplicationError::SignIn(SignInError::RepositoryError(_))) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -150,11 +139,10 @@ impl IntoResponse for ApiError {
             )
                 .into_response(),
             // Video asset paths errors
-            ApiError::Application(ApplicationError::ResolveVideo(ResolveVideoError::NotFound)) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "Video asset not found" })),
-            )
-                .into_response(),
+            ApiError::Application(ApplicationError::ResolveVideo(ResolveVideoError::NotFound)) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Video asset not found" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::ResolveVideo(
                 ResolveVideoError::InvalidName(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
@@ -169,11 +157,10 @@ impl IntoResponse for ApiError {
             )
                 .into_response(),
             // Photo asset paths errors
-            ApiError::Application(ApplicationError::ResolvePhoto(ResolvePhotoError::NotFound)) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "Photo asset not found" })),
-            )
-                .into_response(),
+            ApiError::Application(ApplicationError::ResolvePhoto(ResolvePhotoError::NotFound)) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Photo asset not found" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::ResolvePhoto(
                 ResolvePhotoError::InvalidName(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),

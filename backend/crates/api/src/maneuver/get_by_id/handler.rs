@@ -3,8 +3,8 @@ use rc_log_application::maneuver::get_by_id::GetManeuverByIdUseCase;
 use tracing::{debug, instrument};
 
 use crate::error::ApiError;
-use crate::maneuver::get_by_id::response::GetByIdResponse;
 use crate::maneuver::get_by_id::extractor::GetByIdRequest;
+use crate::maneuver::get_by_id::response::GetByIdResponse;
 use crate::state::AppState;
 
 #[instrument(skip(state), fields(maneuver_id = %input.0.id))]

@@ -21,11 +21,7 @@ export function VariationCard({ variation, isDefault }: VariationCardProps) {
   const { data: videoPathData } = useVideoPath(variation.videoAssetName);
   const smallSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   const largeSrc = videoPathData
-    ? getVideoUrl(
-        videoPathData.largePath ??
-          videoPathData.mediumPath ??
-          videoPathData.smallPath,
-      )
+    ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath)
     : null;
 
   return (

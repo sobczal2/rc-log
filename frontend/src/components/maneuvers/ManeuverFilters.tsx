@@ -47,25 +47,17 @@ const SORT_DIRECTION_OPTIONS = [
   { value: "desc", label: "Descending" },
 ];
 
-export function ManeuverFilters({
-  filters,
-  actions,
-  isOpen,
-  onToggle,
-}: ManeuverFiltersProps) {
+export function ManeuverFilters({ filters, actions, isOpen, onToggle }: ManeuverFiltersProps) {
   const [searchInput, setSearchInput] = useState("");
   useDebounce(searchInput, 300);
 
-  const hasActiveFilters =
-    filters.searchQuery ||
-    filters.vehicleType ||
-    filters.difficulty;
+  const hasActiveFilters = filters.searchQuery || filters.vehicleType || filters.difficulty;
 
-  const difficultyValue = filters.difficulty
-    ? filters.difficulty
-    : "all";
+  const difficultyValue = filters.difficulty ? filters.difficulty : "all";
 
-  const activeFilterCount = [filters.searchQuery, filters.vehicleType, filters.difficulty].filter(Boolean).length;
+  const activeFilterCount = [filters.searchQuery, filters.vehicleType, filters.difficulty].filter(
+    Boolean,
+  ).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,12 +85,7 @@ export function ManeuverFilters({
           />
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggle}
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" onClick={onToggle} className="gap-2">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Filters</span>
           {hasActiveFilters && (
@@ -155,7 +142,7 @@ export function ManeuverFilters({
             <Select.Root
               value={filters.vehicleType || "all"}
               onValueChange={(value) =>
-                actions.setVehicleType(!value || value === "all" ? null : value as VehicleType)
+                actions.setVehicleType(!value || value === "all" ? null : (value as VehicleType))
               }
             >
               <SelectTrigger className="w-[140px]">
@@ -177,7 +164,7 @@ export function ManeuverFilters({
             <Select.Root
               value={difficultyValue}
               onValueChange={(value) =>
-                actions.setDifficulty(!value || value === "all" ? null : value as DifficultyLevel)
+                actions.setDifficulty(!value || value === "all" ? null : (value as DifficultyLevel))
               }
             >
               <SelectTrigger className="w-[160px]">

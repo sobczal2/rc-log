@@ -93,11 +93,7 @@ impl Validate for ManeuverFilterDto {
                 ));
             }
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 
@@ -144,11 +140,7 @@ impl Validate for ManeuverSortDto {
         if !valid_dirs.contains(&self.direction.as_str()) {
             errors.push(ValidationError::new("sort.direction", "must be 'asc' or 'desc'"));
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 
@@ -187,10 +179,6 @@ impl Validate for ListManeuversInput {
         if let Err(mut e) = self.sort.validate() {
             errors.append(&mut e);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }

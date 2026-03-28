@@ -61,7 +61,8 @@ impl AppConfig {
         let environment =
             Environment::from_str(&env::var(CONFIG_NAMES.app_env).expect("RC_LOG_ENV must be set"));
 
-        let database_url = env::var(CONFIG_NAMES.database_url).expect("RC_LOG_DATABASE_URL must be set");
+        let database_url =
+            env::var(CONFIG_NAMES.database_url).expect("RC_LOG_DATABASE_URL must be set");
 
         let host = env::var(CONFIG_NAMES.host).expect("RC_LOG_HOST must be set");
 
@@ -70,9 +71,8 @@ impl AppConfig {
             .parse::<u16>()
             .expect("RC_LOG_PORT must be a valid u16");
 
-        let asset_path = env::var(CONFIG_NAMES.asset_path)
-            .expect("RC_LOG_ASSET_PATH must be set")
-            .into();
+        let asset_path =
+            env::var(CONFIG_NAMES.asset_path).expect("RC_LOG_ASSET_PATH must be set").into();
 
         let jwt_secret = env::var(CONFIG_NAMES.jwt_secret).expect("RC_LOG_JWT_SECRET must be set");
 

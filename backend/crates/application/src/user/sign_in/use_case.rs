@@ -2,14 +2,14 @@ use argon2::password_hash::PasswordHash as ArgonPasswordHash;
 use argon2::{Argon2, PasswordVerifier};
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use rc_log_domain::user::User;
 use rc_log_domain::user::query::UserTransaction;
 use rc_log_domain::user::username::Username;
-use rc_log_domain::user::User;
 use tracing::{debug, instrument};
 
-use crate::error::ApplicationError;
 use super::error::SignInError;
 use super::model::{SignInInput, UserDto};
+use crate::error::ApplicationError;
 
 pub struct SignInUseCase<UoW> {
     uow: UoW,

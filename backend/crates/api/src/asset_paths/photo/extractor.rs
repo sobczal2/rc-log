@@ -17,16 +17,12 @@ where
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let Path(name) = Path::<String>::from_request_parts(parts, state)
-            .await
-            .map_err(|e| {
-                ApiError::Validation(vec![
-                    rc_log_application::shared::validator::ValidationError::new(
-                        "name",
-                        e.to_string(),
-                    ),
-                ])
-            })?;
+        let Path(name) = Path::<String>::from_request_parts(parts, state).await.map_err(|e| {
+            ApiError::Validation(vec![rc_log_application::shared::validator::ValidationError::new(
+                "name",
+                e.to_string(),
+            )])
+        })?;
 
         let input = ResolvePhotoInput { name };
 

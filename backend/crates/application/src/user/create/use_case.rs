@@ -1,15 +1,15 @@
+use rc_log_domain::shared::email::Email;
+use rc_log_domain::shared::password_hash::PasswordHash;
+use rc_log_domain::shared::transaction::Transaction;
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::user::User;
 use rc_log_domain::user::username::Username;
-use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::transaction::Transaction;
-use rc_log_domain::shared::password_hash::PasswordHash;
-use rc_log_domain::shared::email::Email;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::error::ApplicationError;
 use super::error::CreateUserError;
 use super::model::{CreateUserInput, UserDto};
+use crate::error::ApplicationError;
 
 pub struct CreateUserUseCase<UoW> {
     uow: UoW,
@@ -27,8 +27,8 @@ where
     pub async fn execute(&mut self, input: CreateUserInput) -> Result<UserDto, ApplicationError> {
         let username = Username::new(input.username)
             .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
-        let email = Email::new(input.email)
-            .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
+        let email =
+            Email::new(input.email).map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
         let password_hash = PasswordHash::new(input.password_hash)
             .map_err(|e| CreateUserError::ValidationError(e.to_string()))?;
 

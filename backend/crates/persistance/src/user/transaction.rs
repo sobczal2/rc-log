@@ -1,8 +1,8 @@
-use rc_log_domain::user::{User, query::UserTransaction, username::Username};
 use rc_log_domain::shared::email::Email;
-use rc_log_domain::shared::transaction::{TransactionError, Transaction};
-use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::password_hash::PasswordHash;
+use rc_log_domain::shared::transaction::{Transaction, TransactionError};
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use rc_log_domain::user::{User, query::UserTransaction, username::Username};
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
@@ -18,8 +18,8 @@ impl UserRow {
     fn try_into_user(self) -> Result<User, TransactionError> {
         let username = Username::new(self.username)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let email = Email::new(self.email)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let email =
+            Email::new(self.email).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let password_hash = PasswordHash::new(self.password_hash)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         Ok(User::new(self.id, username, email, password_hash))
@@ -81,22 +81,19 @@ impl Transaction<User> for SqlxUserTransaction {
     }
 
     async fn commit(self) -> Result<(), TransactionError> {
-        self.tx
-            .commit()
-            .await
-            .map_err(|e| TransactionError::TransactionError(e.to_string()))
+        self.tx.commit().await.map_err(|e| TransactionError::TransactionError(e.to_string()))
     }
 
     async fn rollback(self) -> Result<(), TransactionError> {
-        self.tx
-            .rollback()
-            .await
-            .map_err(|e| TransactionError::TransactionError(e.to_string()))
+        self.tx.rollback().await.map_err(|e| TransactionError::TransactionError(e.to_string()))
     }
 }
 
 impl UserTransaction for SqlxUserTransaction {
-    async fn get_by_username(&mut self, username: &Username) -> Result<Option<User>, TransactionError> {
+    async fn get_by_username(
+        &mut self,
+        username: &Username,
+    ) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
             SELECT id, username, email, password_hash

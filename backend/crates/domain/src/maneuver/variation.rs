@@ -12,7 +12,12 @@ pub struct Variation {
 }
 
 impl Variation {
-    pub fn new(id: Uuid, name: String, description: MarkdownText, video_asset_name: AssetName) -> Self {
+    pub fn new(
+        id: Uuid,
+        name: String,
+        description: MarkdownText,
+        video_asset_name: AssetName,
+    ) -> Self {
         Self { id, name, description, video_asset_name }
     }
 

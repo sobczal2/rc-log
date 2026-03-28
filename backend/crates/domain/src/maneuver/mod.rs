@@ -35,7 +35,16 @@ impl Maneuver {
         default_variation: Variation,
         other_variations: Vec<Variation>,
     ) -> Self {
-        Self { id, vehicle_type, name, tags, description, difficulty, default_variation, other_variations }
+        Self {
+            id,
+            vehicle_type,
+            name,
+            tags,
+            description,
+            difficulty,
+            default_variation,
+            other_variations,
+        }
     }
 
     pub fn id(&self) -> Uuid {

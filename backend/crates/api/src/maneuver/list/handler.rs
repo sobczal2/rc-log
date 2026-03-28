@@ -3,8 +3,8 @@ use rc_log_application::maneuver::list::ListManeuversUseCase;
 use tracing::{debug, instrument};
 
 use crate::error::ApiError;
-use crate::maneuver::list::response::ListResponse;
 use crate::maneuver::list::extractor::ListRequest;
+use crate::maneuver::list::response::ListResponse;
 use crate::state::AppState;
 
 #[instrument(skip(state), fields(page = input.0.pagination.page))]

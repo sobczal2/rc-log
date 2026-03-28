@@ -29,10 +29,7 @@ impl Video {
     pub fn resolve_path(&self, size: AssetSize) -> &AssetPath {
         match size {
             AssetSize::Large => {
-                self.large_path
-                    .as_ref()
-                    .or(self.medium_path.as_ref())
-                    .unwrap_or(&self.small_path)
+                self.large_path.as_ref().or(self.medium_path.as_ref()).unwrap_or(&self.small_path)
             }
             AssetSize::Medium => self.medium_path.as_ref().unwrap_or(&self.small_path),
             AssetSize::Small => &self.small_path,
@@ -54,11 +51,7 @@ mod tests {
         AssetPath::new(s.to_string()).unwrap()
     }
 
-    fn make_video(
-        small: &str,
-        medium: Option<&str>,
-        large: Option<&str>,
-    ) -> Video {
+    fn make_video(small: &str, medium: Option<&str>, large: Option<&str>) -> Video {
         Video::new(
             Uuid::nil(),
             AssetName::new("test".to_string()).unwrap(),

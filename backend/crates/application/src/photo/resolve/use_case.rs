@@ -5,7 +5,7 @@ use tracing::{debug, instrument};
 use crate::error::ApplicationError;
 
 use super::error::ResolvePhotoError;
-use super::model::{ResolvePhotoInput, PhotoPathsDto};
+use super::model::{PhotoPathsDto, ResolvePhotoInput};
 
 pub struct ResolvePhotoUseCase<R> {
     resolver: R,
@@ -17,7 +17,10 @@ impl<R: PhotoResolver> ResolvePhotoUseCase<R> {
     }
 
     #[instrument(skip(self), fields(name = %input.name))]
-    pub async fn execute(&self, input: ResolvePhotoInput) -> Result<PhotoPathsDto, ApplicationError> {
+    pub async fn execute(
+        &self,
+        input: ResolvePhotoInput,
+    ) -> Result<PhotoPathsDto, ApplicationError> {
         debug!("Resolving photo asset paths");
 
         let name = AssetName::new(input.name.clone())

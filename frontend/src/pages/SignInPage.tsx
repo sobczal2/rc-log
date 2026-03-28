@@ -81,11 +81,7 @@ export function SignInPage() {
           )}
 
           <Button type="submit" disabled={loading} className="w-full gap-2">
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <LogIn size={16} />
-            )}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
             Sign In
           </Button>
         </form>

@@ -1,11 +1,11 @@
 use std::collections::{BTreeSet, HashMap};
 
 use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::tag::Tag;
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
 use rc_log_domain::maneuver::variation::Variation;
-use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -83,7 +83,7 @@ impl ManeuverRow {
                 return Err(TransactionError::InvalidData(format!(
                     "Unknown vehicle_type: {}",
                     other
-                )))
+                )));
             }
         };
 
@@ -96,10 +96,7 @@ impl ManeuverRow {
             6 => Difficulty::Level6,
             7 => Difficulty::Level7,
             other => {
-                return Err(TransactionError::InvalidData(format!(
-                    "Unknown difficulty: {}",
-                    other
-                )))
+                return Err(TransactionError::InvalidData(format!("Unknown difficulty: {}", other)));
             }
         };
 
@@ -315,8 +312,11 @@ impl SqlxManeuverTransaction {
         filter: rc_log_domain::maneuver::transaction::ManeuverFilter,
         sort: rc_log_domain::maneuver::transaction::ManeuverSort,
     ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
-        let mut count_query = QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
-        let mut select_query = QueryBuilder::<'_, Postgres>::new("SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty FROM maneuver.maneuver m");
+        let mut count_query =
+            QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
+        let mut select_query = QueryBuilder::<'_, Postgres>::new(
+            "SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty FROM maneuver.maneuver m",
+        );
 
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
             let mut has_where = false;
@@ -385,12 +385,20 @@ impl SqlxManeuverTransaction {
 
         select_query.push(" ORDER BY ");
         match sort.field {
-            ManeuverSortField::Name => { select_query.push("m.name "); }
-            ManeuverSortField::Difficulty => { select_query.push("m.difficulty "); }
+            ManeuverSortField::Name => {
+                select_query.push("m.name ");
+            }
+            ManeuverSortField::Difficulty => {
+                select_query.push("m.difficulty ");
+            }
         }
         match sort.direction {
-            SortDirection::Asc => { select_query.push("ASC"); }
-            SortDirection::Desc => { select_query.push("DESC"); }
+            SortDirection::Asc => {
+                select_query.push("ASC");
+            }
+            SortDirection::Desc => {
+                select_query.push("DESC");
+            }
         }
 
         select_query.push(" LIMIT ");
@@ -425,10 +433,7 @@ impl SqlxManeuverTransaction {
 
         let mut tags_by_maneuver: HashMap<Uuid, BTreeSet<Tag>> = HashMap::new();
         for row in tag_rows {
-            tags_by_maneuver
-                .entry(row.maneuver_id)
-                .or_default()
-                .insert(Tag::from(row));
+            tags_by_maneuver.entry(row.maneuver_id).or_default().insert(Tag::from(row));
         }
 
         let default_variation_rows: Vec<VariationRow> = sqlx::query_as(
@@ -455,13 +460,12 @@ impl SqlxManeuverTransaction {
             .map(|row| {
                 let id = row.id;
                 let tags = tags_by_maneuver.remove(&id).unwrap_or_default();
-                let default_variation =
-                    default_vars_by_maneuver.remove(&id).ok_or_else(|| {
-                        TransactionError::InvalidData(format!(
-                            "Maneuver {} has no default variation",
-                            id
-                        ))
-                    })?;
+                let default_variation = default_vars_by_maneuver.remove(&id).ok_or_else(|| {
+                    TransactionError::InvalidData(format!(
+                        "Maneuver {} has no default variation",
+                        id
+                    ))
+                })?;
                 row.try_into_maneuver(tags, default_variation, vec![])
             })
             .collect();

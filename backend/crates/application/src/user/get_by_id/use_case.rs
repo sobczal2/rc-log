@@ -1,11 +1,11 @@
-use rc_log_domain::user::User;
-use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::shared::transaction::Transaction;
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use rc_log_domain::user::User;
 use tracing::{debug, instrument};
 
-use crate::error::ApplicationError;
 use super::error::GetUserByIdError;
 use super::model::{GetUserByIdInput, UserDto};
+use crate::error::ApplicationError;
 
 pub struct GetUserByIdUseCase<UoW> {
     uow: UoW,
@@ -25,11 +25,8 @@ where
         let mut tx = self.uow.begin().await.map_err(GetUserByIdError::from)?;
 
         debug!("Querying user from repository");
-        let user = tx
-            .get_by_id(input.id)
-            .await
-            .map_err(GetUserByIdError::from)?
-            .ok_or_else(|| {
+        let user =
+            tx.get_by_id(input.id).await.map_err(GetUserByIdError::from)?.ok_or_else(|| {
                 debug!("User not found in repository");
                 GetUserByIdError::NotFound
             })?;

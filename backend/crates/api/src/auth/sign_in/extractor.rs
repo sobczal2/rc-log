@@ -1,4 +1,4 @@
-use axum::{extract::FromRequest, Json};
+use axum::{Json, extract::FromRequest};
 use serde::Deserialize;
 
 use rc_log_application::shared::validator::ValidationError;
@@ -20,15 +20,10 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request(
-        req: axum::extract::Request,
-        state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
         let Json(body): Json<SignInBody> = Json::from_request(req, state)
             .await
-            .map_err(|e| {
-                ApiError::Validation(vec![ValidationError::new("body", e.to_string())])
-            })?;
+            .map_err(|e| ApiError::Validation(vec![ValidationError::new("body", e.to_string())]))?;
 
         if body.username.is_empty() {
             return Err(ApiError::Validation(vec![ValidationError::new(

@@ -26,7 +26,9 @@ export function ManeuverDetailsPage() {
 
   const assetName = maneuver?.defaultVariation?.videoAssetName ?? "";
   const { data: videoPathData } = useVideoPath(assetName);
-  const videoSrc = videoPathData ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath) : null;
+  const videoSrc = videoPathData
+    ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath)
+    : null;
 
   if (isLoading) {
     return (
@@ -97,12 +99,7 @@ export function ManeuverDetailsPage() {
                   <Badge variant="outline" className="font-mono bg-background">
                     {maneuver.difficulty.replace("Level", "L")}
                   </Badge>
-                  <span>
-                    {getDifficultyLevelName(
-                      maneuver.vehicleType,
-                      maneuver.difficulty,
-                    )}
-                  </span>
+                  <span>{getDifficultyLevelName(maneuver.vehicleType, maneuver.difficulty)}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {maneuver.tags.map((tag) => (
@@ -133,10 +130,7 @@ export function ManeuverDetailsPage() {
                 Variations
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <VariationCard
-                  variation={maneuver.defaultVariation}
-                  isDefault
-                />
+                <VariationCard variation={maneuver.defaultVariation} isDefault />
                 {maneuver.variations.map((v) => (
                   <VariationCard key={v.id} variation={v} />
                 ))}

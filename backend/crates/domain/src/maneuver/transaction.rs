@@ -1,10 +1,10 @@
 use std::future::Future;
 
-use crate::shared::vehicle_type::VehicleType;
+use crate::maneuver::Maneuver;
+use crate::maneuver::difficulty::Difficulty;
 use crate::shared::pagination::Pagination;
 use crate::shared::transaction::{Transaction, TransactionError};
-use crate::maneuver::difficulty::Difficulty;
-use crate::maneuver::Maneuver;
+use crate::shared::vehicle_type::VehicleType;
 
 /// Transaction trait extended with Maneuver-specific list operation
 pub trait ManeuverTransaction: Transaction<Maneuver> {

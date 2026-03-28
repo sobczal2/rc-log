@@ -9,9 +9,9 @@ use rc_log_domain::user::username::Username;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::error::ApplicationError;
 use super::error::SignUpError;
 use super::model::{SignUpInput, UserDto};
+use crate::error::ApplicationError;
 
 pub struct SignUpUseCase<UoW> {
     uow: UoW,
@@ -29,8 +29,8 @@ where
     pub async fn execute(&mut self, input: SignUpInput) -> Result<UserDto, ApplicationError> {
         let username = Username::new(input.username)
             .map_err(|e| SignUpError::ValidationError(e.to_string()))?;
-        let email = Email::new(input.email)
-            .map_err(|e| SignUpError::ValidationError(e.to_string()))?;
+        let email =
+            Email::new(input.email).map_err(|e| SignUpError::ValidationError(e.to_string()))?;
 
         debug!("Hashing password");
         let salt = SaltString::generate(&mut OsRng);

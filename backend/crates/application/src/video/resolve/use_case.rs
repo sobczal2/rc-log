@@ -17,7 +17,10 @@ impl<R: VideoResolver> ResolveVideoUseCase<R> {
     }
 
     #[instrument(skip(self), fields(name = %input.name))]
-    pub async fn execute(&self, input: ResolveVideoInput) -> Result<VideoPathsDto, ApplicationError> {
+    pub async fn execute(
+        &self,
+        input: ResolveVideoInput,
+    ) -> Result<VideoPathsDto, ApplicationError> {
         debug!("Resolving video asset paths");
 
         let name = AssetName::new(input.name.clone())

@@ -17,11 +17,7 @@ impl Validate for ResolveVideoInput {
         if self.name.len() > 255 {
             errors.push(ValidationError::new("name", "must not exceed 255 characters"));
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 

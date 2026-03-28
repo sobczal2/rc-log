@@ -17,11 +17,7 @@ impl Validate for PaginationDto {
         if self.page_size < 1 || self.page_size > 100 {
             errors.push(ValidationError::new("page_size", "must be between 1 and 100"));
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 

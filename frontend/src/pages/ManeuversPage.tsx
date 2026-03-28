@@ -12,14 +12,17 @@ export function ManeuversPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
-    queryKey: ["maneuvers", {
-      page: filters.page,
-      searchQuery: filters.searchQuery,
-      vehicleType: filters.vehicleType,
-      difficulty: filters.difficulty,
-      sortField: filters.sortField,
-      sortDirection: filters.sortDirection,
-    }],
+    queryKey: [
+      "maneuvers",
+      {
+        page: filters.page,
+        searchQuery: filters.searchQuery,
+        vehicleType: filters.vehicleType,
+        difficulty: filters.difficulty,
+        sortField: filters.sortField,
+        sortDirection: filters.sortDirection,
+      },
+    ],
     queryFn: () =>
       maneuversApi.list({
         page: filters.page,
@@ -40,8 +43,7 @@ export function ManeuversPage() {
   const totalPages = data?.totalPages || 1;
   const totalItems = data?.total || 0;
 
-  const hasActiveFilters =
-    filters.searchQuery || filters.vehicleType || filters.difficulty;
+  const hasActiveFilters = filters.searchQuery || filters.vehicleType || filters.difficulty;
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 h-full w-full">
@@ -86,8 +88,8 @@ export function ManeuversPage() {
         <>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Showing {(filters.page - 1) * 20 + 1} -{" "}
-              {Math.min(filters.page * 20, totalItems)} of {totalItems} maneuvers
+              Showing {(filters.page - 1) * 20 + 1} - {Math.min(filters.page * 20, totalItems)} of{" "}
+              {totalItems} maneuvers
             </span>
             {isFetching && !isLoading && (
               <span className="flex items-center gap-1">

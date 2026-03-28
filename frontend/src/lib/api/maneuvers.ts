@@ -23,12 +23,8 @@ export interface ListManeuversRequest extends PaginationOptions {
 export type ListManeuversResponse = PaginatedResult<ListManeuverDto>;
 
 export const maneuversApi = {
-  getById: async (
-    req: GetManeuverByIdRequest,
-  ): Promise<GetManeuverByIdResponse> => {
-    const { data } = await apiClient.get<GetManeuverByIdResponse>(
-      `/maneuvers/${req.id}`,
-    );
+  getById: async (req: GetManeuverByIdRequest): Promise<GetManeuverByIdResponse> => {
+    const { data } = await apiClient.get<GetManeuverByIdResponse>(`/maneuvers/${req.id}`);
     return data;
   },
 
@@ -36,8 +32,7 @@ export const maneuversApi = {
     const params = new URLSearchParams();
 
     if (req.page !== undefined) params.append("page", req.page.toString());
-    if (req.pageSize !== undefined)
-      params.append("pageSize", req.pageSize.toString());
+    if (req.pageSize !== undefined) params.append("pageSize", req.pageSize.toString());
 
     if (req.filter) {
       if (req.filter.tags && req.filter.tags.length > 0) {

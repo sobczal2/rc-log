@@ -1,8 +1,8 @@
 use rc_log_domain::maneuver::Maneuver;
-use rc_log_domain::shared::pagination::Pagination;
-use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
+use rc_log_domain::shared::pagination::Pagination;
+use rc_log_domain::shared::transaction::Transaction;
+use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
@@ -38,7 +38,10 @@ where
         let domain_filter = ManeuverFilter::from(input.filter);
         let domain_sort = ManeuverSort::from(input.sort);
 
-        let (maneuvers, total) = tx.list(domain_pagination, domain_filter, domain_sort).await.map_err(ListManeuversError::from)?;
+        let (maneuvers, total) = tx
+            .list(domain_pagination, domain_filter, domain_sort)
+            .await
+            .map_err(ListManeuversError::from)?;
 
         debug!(count = maneuvers.len(), total, "Maneuvers retrieved, committing transaction");
         tx.commit().await.map_err(ListManeuversError::from)?;
