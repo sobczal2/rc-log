@@ -159,6 +159,21 @@ impl ModelTransaction for SqlxModelTransaction {
 
         Ok((models, total as u64))
     }
+
+    async fn delete_by_id(&mut self, id: ModelId) -> Result<(), TransactionError> {
+        sqlx::query(
+            r#"
+            DELETE FROM model.model
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .execute(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        Ok(())
+    }
 }
 
 #[derive(Clone)]

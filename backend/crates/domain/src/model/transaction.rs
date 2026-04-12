@@ -17,4 +17,9 @@ pub trait ModelTransaction: Transaction<Model> {
         owner_id: UserId,
         pagination: Pagination,
     ) -> impl Future<Output = Result<(Vec<Model>, u64), TransactionError>> + Send;
+
+    fn delete_by_id(
+        &mut self,
+        id: ModelId,
+    ) -> impl Future<Output = Result<(), TransactionError>> + Send;
 }

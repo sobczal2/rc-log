@@ -6,6 +6,11 @@ use axum::{
 use rc_log_application::error::ApplicationError;
 use rc_log_application::maneuver::get_by_id::error::GetManeuverByIdError;
 use rc_log_application::maneuver::list::error::ListManeuversError;
+use rc_log_application::model::create::error::CreateModelError;
+use rc_log_application::model::delete::error::DeleteModelError;
+use rc_log_application::model::get_by_id::error::GetModelByIdError;
+use rc_log_application::model::list::error::ListModelsError;
+use rc_log_application::model::update::error::UpdateModelError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
@@ -154,6 +159,58 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::ResolvePhoto(
                 ResolvePhotoError::ResolverError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Model errors
+            ApiError::Application(ApplicationError::GetModelById(GetModelByIdError::NotFound))
+            | ApiError::Application(ApplicationError::UpdateModel(UpdateModelError::NotFound))
+            | ApiError::Application(ApplicationError::DeleteModel(DeleteModelError::NotFound)) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Model not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::GetModelById(GetModelByIdError::Forbidden))
+            | ApiError::Application(ApplicationError::UpdateModel(UpdateModelError::Forbidden))
+            | ApiError::Application(ApplicationError::DeleteModel(DeleteModelError::Forbidden)) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::CreateModel(
+                CreateModelError::ValidationError(msg),
+            ))
+            | ApiError::Application(ApplicationError::UpdateModel(
+                UpdateModelError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::GetModelById(
+                GetModelByIdError::InvalidData(msg),
+            ))
+            | ApiError::Application(ApplicationError::ListModels(
+                ListModelsError::InvalidData(msg),
+            ))
+            | ApiError::Application(ApplicationError::CreateModel(
+                CreateModelError::InvalidData(msg),
+            ))
+            | ApiError::Application(ApplicationError::UpdateModel(
+                UpdateModelError::InvalidData(msg),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("Internal server error: {}", msg) })),
+            )
+                .into_response(),
+            ApiError::Application(ApplicationError::GetModelById(
+                GetModelByIdError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::ListModels(
+                ListModelsError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::CreateModel(
+                CreateModelError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateModel(
+                UpdateModelError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::DeleteModel(
+                DeleteModelError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

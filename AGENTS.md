@@ -40,6 +40,10 @@ Pure domain model. No framework dependencies. Owns:
 | `src/maneuver/variation.rs` | `Variation` entity (id, name, description: MarkdownText, video_asset_name: AssetName) |
 | `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash) |
 | `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_username()` |
+| `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: ModelName, vehicle_type: VehicleType, photo_asset_name: Option<AssetName>) |
+| `src/model/id.rs` | `ModelId(Uuid)` newtype (Copy, wraps Uuid via `::new()`, `::as_uuid()`, `From<ModelId> for Uuid`) |
+| `src/model/name.rs` | `ModelName` validated newtype (non-empty, trimmed, ≤100 chars) + `ModelNameError` |
+| `src/model/transaction.rs` | `ModelTransaction` trait extending `Transaction<Model>` with `get_by_id()`, `list_by_owner()`, `delete_by_id()` |
 | `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
 | `src/shared/pagination.rs` | `Pagination` value object (page, page_size) with `offset()`/`limit()` helpers |
 | `src/shared/password_hash.rs` | `PasswordHash` newtype |
@@ -104,6 +108,21 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/photo/resolve/error.rs` | `ResolvePhotoError` (NotFound, InvalidName, InvalidData, ResolverError) |
 | `src/photo/resolve/model.rs` | `ResolvePhotoInput`, `PhotoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
 | `src/photo/resolve/use_case.rs` | `ResolvePhotoUseCase<R: PhotoResolver>` — looks up photo by name, returns `PhotoPathsDto` |
+| `src/model/get_by_id/error.rs` | `GetModelByIdError` (NotFound, Forbidden, InvalidData, RepositoryError) |
+| `src/model/get_by_id/model.rs` | `GetModelByIdInput { id, owner_id }`, `ModelDto` |
+| `src/model/get_by_id/use_case.rs` | `GetModelByIdUseCase<UoW>` — ownership check: returns Forbidden if owner_id mismatch |
+| `src/model/list/error.rs` | `ListModelsError` (InvalidData, RepositoryError) |
+| `src/model/list/model.rs` | `ListModelsInput { owner_id, pagination }`, `ModelDto` |
+| `src/model/list/use_case.rs` | `ListModelsUseCase<UoW>` — returns `PaginatedResult<ModelDto>` scoped to owner |
+| `src/model/create/error.rs` | `CreateModelError` (ValidationError, InvalidData, RepositoryError) |
+| `src/model/create/model.rs` | `CreateModelInput { owner_id, name, vehicle_type, photo_asset_name? }`, `ModelDto` |
+| `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name + photo, creates model, saves |
+| `src/model/update/error.rs` | `UpdateModelError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
+| `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, vehicle_type, photo_asset_name? }`, `ModelDto` |
+| `src/model/update/use_case.rs` | `UpdateModelUseCase<UoW>` — get, ownership check, create updated Model, save |
+| `src/model/delete/error.rs` | `DeleteModelError` (NotFound, Forbidden, RepositoryError) |
+| `src/model/delete/model.rs` | `DeleteModelInput { id, owner_id }` — no output struct |
+| `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW>` — get, ownership check, delete_by_id, returns `()` |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -150,12 +169,14 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 | Path | Contents |
 |---|---|
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
+| `src/model/transaction.rs` | `SqlxModelTransaction`, `SqlxModelUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 | `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
 | `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
 
 **Conventions:**
-- Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
+- Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`, `ModelId`, `UserId`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
+- Primitive `Uuid` types cross the application/API boundary (in DTO input/output structs). Domain value objects (`ModelId`, `UserId`, `ModelName`, etc.) are only used *inside* the application layer and below. Never expose domain value object types to the API layer.
 
 **Key implementation details:**
 - `SqlxManeuverUnitOfWork` holds a `PgPool` (Arc-backed, `Clone`-derived).
@@ -188,6 +209,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `user.user` — user entity table with unique constraints on username and email
 - `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
 - `asset.photo` — identical structure to `asset.video`
+- `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(100) NOT NULL`, `vehicle_type TEXT NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
 
 ---
 
@@ -199,7 +221,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
 | `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
-| `src/state.rs` | `AppState { maneuver_uow, user_uow, video_resolver, photo_resolver, jwt_secret }` — passed via axum `State` |
+| `src/state.rs` | `AppState { maneuver_uow, model_uow, user_uow, video_resolver, photo_resolver, jwt_secret }` — passed via axum `State` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
@@ -211,6 +233,12 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/auth/router.rs` | Mounts auth routes |
 | `src/user/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` extractor |
 | `src/user/router.rs` | Mounts user routes |
+| `src/model/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/model/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/model/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/model/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/model/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
+| `src/model/router.rs` | Mounts model routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/router.rs` | Mounts asset-path routes |
@@ -218,7 +246,8 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 **Error mapping (`ApiError`):**
 | Error | HTTP |
 |---|---|
-| `NotFound` (maneuver/user/asset) | 404 |
+| `NotFound` (maneuver/user/model/asset) | 404 |
+| `Forbidden` (ownership mismatch on model) | 403 |
 | `InvalidData` | 500 (bad DB data is a server problem) |
 | `RepositoryError` / `ResolverError` | 500 (internal details not leaked) |
 | `UsernameTaken` / `EmailTaken` | 409 |
@@ -238,6 +267,12 @@ GET  /api/users/{id}          [JWT required]  → GetByIdResponse
 
 GET  /api/asset-paths/video/{name}        → ResolveVideoResponse  { name, smallPath, mediumPath?, largePath? }
 GET  /api/asset-paths/photo/{name}        → ResolvePhotoResponse  { name, smallPath, mediumPath?, largePath? }
+
+GET    /api/models              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
+POST   /api/models              [JWT required]  → CreateResponse  (201 Created)
+GET    /api/models/{id}         [JWT required]  → GetByIdResponse
+PUT    /api/models/{id}         [JWT required]  → UpdateResponse
+DELETE /api/models/{id}         [JWT required]  → 204 No Content
 ```
 
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.
@@ -446,3 +481,45 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
    - `lib.rs` in each crate only declares top-level modules with `pub mod`, never re-exports directly.
    - `mod.rs` in each operation subdirectory re-exports the use case struct: `pub use use_case::FooUseCase`.
    - Asset paths stored in DB are relative to `RC_LOG_ASSET_PATH` (e.g. `videos/foo_small.mp4`). Frontend clients prepend `/api/assets/` to get the full URL served by `ServeDir`.
+
+---
+
+## Value Objects vs Primitive Types — Where Each Belongs
+
+This is a critical architectural rule. The wrong type at the wrong layer creates leaky abstractions or bypasses validation.
+
+| Layer | Type to Use | Reason |
+|---|---|---|
+| **Domain** | Domain value objects (`ModelId`, `UserId`, `ModelName`, `AssetName`, `VehicleType`, etc.) | Value objects carry validation guarantees; domain logic is expressed in domain types |
+| **Application (use case inputs)** | Primitive types (`Uuid`, `String`, `u32`) | Inputs come from the API — no domain objects cross the application/API boundary |
+| **Application (use case internals)** | Domain value objects | Conversion from primitive → value object happens inside the use case (validation point) |
+| **Application (DTOs / outputs)** | Primitive types + application enums (`VehicleTypeDto`) | Outputs are stable contracts for the API; no domain types escape the use case |
+| **Persistence** | Domain value objects as function parameters | Repository trait methods accept domain types (e.g. `ModelId`, `UserId`) — never raw `&Uuid` |
+| **API** | Primitive types only | API layer never sees domain crate types; use application DTOs and primitive Uuid/String |
+
+**Key rule**: Primitive `Uuid` is used in application input/output DTOs (crossing the app/API boundary). Domain value objects (`ModelId`, `UserId`, etc.) are only instantiated *inside* the application use case after validation, and passed into persistence.
+
+**VehicleType bridging**: `VehicleType` (domain enum) ↔ `VehicleTypeDto` (application enum, serializable). Conversion happens in use case internals (`match input.vehicle_type { VehicleTypeDto::Helicopter => VehicleType::Helicopter, ... }`). API layer uses `VehicleTypeDto` (re-exported from application). Never use domain `VehicleType` in API.
+
+---
+
+## Ownership Check Pattern (User-Owned Resources)
+
+For aggregates owned by a user (e.g. `Model`), use cases that access a single resource by ID must verify that the authenticated user is the owner. The standard pattern:
+
+```rust
+// In use_case.rs (get_by_id, update, delete)
+let entity = tx.get_by_id(EntityId::new(input.id)).await.map_err(Error::from)?
+    .ok_or(Error::NotFound)?;
+
+if Uuid::from(entity.owner_id()) != input.owner_id {
+    tx.rollback().await.map_err(Error::from)?;
+    return Err(Error::Forbidden.into());
+}
+```
+
+- **Returns `Forbidden` (403)**, not `NotFound` — the resource exists but the caller doesn't own it
+- **Always rollback** before returning `Forbidden` to avoid leaving open transactions
+- `owner_id` in the input comes from the JWT claims (`auth.id` in the handler), never from the request path or body
+- `delete` use case: get entity → check ownership → `delete_by_id` → commit (no response body; handler returns 204)
+- `update` use case: get entity → check ownership → create new entity with same id/owner → `save` (upsert) → commit
