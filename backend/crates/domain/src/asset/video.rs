@@ -4,9 +4,34 @@ use super::name::AssetName;
 use super::path::AssetPath;
 use super::size::AssetSize;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct VideoId(Uuid);
+
+impl VideoId {
+    pub fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    pub fn as_uuid(&self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for VideoId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<VideoId> for Uuid {
+    fn from(id: VideoId) -> Uuid {
+        id.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Video {
-    pub id: Uuid,
+    pub id: VideoId,
     pub name: AssetName,
     pub small_path: AssetPath,
     pub medium_path: Option<AssetPath>,
@@ -15,7 +40,7 @@ pub struct Video {
 
 impl Video {
     pub fn new(
-        id: Uuid,
+        id: VideoId,
         name: AssetName,
         small_path: AssetPath,
         medium_path: Option<AssetPath>,
@@ -45,7 +70,7 @@ mod tests {
     use crate::asset::path::AssetPath;
     use crate::asset::size::AssetSize;
 
-    use super::Video;
+    use super::{Video, VideoId};
 
     fn path(s: &str) -> AssetPath {
         AssetPath::new(s.to_string()).unwrap()
@@ -53,7 +78,7 @@ mod tests {
 
     fn make_video(small: &str, medium: Option<&str>, large: Option<&str>) -> Video {
         Video::new(
-            Uuid::nil(),
+            VideoId::new(Uuid::nil()),
             AssetName::new("test".to_string()).unwrap(),
             path(small),
             medium.map(|s| path(s)),

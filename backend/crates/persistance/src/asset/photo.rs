@@ -3,7 +3,7 @@ use std::sync::Arc;
 use moka::future::Cache;
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::asset::path::AssetPath;
-use rc_log_domain::asset::photo::Photo;
+use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo_resolver::PhotoResolver;
 use rc_log_domain::shared::transaction::TransactionError;
 use sqlx::PgPool;
@@ -34,7 +34,7 @@ impl PhotoRow {
             .map(AssetPath::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(Photo::new(self.id, name, small_path, medium_path, large_path))
+        Ok(Photo::new(PhotoId::new(self.id), name, small_path, medium_path, large_path))
     }
 }
 

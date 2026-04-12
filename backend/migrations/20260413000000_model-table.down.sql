@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS model.model;
+DROP SCHEMA IF EXISTS model;

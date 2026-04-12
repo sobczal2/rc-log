@@ -4,9 +4,34 @@ use super::name::AssetName;
 use super::path::AssetPath;
 use super::size::AssetSize;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhotoId(Uuid);
+
+impl PhotoId {
+    pub fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    pub fn as_uuid(&self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for PhotoId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<PhotoId> for Uuid {
+    fn from(id: PhotoId) -> Uuid {
+        id.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Photo {
-    pub id: Uuid,
+    pub id: PhotoId,
     pub name: AssetName,
     pub small_path: AssetPath,
     pub medium_path: Option<AssetPath>,
@@ -15,7 +40,7 @@ pub struct Photo {
 
 impl Photo {
     pub fn new(
-        id: Uuid,
+        id: PhotoId,
         name: AssetName,
         small_path: AssetPath,
         medium_path: Option<AssetPath>,
@@ -45,7 +70,7 @@ mod tests {
     use crate::asset::path::AssetPath;
     use crate::asset::size::AssetSize;
 
-    use super::Photo;
+    use super::{Photo, PhotoId};
 
     fn path(s: &str) -> AssetPath {
         AssetPath::new(s.to_string()).unwrap()
@@ -53,7 +78,7 @@ mod tests {
 
     fn make_photo(small: &str, medium: Option<&str>, large: Option<&str>) -> Photo {
         Photo::new(
-            Uuid::nil(),
+            PhotoId::new(Uuid::nil()),
             AssetName::new("test".to_string()).unwrap(),
             path(small),
             medium.map(|s| path(s)),

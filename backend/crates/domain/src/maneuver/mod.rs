@@ -1,20 +1,19 @@
 pub mod difficulty;
+pub mod id;
 pub mod tag;
 pub mod transaction;
 pub mod variation;
 
 use std::collections::BTreeSet;
 
-use uuid::Uuid;
-
 use crate::{
-    maneuver::{difficulty::Difficulty, tag::Tag, variation::Variation},
+    maneuver::{difficulty::Difficulty, id::ManeuverId, tag::{Tag, TagId}, variation::Variation},
     shared::{markdown_text::MarkdownText, vehicle_type::VehicleType},
 };
 
 #[derive(Debug, Clone)]
 pub struct Maneuver {
-    id: Uuid,
+    id: ManeuverId,
     vehicle_type: VehicleType,
     name: String,
     tags: BTreeSet<Tag>,
@@ -26,7 +25,7 @@ pub struct Maneuver {
 
 impl Maneuver {
     pub fn new(
-        id: Uuid,
+        id: ManeuverId,
         vehicle_type: VehicleType,
         name: String,
         tags: BTreeSet<Tag>,
@@ -47,7 +46,7 @@ impl Maneuver {
         }
     }
 
-    pub fn id(&self) -> Uuid {
+    pub fn id(&self) -> ManeuverId {
         self.id
     }
 
@@ -83,9 +82,9 @@ impl Maneuver {
         self.tags.insert(tag);
     }
 
-    pub fn remove_tag(&mut self, tag_id: Uuid) -> Option<Tag> {
-        let found = self.tags.iter().find(|t| t.id() == tag_id).cloned()?;
-        self.tags.remove(&found);
+    pub fn remove_tag(&mut self, tag_id: TagId) -> Option<Tag> {
+        let found = self.tags.iter().find(|t| t.id() == tag_id).cloned()?
+;        self.tags.remove(&found);
         Some(found)
     }
 
@@ -102,8 +101,9 @@ mod tests {
 
     use crate::asset::name::AssetName;
     use crate::maneuver::difficulty::Difficulty;
-    use crate::maneuver::tag::Tag;
-    use crate::maneuver::variation::Variation;
+    use crate::maneuver::id::ManeuverId;
+    use crate::maneuver::tag::{Tag, TagId};
+    use crate::maneuver::variation::{Variation, VariationId};
     use crate::shared::markdown_text::MarkdownText;
     use crate::shared::vehicle_type::VehicleType;
 
@@ -111,7 +111,7 @@ mod tests {
 
     fn make_variation() -> Variation {
         Variation::new(
-            Uuid::new_v4(),
+            VariationId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("description".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),
@@ -120,7 +120,7 @@ mod tests {
 
     fn make_maneuver() -> Maneuver {
         Maneuver::new(
-            Uuid::new_v4(),
+            ManeuverId::new(Uuid::new_v4()),
             VehicleType::Helicopter,
             "test maneuver".to_string(),
             BTreeSet::new(),
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn add_tag_inserts_tag() {
         let mut m = make_maneuver();
-        let tag = Tag::new(Uuid::new_v4(), "beginner".to_string());
+        let tag = Tag::new(TagId::new(Uuid::new_v4()), "beginner".to_string());
         m.add_tag(tag.clone());
         assert!(m.tags().contains(&tag));
     }
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn add_tag_duplicate_is_idempotent() {
         let mut m = make_maneuver();
-        let tag = Tag::new(Uuid::new_v4(), "beginner".to_string());
+        let tag = Tag::new(TagId::new(Uuid::new_v4()), "beginner".to_string());
         m.add_tag(tag.clone());
         m.add_tag(tag.clone());
         assert_eq!(m.tags().len(), 1);
@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn remove_tag_returns_tag_and_removes_it() {
         let mut m = make_maneuver();
-        let tag_id = Uuid::new_v4();
+        let tag_id = TagId::new(Uuid::new_v4());
         let tag = Tag::new(tag_id, "beginner".to_string());
         m.add_tag(tag.clone());
         assert_eq!(m.tags().len(), 1);
@@ -166,7 +166,7 @@ mod tests {
         // empty-name sentinel would silently return None for any tag with a
         // non-empty name because the Ord-based lookup would not find it.
         let mut m = make_maneuver();
-        let tag_id = Uuid::new_v4();
+        let tag_id = TagId::new(Uuid::new_v4());
         m.add_tag(Tag::new(tag_id, "a-tag-with-a-real-name".to_string()));
         let removed = m.remove_tag(tag_id);
         assert!(removed.is_some(), "remove_tag must find tags by id regardless of name");
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn remove_tag_nonexistent_returns_none() {
         let mut m = make_maneuver();
-        assert_eq!(m.remove_tag(Uuid::new_v4()), None);
+        assert_eq!(m.remove_tag(TagId::new(Uuid::new_v4())), None);
     }
 
     #[test]

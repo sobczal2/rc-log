@@ -1,10 +1,10 @@
+pub mod id;
 pub mod query;
 pub mod username;
 
-use uuid::Uuid;
-
 use crate::shared::email::Email;
 use crate::shared::password_hash::PasswordHash;
+use id::UserId;
 use username::Username;
 
 /// User aggregate root
@@ -12,18 +12,18 @@ use username::Username;
 /// Represents a user in the system with authentication credentials.
 #[derive(Debug, Clone)]
 pub struct User {
-    id: Uuid,
+    id: UserId,
     username: Username,
     email: Email,
     password_hash: PasswordHash,
 }
 
 impl User {
-    pub fn new(id: Uuid, username: Username, email: Email, password_hash: PasswordHash) -> Self {
+    pub fn new(id: UserId, username: Username, email: Email, password_hash: PasswordHash) -> Self {
         Self { id, username, email, password_hash }
     }
 
-    pub fn id(&self) -> Uuid {
+    pub fn id(&self) -> UserId {
         self.id
     }
 

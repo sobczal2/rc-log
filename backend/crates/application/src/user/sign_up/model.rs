@@ -20,7 +20,7 @@ pub struct UserDto {
 impl From<User> for UserDto {
     fn from(user: User) -> Self {
         Self {
-            id: user.id(),
+            id: Uuid::from(user.id()),
             username: user.username().as_str().to_string(),
             email: user.email().as_str().to_string(),
         }

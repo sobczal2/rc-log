@@ -69,11 +69,14 @@ impl From<Maneuver> for ManeuverDto {
             Difficulty::Level7 => DifficultyDto::Level7,
         };
 
-        let tags =
-            m.tags().iter().map(|t| TagDto { id: t.id(), name: t.name().to_string() }).collect();
+        let tags = m
+            .tags()
+            .iter()
+            .map(|t| TagDto { id: Uuid::from(t.id()), name: t.name().to_string() })
+            .collect();
 
         let default_variation = VariationDto {
-            id: m.default_variation().id(),
+            id: Uuid::from(m.default_variation().id()),
             name: m.default_variation().name().to_string(),
             description: m.default_variation().description().as_str().to_string(),
             video_asset_name: m.default_variation().video_asset_name().as_str().to_string(),
@@ -83,7 +86,7 @@ impl From<Maneuver> for ManeuverDto {
             .other_variations()
             .iter()
             .map(|v| VariationDto {
-                id: v.id(),
+                id: Uuid::from(v.id()),
                 name: v.name().to_string(),
                 description: v.description().as_str().to_string(),
                 video_asset_name: v.video_asset_name().as_str().to_string(),
@@ -91,7 +94,7 @@ impl From<Maneuver> for ManeuverDto {
             .collect();
 
         Self {
-            id: m.id(),
+            id: Uuid::from(m.id()),
             vehicle_type,
             name: m.name().to_string(),
             tags,

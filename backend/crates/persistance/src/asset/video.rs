@@ -3,7 +3,7 @@ use std::sync::Arc;
 use moka::future::Cache;
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::asset::path::AssetPath;
-use rc_log_domain::asset::video::Video;
+use rc_log_domain::asset::video::{Video, VideoId};
 use rc_log_domain::asset::video_resolver::VideoResolver;
 use rc_log_domain::shared::transaction::TransactionError;
 use sqlx::PgPool;
@@ -34,7 +34,7 @@ impl VideoRow {
             .map(AssetPath::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(Video::new(self.id, name, small_path, medium_path, large_path))
+        Ok(Video::new(VideoId::new(self.id), name, small_path, medium_path, large_path))
     }
 }
 

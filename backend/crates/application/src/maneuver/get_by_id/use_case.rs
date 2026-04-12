@@ -1,4 +1,6 @@
 use rc_log_domain::maneuver::Maneuver;
+use rc_log_domain::maneuver::id::ManeuverId;
+use rc_log_domain::maneuver::transaction::ManeuverTransaction;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::{debug, instrument};
@@ -14,6 +16,7 @@ pub struct GetManeuverByIdUseCase<UoW> {
 impl<UoW> GetManeuverByIdUseCase<UoW>
 where
     UoW: UnitOfWork<Maneuver>,
+    UoW::Transaction: ManeuverTransaction,
 {
     pub fn new(uow: UoW) -> Self {
         Self { uow }
@@ -28,8 +31,11 @@ where
         let mut tx = self.uow.begin().await.map_err(GetManeuverByIdError::from)?;
 
         debug!("Querying maneuver from repository");
-        let maneuver =
-            tx.get_by_id(input.id).await.map_err(GetManeuverByIdError::from)?.ok_or_else(|| {
+        let maneuver = tx
+            .get_by_id(ManeuverId::new(input.id))
+            .await
+            .map_err(GetManeuverByIdError::from)?
+            .ok_or_else(|| {
                 debug!("Maneuver not found in repository");
                 GetManeuverByIdError::NotFound
             })?;

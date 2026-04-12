@@ -2,8 +2,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::future::Future;
 
-use uuid::Uuid;
-
 #[derive(Debug)]
 pub enum TransactionError {
     InvalidData(String),
@@ -22,11 +20,6 @@ impl Display for TransactionError {
 impl Error for TransactionError {}
 
 pub trait Transaction<T>: Send {
-    fn get_by_id(
-        &mut self,
-        id: Uuid,
-    ) -> impl Future<Output = Result<Option<T>, TransactionError>> + Send;
-
     fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), TransactionError>> + Send;
     fn commit(self) -> impl Future<Output = Result<(), TransactionError>> + Send;
     fn rollback(self) -> impl Future<Output = Result<(), TransactionError>> + Send;

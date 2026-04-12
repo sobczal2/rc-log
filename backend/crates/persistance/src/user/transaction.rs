@@ -2,7 +2,7 @@ use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::user::{User, query::UserTransaction, username::Username};
+use rc_log_domain::user::{User, id::UserId, query::UserTransaction, username::Username};
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
@@ -22,12 +22,12 @@ impl UserRow {
             Email::new(self.email).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let password_hash = PasswordHash::new(self.password_hash)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(User::new(self.id, username, email, password_hash))
+        Ok(User::new(UserId::new(self.id), username, email, password_hash))
     }
 
     fn from_user(user: &User) -> Self {
         Self {
-            id: user.id(),
+            id: Uuid::from(user.id()),
             username: user.username().as_str().to_string(),
             email: user.email().as_str().to_string(),
             password_hash: user.password_hash().as_str().to_string(),
@@ -40,22 +40,6 @@ pub struct SqlxUserTransaction {
 }
 
 impl Transaction<User> for SqlxUserTransaction {
-    async fn get_by_id(&mut self, id: Uuid) -> Result<Option<User>, TransactionError> {
-        let user_row: Option<UserRow> = sqlx::query_as(
-            r#"
-            SELECT id, username, email, password_hash
-            FROM "user"."user"
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        user_row.map(UserRow::try_into_user).transpose()
-    }
-
     async fn save(&mut self, user: &User) -> Result<(), TransactionError> {
         let user_row = UserRow::from_user(user);
 
@@ -90,6 +74,22 @@ impl Transaction<User> for SqlxUserTransaction {
 }
 
 impl UserTransaction for SqlxUserTransaction {
+    async fn get_by_id(&mut self, id: UserId) -> Result<Option<User>, TransactionError> {
+        let user_row: Option<UserRow> = sqlx::query_as(
+            r#"
+            SELECT id, username, email, password_hash
+            FROM "user"."user"
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        user_row.map(UserRow::try_into_user).transpose()
+    }
+
     async fn get_by_username(
         &mut self,
         username: &Username,
@@ -185,17 +185,18 @@ mod tests {
         use rc_log_domain::shared::email::Email;
         use rc_log_domain::shared::password_hash::PasswordHash;
         use rc_log_domain::user::User;
+        use rc_log_domain::user::id::UserId;
         use rc_log_domain::user::username::Username;
 
         let id = Uuid::new_v4();
         let user = User::new(
-            id,
+            UserId::new(id),
             Username::new("bob".to_string()).unwrap(),
             Email::new("bob@example.com".to_string()).unwrap(),
             PasswordHash::new("hash123".to_string()).unwrap(),
         );
         let row = UserRow::from_user(&user);
-        assert_eq!(row.id, id);
+        assert_eq!(row.id, id); // row.id is Uuid, id is Uuid — OK
         assert_eq!(row.username, "bob");
         assert_eq!(row.email, "bob@example.com");
         assert_eq!(row.password_hash, "hash123");

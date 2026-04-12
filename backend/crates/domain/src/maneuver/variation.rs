@@ -3,9 +3,34 @@ use uuid::Uuid;
 use crate::asset::name::AssetName;
 use crate::shared::markdown_text::MarkdownText;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct VariationId(Uuid);
+
+impl VariationId {
+    pub fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    pub fn as_uuid(&self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for VariationId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<VariationId> for Uuid {
+    fn from(id: VariationId) -> Uuid {
+        id.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Variation {
-    id: Uuid,
+    id: VariationId,
     name: String,
     description: MarkdownText,
     video_asset_name: AssetName,
@@ -13,7 +38,7 @@ pub struct Variation {
 
 impl Variation {
     pub fn new(
-        id: Uuid,
+        id: VariationId,
         name: String,
         description: MarkdownText,
         video_asset_name: AssetName,
@@ -21,7 +46,7 @@ impl Variation {
         Self { id, name, description, video_asset_name }
     }
 
-    pub fn id(&self) -> Uuid {
+    pub fn id(&self) -> VariationId {
         self.id
     }
 

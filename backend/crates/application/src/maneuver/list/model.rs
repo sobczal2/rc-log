@@ -51,10 +51,10 @@ impl From<Maneuver> for ManeuverDto {
         };
 
         let tags =
-            m.tags().iter().map(|t| TagDto { id: t.id(), name: t.name().to_string() }).collect();
+            m.tags().iter().map(|t| TagDto { id: Uuid::from(t.id()), name: t.name().to_string() }).collect();
 
         Self {
-            id: m.id(),
+            id: Uuid::from(m.id()),
             vehicle_type,
             name: m.name().to_string(),
             tags,

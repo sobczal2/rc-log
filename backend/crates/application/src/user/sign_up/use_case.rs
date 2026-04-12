@@ -5,6 +5,7 @@ use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::user::User;
+use rc_log_domain::user::id::UserId;
 use rc_log_domain::user::username::Username;
 use tracing::{debug, instrument};
 use uuid::Uuid;
@@ -45,7 +46,7 @@ where
         let mut tx = self.uow.begin().await.map_err(SignUpError::from)?;
 
         debug!("Saving new user");
-        let user = User::new(Uuid::new_v4(), username, email, password_hash);
+        let user = User::new(UserId::new(Uuid::new_v4()), username, email, password_hash);
         tx.save(&user).await.map_err(SignUpError::from)?;
 
         debug!("Committing transaction");

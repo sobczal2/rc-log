@@ -3,9 +3,10 @@ use std::collections::{BTreeSet, HashMap};
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
-use rc_log_domain::maneuver::tag::Tag;
+use rc_log_domain::maneuver::id::ManeuverId;
+use rc_log_domain::maneuver::tag::{Tag, TagId};
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
-use rc_log_domain::maneuver::variation::Variation;
+use rc_log_domain::maneuver::variation::{Variation, VariationId};
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -48,13 +49,13 @@ struct TagRowWithManeuver {
 
 impl From<TagRow> for Tag {
     fn from(row: TagRow) -> Self {
-        Tag::new(row.id, row.name)
+        Tag::new(TagId::new(row.id), row.name)
     }
 }
 
 impl From<TagRowWithManeuver> for Tag {
     fn from(row: TagRowWithManeuver) -> Self {
-        Tag::new(row.id, row.name)
+        Tag::new(TagId::new(row.id), row.name)
     }
 }
 
@@ -64,7 +65,7 @@ impl VariationRow {
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let video_asset_name = AssetName::new(self.video_asset_name)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(Variation::new(self.id, self.name, description, video_asset_name))
+        Ok(Variation::new(VariationId::new(self.id), self.name, description, video_asset_name))
     }
 }
 
@@ -104,7 +105,7 @@ impl ManeuverRow {
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
 
         Ok(Maneuver::new(
-            self.id,
+            ManeuverId::new(self.id),
             vehicle_type,
             self.name,
             tags,
@@ -132,7 +133,7 @@ impl ManeuverRow {
         };
 
         Self {
-            id: maneuver.id(),
+            id: Uuid::from(maneuver.id()),
             vehicle_type,
             name: maneuver.name().to_string(),
             description: maneuver.description().as_str().to_string(),
@@ -146,70 +147,6 @@ pub struct SqlxManeuverTransaction {
 }
 
 impl Transaction<Maneuver> for SqlxManeuverTransaction {
-    async fn get_by_id(&mut self, id: Uuid) -> Result<Option<Maneuver>, TransactionError> {
-        let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
-            r#"
-            SELECT id, vehicle_type, name, description, difficulty
-            FROM maneuver.maneuver
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let maneuver_row = match maneuver_row {
-            None => return Ok(None),
-            Some(r) => r,
-        };
-
-        let tag_rows: Vec<TagRow> = sqlx::query_as(
-            r#"
-            SELECT t.id, t.name
-            FROM maneuver.tag t
-            INNER JOIN maneuver.maneuver_tag mt ON t.id = mt.tag_id
-            WHERE mt.maneuver_id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_all(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let variation_rows: Vec<VariationRow> = sqlx::query_as(
-            r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default
-            FROM maneuver.variation
-            WHERE maneuver_id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_all(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
-
-        let mut default_variation: Option<Variation> = None;
-        let mut other_variations: Vec<Variation> = Vec::new();
-        for row in variation_rows {
-            let is_default = row.is_default;
-            let variation = row.try_into_variation()?;
-            if is_default {
-                default_variation = Some(variation);
-            } else {
-                other_variations.push(variation);
-            }
-        }
-
-        let default_variation = default_variation.ok_or_else(|| {
-            TransactionError::InvalidData(format!("Maneuver {} has no default variation", id))
-        })?;
-
-        Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
-    }
-
     async fn save(&mut self, maneuver: &Maneuver) -> Result<(), TransactionError> {
         let maneuver_row = ManeuverRow::from_maneuver(maneuver);
 
@@ -234,7 +171,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         sqlx::query("DELETE FROM maneuver.maneuver_tag WHERE maneuver_id = $1")
-            .bind(maneuver.id())
+            .bind(Uuid::from(maneuver.id()))
             .execute(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -247,15 +184,15 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
                 ON CONFLICT DO NOTHING
                 "#,
             )
-            .bind(maneuver.id())
-            .bind(tag.id())
+            .bind(Uuid::from(maneuver.id()))
+            .bind(Uuid::from(tag.id()))
             .execute(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
         }
 
         sqlx::query("DELETE FROM maneuver.variation WHERE maneuver_id = $1")
-            .bind(maneuver.id())
+            .bind(Uuid::from(maneuver.id()))
             .execute(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -267,8 +204,8 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             VALUES ($1, $2, $3, $4, $5, TRUE)
             "#,
         )
-        .bind(default_var.id())
-        .bind(maneuver.id())
+        .bind(Uuid::from(default_var.id()))
+        .bind(Uuid::from(maneuver.id()))
         .bind(default_var.name())
         .bind(default_var.description().as_str())
         .bind(default_var.video_asset_name().as_str())
@@ -283,8 +220,8 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
                 VALUES ($1, $2, $3, $4, $5, FALSE)
                 "#,
             )
-            .bind(var.id())
-            .bind(maneuver.id())
+            .bind(Uuid::from(var.id()))
+            .bind(Uuid::from(maneuver.id()))
             .bind(var.name())
             .bind(var.description().as_str())
             .bind(var.video_asset_name().as_str())
@@ -475,6 +412,72 @@ impl SqlxManeuverTransaction {
 }
 
 impl ManeuverTransaction for SqlxManeuverTransaction {
+    async fn get_by_id(&mut self, id: ManeuverId) -> Result<Option<Maneuver>, TransactionError> {
+        let uuid = id.as_uuid();
+
+        let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
+            r#"
+            SELECT id, vehicle_type, name, description, difficulty
+            FROM maneuver.maneuver
+            WHERE id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let maneuver_row = match maneuver_row {
+            None => return Ok(None),
+            Some(r) => r,
+        };
+
+        let tag_rows: Vec<TagRow> = sqlx::query_as(
+            r#"
+            SELECT t.id, t.name
+            FROM maneuver.tag t
+            INNER JOIN maneuver.maneuver_tag mt ON t.id = mt.tag_id
+            WHERE mt.maneuver_id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let variation_rows: Vec<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default
+            FROM maneuver.variation
+            WHERE maneuver_id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
+
+        let mut default_variation: Option<Variation> = None;
+        let mut other_variations: Vec<Variation> = Vec::new();
+        for row in variation_rows {
+            let is_default = row.is_default;
+            let variation = row.try_into_variation()?;
+            if is_default {
+                default_variation = Some(variation);
+            } else {
+                other_variations.push(variation);
+            }
+        }
+
+        let default_variation = default_variation.ok_or_else(|| {
+            TransactionError::InvalidData(format!("Maneuver {} has no default variation", uuid))
+        })?;
+
+        Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
+    }
+
     async fn list(
         &mut self,
         pagination: Pagination,
@@ -564,9 +567,10 @@ mod tests {
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
         use rc_log_domain::asset::name::AssetName;
+        use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
         rc_log_domain::maneuver::variation::Variation::new(
-            Uuid::new_v4(),
+            VariationId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("desc".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),
@@ -637,13 +641,14 @@ mod tests {
     fn maneuver_row_from_maneuver_round_trip() {
         use std::collections::BTreeSet;
         use rc_log_domain::maneuver::Maneuver;
+        use rc_log_domain::maneuver::id::ManeuverId;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::shared::markdown_text::MarkdownText;
         use rc_log_domain::shared::vehicle_type::VehicleType;
 
         let id = Uuid::new_v4();
         let maneuver = Maneuver::new(
-            id,
+            ManeuverId::new(id),
             VehicleType::Plane,
             "Stall Turn".to_string(),
             BTreeSet::new(),
@@ -653,7 +658,7 @@ mod tests {
             vec![],
         );
         let row = ManeuverRow::from_maneuver(&maneuver);
-        assert_eq!(row.id, id);
+        assert_eq!(row.id, id); // row.id is Uuid, id is Uuid — OK
         assert_eq!(row.vehicle_type, "Plane");
         assert_eq!(row.difficulty, 4);
         assert_eq!(row.name, "Stall Turn");

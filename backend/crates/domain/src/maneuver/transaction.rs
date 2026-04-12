@@ -2,12 +2,18 @@ use std::future::Future;
 
 use crate::maneuver::Maneuver;
 use crate::maneuver::difficulty::Difficulty;
+use crate::maneuver::id::ManeuverId;
 use crate::shared::pagination::Pagination;
 use crate::shared::transaction::{Transaction, TransactionError};
 use crate::shared::vehicle_type::VehicleType;
 
-/// Transaction trait extended with Maneuver-specific list operation
+/// Transaction trait extended with Maneuver-specific operations
 pub trait ManeuverTransaction: Transaction<Maneuver> {
+    fn get_by_id(
+        &mut self,
+        id: ManeuverId,
+    ) -> impl Future<Output = Result<Option<Maneuver>, TransactionError>> + Send;
+
     fn list(
         &mut self,
         pagination: Pagination,
