@@ -1,4 +1,5 @@
 pub mod id;
+pub mod model_resolver;
 pub mod name;
 pub mod transaction;
 
