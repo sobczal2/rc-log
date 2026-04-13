@@ -17,6 +17,6 @@ pub async fn sign_in(
     let mut use_case = SignInUseCase::new(state.user_uow);
     let user = use_case.execute(input.0).await?;
     let claims = new_claims(user.id, user.username.clone());
-    let token = create_token(&claims, &state.jwt_secret).map_err(|_| ApiError::Unauthorized)?;
+    let token = create_token(&claims, &state.jwt_secret).map_err(|_| ApiError::InternalError)?;
     Ok(Json(SignInResponse { token, user }))
 }

@@ -1,4 +1,4 @@
 pub mod extractor;
 pub mod handler;
 
-pub use handler::delete_model;
+pub use handler::remove_model_photo;

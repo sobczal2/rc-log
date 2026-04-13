@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { List, LogIn, LogOut, Plane, UserPlus } from "lucide-react";
+import { List, LogIn, LogOut, Plane, User, UserPlus } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,9 +57,15 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 border-t border-border/50">
         {isAuthenticated ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground truncate px-1">
-              Signed in as <span className="font-medium text-foreground">{user?.username}</span>
-            </p>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              size="sm"
+              onClick={() => navigate("/profile")}
+            >
+              <User size={18} />
+              <span className="truncate">{user?.username}</span>
+            </Button>
             <Button
               variant="outline"
               className="w-full justify-start gap-2"

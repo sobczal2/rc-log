@@ -11,6 +11,7 @@ use rc_log_application::model::delete::error::DeleteModelError;
 use rc_log_application::model::get_by_id::error::GetModelByIdError;
 use rc_log_application::model::list::error::ListModelsError;
 use rc_log_application::model::update::error::UpdateModelError;
+use rc_log_application::model::remove_photo::error::RemoveModelPhotoError;
 use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
@@ -29,6 +30,8 @@ pub enum ApiError {
     Validation(Vec<rc_log_application::shared::validator::ValidationError>),
     #[error("Unauthorized")]
     Unauthorized,
+    #[error("Internal server error")]
+    InternalError,
 }
 
 impl IntoResponse for ApiError {
@@ -38,6 +41,11 @@ impl IntoResponse for ApiError {
             ApiError::Unauthorized => {
                 (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" }))).into_response()
             }
+            ApiError::InternalError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
             ApiError::Validation(errors) => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({ "error": "Validation failed", "details": errors })),
@@ -48,15 +56,15 @@ impl IntoResponse for ApiError {
             )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Maneuver not found" })))
                 .into_response(),
             ApiError::Application(ApplicationError::GetManeuverById(
-                GetManeuverByIdError::InvalidData(msg),
+                GetManeuverByIdError::InvalidData(ref msg),
             ))
             | ApiError::Application(ApplicationError::ListManeuvers(
-                ListManeuversError::InvalidData(msg),
-            )) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Internal server error: {}", msg) })),
-            )
-                .into_response(),
+                ListManeuversError::InvalidData(ref msg),
+            )) => {
+                error!(details = %msg, "invalid data in maneuver response");
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::GetManeuverById(
                 GetManeuverByIdError::RepositoryError(_),
             ))
@@ -81,15 +89,15 @@ impl IntoResponse for ApiError {
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": "Invalid username" })))
                 .into_response(),
             ApiError::Application(ApplicationError::GetUserById(
-                GetUserByIdError::InvalidData(msg),
+                GetUserByIdError::InvalidData(ref msg),
             ))
             | ApiError::Application(ApplicationError::GetUserByUsername(
-                GetUserByUsernameError::InvalidData(msg),
-            )) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Internal server error: {}", msg) })),
-            )
-                .into_response(),
+                GetUserByUsernameError::InvalidData(ref msg),
+            )) => {
+                error!(details = %msg, "invalid data in user response");
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::GetUserById(
                 GetUserByIdError::RepositoryError(_),
             ))
@@ -183,21 +191,21 @@ impl IntoResponse for ApiError {
                 UpdateModelError::ValidationError(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
             ApiError::Application(ApplicationError::GetModelById(
-                GetModelByIdError::InvalidData(msg),
+                GetModelByIdError::InvalidData(ref msg),
             ))
             | ApiError::Application(ApplicationError::ListModels(
-                ListModelsError::InvalidData(msg),
+                ListModelsError::InvalidData(ref msg),
             ))
             | ApiError::Application(ApplicationError::CreateModel(
-                CreateModelError::InvalidData(msg),
+                CreateModelError::InvalidData(ref msg),
             ))
             | ApiError::Application(ApplicationError::UpdateModel(
-                UpdateModelError::InvalidData(msg),
-            )) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Internal server error: {}", msg) })),
-            )
-                .into_response(),
+                UpdateModelError::InvalidData(ref msg),
+            )) => {
+                error!(details = %msg, "invalid data in model response");
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::GetModelById(
                 GetModelByIdError::RepositoryError(_),
             ))
@@ -239,6 +247,30 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::UpdateModelPhoto(
                 UpdateModelPhotoError::PhotoStorageError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Remove model photo errors
+            ApiError::Application(ApplicationError::RemoveModelPhoto(
+                RemoveModelPhotoError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Model not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::RemoveModelPhoto(
+                RemoveModelPhotoError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::RemoveModelPhoto(
+                RemoveModelPhotoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::RemoveModelPhoto(
+                RemoveModelPhotoError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::RemoveModelPhoto(
+                RemoveModelPhotoError::PhotoStorageError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

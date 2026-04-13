@@ -122,9 +122,7 @@ export function useManeuverFilters(): [ManeuverFilters, ManeuverFiltersActions] 
         setSearchParams((prev: URLSearchParams) => {
           const newParams = new URLSearchParams(prev);
           newParams.delete(filterType);
-          if (filterType !== "difficulty") {
-            newParams.set("page", "1");
-          }
+          newParams.set("page", "1");
           return newParams;
         });
       },

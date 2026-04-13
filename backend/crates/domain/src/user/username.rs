@@ -22,7 +22,8 @@ impl std::error::Error for UsernameError {}
 
 impl Username {
     pub fn new(value: String) -> Result<Self, UsernameError> {
-        if value.trim().is_empty() {
+        let value = value.trim().to_string();
+        if value.is_empty() {
             return Err(UsernameError::Empty);
         }
         if value.len() > 255 {

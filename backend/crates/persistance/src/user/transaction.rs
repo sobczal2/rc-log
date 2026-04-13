@@ -59,7 +59,19 @@ impl Transaction<User> for SqlxUserTransaction {
         .bind(&user_row.password_hash)
         .execute(&mut *self.tx)
         .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+        .map_err(|e| {
+            if let sqlx::Error::Database(ref db_err) = e {
+                if let Some(constraint) = db_err.constraint() {
+                    if constraint.contains("username") {
+                        return TransactionError::InvalidData("unique_username".to_string());
+                    }
+                    if constraint.contains("email") {
+                        return TransactionError::InvalidData("unique_email".to_string());
+                    }
+                }
+            }
+            TransactionError::TransactionError(e.to_string())
+        })?;
 
         Ok(())
     }
@@ -102,6 +114,25 @@ impl UserTransaction for SqlxUserTransaction {
             "#,
         )
         .bind(username.as_str())
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        user_row.map(UserRow::try_into_user).transpose()
+    }
+
+    async fn get_by_email(
+        &mut self,
+        email: &Email,
+    ) -> Result<Option<User>, TransactionError> {
+        let user_row: Option<UserRow> = sqlx::query_as(
+            r#"
+            SELECT id, username, email, password_hash
+            FROM "user"."user"
+            WHERE email = $1
+            "#,
+        )
+        .bind(email.as_str())
         .fetch_optional(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;

@@ -6,6 +6,7 @@ use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::user::User;
 use rc_log_domain::user::id::UserId;
+use rc_log_domain::user::query::UserTransaction;
 use rc_log_domain::user::username::Username;
 use tracing::{debug, instrument};
 use uuid::Uuid;
@@ -21,6 +22,7 @@ pub struct SignUpUseCase<UoW> {
 impl<UoW> SignUpUseCase<UoW>
 where
     UoW: UnitOfWork<User>,
+    UoW::Transaction: UserTransaction,
 {
     pub fn new(uow: UoW) -> Self {
         Self { uow }
@@ -44,6 +46,18 @@ where
 
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(SignUpError::from)?;
+
+        debug!("Checking username availability");
+        if tx.get_by_username(&username).await.map_err(SignUpError::from)?.is_some() {
+            tx.rollback().await.map_err(SignUpError::from)?;
+            return Err(SignUpError::UsernameTaken.into());
+        }
+
+        debug!("Checking email availability");
+        if tx.get_by_email(&email).await.map_err(SignUpError::from)?.is_some() {
+            tx.rollback().await.map_err(SignUpError::from)?;
+            return Err(SignUpError::EmailTaken.into());
+        }
 
         debug!("Saving new user");
         let user = User::new(UserId::new(Uuid::new_v4()), username, email, password_hash);

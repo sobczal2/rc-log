@@ -4,3 +4,7 @@ export interface PhotoPathsDto {
   mediumPath?: string;
   largePath?: string;
 }
+
+export function getPhotoUrl(path: string): string {
+  return `/api/assets/${path}`;
+}

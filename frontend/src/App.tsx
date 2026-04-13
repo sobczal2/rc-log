@@ -1,11 +1,14 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { ManeuverDetailsPage } from "./pages/ManeuverDetailsPage";
 import { ManeuversPage } from "./pages/ManeuversPage";
 import { SignInPage } from "./pages/SignInPage";
 import { SignUpPage } from "./pages/SignUpPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { ModelDetailsPage } from "./pages/ModelDetailsPage";
 
 const router = createBrowserRouter([
   {
@@ -31,6 +34,22 @@ const router = createBrowserRouter([
       {
         path: "/sign-up",
         element: <SignUpPage />,
+      },
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/profile/models/:id",
+        element: (
+          <ProtectedRoute>
+            <ModelDetailsPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

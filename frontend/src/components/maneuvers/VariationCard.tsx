@@ -58,8 +58,8 @@ export function VariationCard({ variation, isDefault }: VariationCardProps) {
         </Card>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
-        <div className="w-full aspect-video bg-muted/30">
+      <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[90dvh]">
+        <div className="w-full aspect-video bg-muted/30 flex-shrink-0">
           {largeSrc ? (
             <video
               src={largeSrc}
@@ -73,7 +73,7 @@ export function VariationCard({ variation, isDefault }: VariationCardProps) {
             <div className="w-full h-full" />
           )}
         </div>
-        <div className="p-5 flex flex-col gap-3">
+        <div className="p-5 flex flex-col gap-3 overflow-y-auto min-h-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               {variation.name}

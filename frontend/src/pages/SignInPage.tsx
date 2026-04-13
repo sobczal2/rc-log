@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2, LogIn } from "lucide-react";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 export function SignInPage() {
   const { signIn } = useAuth();
@@ -23,11 +23,7 @@ export function SignInPage() {
       await signIn({ username, password });
       navigate("/");
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.data?.error) {
-        setError(err.response.data.error as string);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+      setError(getApiErrorMessage(err) ?? "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

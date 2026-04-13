@@ -8,6 +8,7 @@ use crate::model::name::ModelName;
 use crate::shared::vehicle_type::VehicleType;
 use crate::user::id::UserId;
 
+#[derive(Debug, Clone)]
 pub struct Model {
     id: ModelId,
     owner_id: UserId,

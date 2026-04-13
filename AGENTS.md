@@ -251,7 +251,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
-| `src/model/update_photo/` | `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
+| `src/model/update_photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
@@ -493,6 +493,7 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 6. **Code Style**:
    - Always prefer explicit `use` declarations (e.g., `use std::env;`) instead of inline fully-qualified paths (`std::env::var()`), unless doing so creates severe ambiguity. Expand this preference across the entire backend workspace.
    - Each API operation lives in its own subdirectory under the entity: `src/<entity>/<operation>/` with `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs`.
+   - **Extractor rule**: every handler parameter beyond `State` and `AuthenticatedUser` must be a named extractor struct that implements `FromRequest` (when a body or multipart is involved) or `FromRequestParts` (path/headers only). No inline `Path<Uuid>`, `Json<Body>`, or `Multipart` in handler signatures. The extractor owns all validation — the handler is a thin orchestrator that calls the use case and wraps the result.
    - `DifficultyLevel` serializes as lowercase strings (`level1`–`level7`) from the backend.
    - `lib.rs` in each crate only declares top-level modules with `pub mod`, never re-exports directly.
    - `mod.rs` in each operation subdirectory re-exports the use case struct: `pub use use_case::FooUseCase`.
