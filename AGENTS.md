@@ -37,11 +37,12 @@ Pure domain model. No framework dependencies. Owns:
 | `src/maneuver/mod.rs` | `Maneuver` aggregate (id, vehicle_type, name, tags, description, difficulty, default_variation, other_variations) |
 | `src/maneuver/difficulty.rs` | `Difficulty` enum (Level1–Level7) |
 | `src/maneuver/tag.rs` | `Tag` value object (id, name) |
-| `src/maneuver/variation.rs` | `Variation` entity (id, name, description: MarkdownText, video_asset_name: AssetName) |
+| `src/maneuver/variation.rs` | `Variation` entity (id, maneuver_id, name, description: MarkdownText, video_asset_name: AssetName) |
 | `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash) |
 | `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_username()` |
 | `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: ModelName, vehicle_type: VehicleType, photo_asset_name: Option<AssetName>) |
 | `src/model/id.rs` | `ModelId(Uuid)` newtype (Copy, wraps Uuid via `::new()`, `::as_uuid()`, `From<ModelId> for Uuid`) |
+| `src/model/model_resolver.rs` | `ModelResolver` trait — `get_by_id(&self, &ModelId) -> Option<Model>` |
 | `src/model/name.rs` | `ModelName` validated newtype (non-empty, trimmed, ≤100 chars) + `ModelNameError` |
 | `src/model/transaction.rs` | `ModelTransaction` trait extending `Transaction<Model>` with `get_by_id()`, `list_by_owner()`, `delete_by_id()` |
 | `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
@@ -139,7 +140,7 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/create/model.rs` | `CreateSessionInput { user_id, date, model_id, note }`, `SessionDto` |
 | `src/session/create/use_case.rs` | `CreateSessionUseCase<SessionUoW, ModelUoW>` — validates date/note, verifies optional `model_id` exists, creates session with empty performed variations, saves |
 | `src/session/list/error.rs` | `ListSessionsError` (InvalidData, RepositoryError) |
-| `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` |
+| `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` (list-view shape with `model_name`, `model_type`, and per-item `maneuver_name`/`variation_name`; no notes) |
 | `src/session/list/use_case.rs` | `ListSessionsUseCase<UoW>` — owner-scoped paginated list with filters (`model_ids`, `maneuver_ids`, `search_query`) and sort (`date`) |
 | `src/session/add_performed_variation/error.rs` | `AddPerformedVariationError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
 | `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
@@ -194,6 +195,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 |---|---|
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
 | `src/model/transaction.rs` | `SqlxModelTransaction`, `SqlxModelUnitOfWork` |
+| `src/model/resolver.rs` | `SqlxModelResolver` — cached model-by-id resolver using `moka` |
 | `src/session/transaction.rs` | `SqlxSessionTransaction`, `SqlxSessionUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 | `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
@@ -258,7 +260,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
 | `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
-| `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
+| `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, model_resolver, maneuver_resolver, variation_resolver, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |

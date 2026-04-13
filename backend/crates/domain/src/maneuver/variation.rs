@@ -2,6 +2,7 @@ use uuid::Uuid;
 
 use crate::asset::name::AssetName;
 use crate::maneuver::difficulty::Difficulty;
+use crate::maneuver::id::ManeuverId;
 use crate::shared::markdown_text::MarkdownText;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,6 +33,7 @@ impl From<VariationId> for Uuid {
 #[derive(Debug, Clone)]
 pub struct Variation {
     id: VariationId,
+    maneuver_id: ManeuverId,
     name: String,
     description: MarkdownText,
     video_asset_name: AssetName,
@@ -41,16 +43,21 @@ pub struct Variation {
 impl Variation {
     pub fn new(
         id: VariationId,
+        maneuver_id: ManeuverId,
         name: String,
         description: MarkdownText,
         video_asset_name: AssetName,
         difficulty: Difficulty,
     ) -> Self {
-        Self { id, name, description, video_asset_name, difficulty }
+        Self { id, maneuver_id, name, description, video_asset_name, difficulty }
     }
 
     pub fn id(&self) -> VariationId {
         self.id
+    }
+
+    pub fn maneuver_id(&self) -> ManeuverId {
+        self.maneuver_id
     }
 
     pub fn name(&self) -> &str {

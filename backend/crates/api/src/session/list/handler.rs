@@ -17,7 +17,12 @@ pub async fn list_sessions(
 ) -> Result<Json<ListResponse>, ApiError> {
     debug!("Handling list_sessions request");
 
-    let mut use_case = ListSessionsUseCase::new(state.session_uow);
+    let mut use_case = ListSessionsUseCase::new(
+        state.session_uow,
+        state.model_resolver,
+        state.maneuver_resolver,
+        state.variation_resolver,
+    );
     let result = use_case
         .execute(ListSessionsInput {
             owner_id: auth.id,

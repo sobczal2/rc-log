@@ -1,27 +1,41 @@
+use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
+use rc_log_domain::maneuver::variation_resolver::VariationResolver;
+use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::session::Session;
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use rc_log_domain::shared::vehicle_type::VehicleType;
 use rc_log_domain::user::id::UserId;
 use tracing::{debug, instrument};
 
 use super::error::ListSessionsError;
-use super::model::{ListSessionsInput, SessionDto};
+use super::model::{
+    ListSessionsInput, PerformedVariationDto, SessionDto, comfort_to_dto, quality_to_dto,
+    repeatability_to_dto,
+};
 use crate::error::ApplicationError;
 use crate::shared::pagination::PaginatedResult;
+use crate::shared::vehicle_type::VehicleTypeDto;
 
-pub struct ListSessionsUseCase<UoW> {
+pub struct ListSessionsUseCase<UoW, MR, ManR, VarR> {
     uow: UoW,
+    model_resolver: MR,
+    maneuver_resolver: ManR,
+    variation_resolver: VarR,
 }
 
-impl<UoW> ListSessionsUseCase<UoW>
+impl<UoW, MR, ManR, VarR> ListSessionsUseCase<UoW, MR, ManR, VarR>
 where
     UoW: UnitOfWork<Session>,
     UoW::Transaction: SessionTransaction,
+    MR: ModelResolver,
+    ManR: ManeuverResolver,
+    VarR: VariationResolver,
 {
-    pub fn new(uow: UoW) -> Self {
-        Self { uow }
+    pub fn new(uow: UoW, model_resolver: MR, maneuver_resolver: ManR, variation_resolver: VarR) -> Self {
+        Self { uow, model_resolver, maneuver_resolver, variation_resolver }
     }
 
     #[instrument(skip(self), fields(owner_id = %input.owner_id, page = input.pagination.page, page_size = input.pagination.page_size))]
@@ -48,7 +62,77 @@ where
         debug!(count = sessions.len(), total, "Sessions retrieved, committing transaction");
         tx.commit().await.map_err(ListSessionsError::from)?;
 
-        let items = sessions.into_iter().map(SessionDto::from).collect();
+        let mut items = Vec::with_capacity(sessions.len());
+        for session in sessions {
+            let (model_name, model_type) = match session.model_id() {
+                None => (None, None),
+                Some(model_id) => {
+                    let model = self
+                        .model_resolver
+                        .get_by_id(&model_id)
+                        .await
+                        .map_err(ListSessionsError::from)?;
+
+                    match model {
+                        None => (None, None),
+                        Some(model) => {
+                            let model_type = match model.vehicle_type() {
+                                VehicleType::Helicopter => VehicleTypeDto::Helicopter,
+                                VehicleType::Plane => VehicleTypeDto::Plane,
+                                VehicleType::Drone => VehicleTypeDto::Drone,
+                            };
+                            (Some(model.name().as_str().to_string()), Some(model_type))
+                        }
+                    }
+                }
+            };
+
+            let mut performed_variations = Vec::with_capacity(session.performed_variations().len());
+            for performed in session.performed_variations() {
+                let variation_id = performed.variation_id();
+                let variation = self
+                    .variation_resolver
+                    .get(variation_id)
+                    .await
+                    .map_err(ListSessionsError::from)?;
+
+                let (variation_name, maneuver_name) = match variation {
+                    None => (None, None),
+                    Some(variation) => {
+                        let variation_name = Some(variation.name().to_string());
+                        let maneuver = self
+                            .maneuver_resolver
+                            .get(variation.maneuver_id())
+                            .await
+                            .map_err(ListSessionsError::from)?;
+
+                        let maneuver_name = maneuver.map(|m| m.name().to_string());
+                        (variation_name, maneuver_name)
+                    }
+                };
+
+                let rating = performed.rating();
+                performed_variations.push(PerformedVariationDto {
+                    variation_id: variation_id.as_uuid(),
+                    maneuver_name,
+                    variation_name,
+                    quality: quality_to_dto(rating.quality()),
+                    comfort: comfort_to_dto(rating.comfort()),
+                    repeatability: repeatability_to_dto(rating.repeatability()),
+                });
+            }
+
+            items.push(SessionDto {
+                id: session.id().as_uuid(),
+                user_id: session.user_id().as_uuid(),
+                date: session.date().as_naive_date().format("%Y-%m-%d").to_string(),
+                model_id: session.model_id().map(|id| id.as_uuid()),
+                model_name,
+                model_type,
+                performed_variations,
+            });
+        }
+
         Ok(PaginatedResult::new(items, total, page, page_size))
     }
 }

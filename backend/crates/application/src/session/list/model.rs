@@ -1,5 +1,4 @@
 use rc_log_domain::maneuver::id::ManeuverId;
-use rc_log_domain::session::Session;
 use rc_log_domain::session::rating::{Comfort, Quality, Repeatability};
 use rc_log_domain::session::transaction::{
     SessionFilter, SessionSort, SessionSortField, SortDirection,
@@ -9,6 +8,7 @@ use uuid::Uuid;
 
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
+use crate::shared::vehicle_type::VehicleTypeDto;
 
 #[derive(Debug, Clone)]
 pub struct ListSessionsInput {
@@ -160,10 +160,11 @@ pub enum RepeatabilityDto {
 #[serde(rename_all = "camelCase")]
 pub struct PerformedVariationDto {
     pub variation_id: Uuid,
+    pub maneuver_name: Option<String>,
+    pub variation_name: Option<String>,
     pub quality: QualityDto,
     pub comfort: ComfortDto,
     pub repeatability: RepeatabilityDto,
-    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -173,56 +174,37 @@ pub struct SessionDto {
     pub user_id: Uuid,
     pub date: String,
     pub model_id: Option<Uuid>,
-    pub note: Option<String>,
+    pub model_name: Option<String>,
+    pub model_type: Option<VehicleTypeDto>,
     pub performed_variations: Vec<PerformedVariationDto>,
 }
 
-impl From<Session> for SessionDto {
-    fn from(session: Session) -> Self {
-        let performed_variations = session
-            .performed_variations()
-            .iter()
-            .map(|performed| {
-                let rating = performed.rating();
-                let quality = match rating.quality() {
-                    Quality::One => QualityDto::One,
-                    Quality::Two => QualityDto::Two,
-                    Quality::Three => QualityDto::Three,
-                    Quality::Four => QualityDto::Four,
-                    Quality::Five => QualityDto::Five,
-                };
-                let comfort = match rating.comfort() {
-                    Comfort::One => ComfortDto::One,
-                    Comfort::Two => ComfortDto::Two,
-                    Comfort::Three => ComfortDto::Three,
-                    Comfort::Four => ComfortDto::Four,
-                    Comfort::Five => ComfortDto::Five,
-                };
-                let repeatability = match rating.repeatability() {
-                    Repeatability::One => RepeatabilityDto::One,
-                    Repeatability::Two => RepeatabilityDto::Two,
-                    Repeatability::Three => RepeatabilityDto::Three,
-                    Repeatability::Four => RepeatabilityDto::Four,
-                    Repeatability::Five => RepeatabilityDto::Five,
-                };
+pub fn quality_to_dto(quality: Quality) -> QualityDto {
+    match quality {
+        Quality::One => QualityDto::One,
+        Quality::Two => QualityDto::Two,
+        Quality::Three => QualityDto::Three,
+        Quality::Four => QualityDto::Four,
+        Quality::Five => QualityDto::Five,
+    }
+}
 
-                PerformedVariationDto {
-                    variation_id: Uuid::from(performed.variation_id()),
-                    quality,
-                    comfort,
-                    repeatability,
-                    note: performed.note().map(|n| n.as_str().to_string()),
-                }
-            })
-            .collect();
+pub fn comfort_to_dto(comfort: Comfort) -> ComfortDto {
+    match comfort {
+        Comfort::One => ComfortDto::One,
+        Comfort::Two => ComfortDto::Two,
+        Comfort::Three => ComfortDto::Three,
+        Comfort::Four => ComfortDto::Four,
+        Comfort::Five => ComfortDto::Five,
+    }
+}
 
-        Self {
-            id: Uuid::from(session.id()),
-            user_id: Uuid::from(session.user_id()),
-            date: session.date().as_naive_date().format("%Y-%m-%d").to_string(),
-            model_id: session.model_id().map(Uuid::from),
-            note: session.note().map(|n| n.as_str().to_string()),
-            performed_variations,
-        }
+pub fn repeatability_to_dto(repeatability: Repeatability) -> RepeatabilityDto {
+    match repeatability {
+        Repeatability::One => RepeatabilityDto::One,
+        Repeatability::Two => RepeatabilityDto::Two,
+        Repeatability::Three => RepeatabilityDto::Three,
+        Repeatability::Four => RepeatabilityDto::Four,
+        Repeatability::Five => RepeatabilityDto::Five,
     }
 }

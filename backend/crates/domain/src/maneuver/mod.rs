@@ -125,6 +125,7 @@ mod tests {
     fn make_variation(difficulty: Difficulty) -> Variation {
         Variation::new(
             VariationId::new(Uuid::new_v4()),
+            ManeuverId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("description".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),

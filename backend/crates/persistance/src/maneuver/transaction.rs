@@ -83,6 +83,7 @@ impl VariationRow {
         };
         Ok(Variation::new(
             VariationId::new(self.id),
+            ManeuverId::new(self.maneuver_id),
             self.name,
             description,
             video_asset_name,
@@ -607,6 +608,7 @@ mod tests {
         use rc_log_domain::shared::markdown_text::MarkdownText;
         rc_log_domain::maneuver::variation::Variation::new(
             VariationId::new(Uuid::new_v4()),
+            rc_log_domain::maneuver::id::ManeuverId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("desc".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),

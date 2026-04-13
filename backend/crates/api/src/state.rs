@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use rc_log_persistance::asset::photo_resolver::SqlxPhotoResolver;
 use rc_log_persistance::asset::photo_service::DiskDbPhotoService;
 use rc_log_persistance::asset::video_resolver::SqlxVideoResolver;
+use rc_log_persistance::maneuver::maneuver_resolver::SqlxManeuverResolver;
+use rc_log_persistance::maneuver::variation_resolver::SqlxVariationResolver;
 use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
+use rc_log_persistance::model::resolver::SqlxModelResolver;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
 use rc_log_persistance::session::transaction::SqlxSessionUnitOfWork;
 use rc_log_persistance::shared::cache_settings::CacheSettings;
@@ -16,6 +19,9 @@ pub struct AppState {
     pub model_uow: SqlxModelUnitOfWork,
     pub session_uow: SqlxSessionUnitOfWork,
     pub user_uow: SqlxUserUnitOfWork,
+    pub model_resolver: SqlxModelResolver,
+    pub maneuver_resolver: SqlxManeuverResolver,
+    pub variation_resolver: SqlxVariationResolver,
     pub video_resolver: SqlxVideoResolver,
     pub photo_resolver: SqlxPhotoResolver,
     pub photo_service: DiskDbPhotoService,
@@ -36,6 +42,9 @@ impl AppState {
             model_uow: SqlxModelUnitOfWork::new(pool.clone()),
             session_uow: SqlxSessionUnitOfWork::new(pool.clone()),
             user_uow: SqlxUserUnitOfWork::new(pool.clone()),
+            model_resolver: SqlxModelResolver::new(pool.clone(), cache_settings.clone()),
+            maneuver_resolver: SqlxManeuverResolver::new(pool.clone(), cache_settings.clone()),
+            variation_resolver: SqlxVariationResolver::new(pool.clone(), cache_settings.clone()),
             video_resolver: SqlxVideoResolver::new(pool.clone(), cache_settings.clone()),
             photo_resolver: SqlxPhotoResolver::new(pool.clone(), cache_settings),
             photo_service: DiskDbPhotoService::new(pool, asset_path),
