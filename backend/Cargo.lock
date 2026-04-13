@@ -2148,6 +2148,7 @@ dependencies = [
  "moka",
  "rc-log-domain",
  "sqlx",
+ "thiserror",
  "tokio",
  "tracing",
  "uuid",

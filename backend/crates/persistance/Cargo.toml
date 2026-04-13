@@ -11,6 +11,7 @@ moka = { workspace = true, features = ["future"] }
 image = { workspace = true, features = ["webp"] }
 tokio = { workspace = true, features = ["fs"] }
 tracing.workspace = true
+thiserror.workspace = true
 
 [build-dependencies]
 glob = "0.3"
