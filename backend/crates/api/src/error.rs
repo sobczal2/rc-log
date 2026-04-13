@@ -14,6 +14,7 @@ use rc_log_application::model::remove_photo::error::RemoveModelPhotoError;
 use rc_log_application::model::update::error::UpdateModelError;
 use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
+use rc_log_application::session::create::error::CreateSessionError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::remove_photo::error::RemoveUserPhotoError;
@@ -283,6 +284,25 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::RemoveModelPhoto(
                 RemoveModelPhotoError::PhotoServiceError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Create session errors
+            ApiError::Application(ApplicationError::CreateSession(
+                CreateSessionError::ModelNotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Model not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::CreateSession(
+                CreateSessionError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::CreateSession(
+                CreateSessionError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::CreateSession(
+                CreateSessionError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

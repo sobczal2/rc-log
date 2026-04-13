@@ -6,6 +6,7 @@ mod extractors;
 mod jwt;
 mod maneuver;
 mod model;
+mod session;
 mod state;
 mod user;
 
@@ -24,6 +25,7 @@ use crate::auth::router::auth_router;
 use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;
 use crate::model::router::model_router;
+use crate::session::router::session_router;
 use crate::user::router::user_router;
 
 #[tokio::main]
@@ -54,6 +56,7 @@ async fn main() {
     let app = Router::new()
         .merge(maneuver_router())
         .merge(model_router())
+        .merge(session_router())
         .merge(auth_router())
         .merge(user_router())
         .merge(asset_paths_router())

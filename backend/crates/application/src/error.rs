@@ -8,6 +8,7 @@ use crate::model::remove_photo::error::RemoveModelPhotoError;
 use crate::model::update::error::UpdateModelError;
 use crate::model::update_photo::error::UpdateModelPhotoError;
 use crate::photo::resolve::error::ResolvePhotoError;
+use crate::session::create::error::CreateSessionError;
 use crate::user::get_by_id::error::GetUserByIdError;
 use crate::user::get_by_username::error::GetUserByUsernameError;
 use crate::user::remove_photo::error::RemoveUserPhotoError;
@@ -37,6 +38,8 @@ pub enum ApplicationError {
     UpdateModelPhoto(#[from] UpdateModelPhotoError),
     #[error(transparent)]
     RemoveModelPhoto(#[from] RemoveModelPhotoError),
+    #[error(transparent)]
+    CreateSession(#[from] CreateSessionError),
     #[error(transparent)]
     GetUserById(#[from] GetUserByIdError),
     #[error(transparent)]

@@ -44,6 +44,12 @@ Pure domain model. No framework dependencies. Owns:
 | `src/model/id.rs` | `ModelId(Uuid)` newtype (Copy, wraps Uuid via `::new()`, `::as_uuid()`, `From<ModelId> for Uuid`) |
 | `src/model/name.rs` | `ModelName` validated newtype (non-empty, trimmed, ≤100 chars) + `ModelNameError` |
 | `src/model/transaction.rs` | `ModelTransaction` trait extending `Transaction<Model>` with `get_by_id()`, `list_by_owner()`, `delete_by_id()` |
+| `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
+| `src/session/date.rs` | `Date` value object (`YYYY-MM-DD`) + `DateError` |
+| `src/session/id.rs` | `SessionId(Uuid)` newtype |
+| `src/session/performed_variation.rs` | `PerformedVariation` entity (variation_id, rating, note) |
+| `src/session/rating.rs` | `Rating` value object (`quality`, `comfort`, `repeatability`) + typed scales |
+| `src/session/transaction.rs` | `SessionTransaction` trait extending `Transaction<Session>` with `get_by_id()` |
 | `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
 | `src/shared/pagination.rs` | `Pagination` value object (page, page_size) with `offset()`/`limit()` helpers |
 | `src/shared/password_hash.rs` | `PasswordHash` newtype |
@@ -129,6 +135,9 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/remove_photo/error.rs` | `RemoveModelPhotoError` (NotFound, Forbidden, InvalidData, RepositoryError, PhotoStorageError) |
 | `src/model/remove_photo/model.rs` | `RemoveModelPhotoInput { model_id, owner_id }` — no output struct |
 | `src/model/remove_photo/use_case.rs` | `RemoveModelPhotoUseCase<UoW, PS>` — get, ownership check, set `photo_asset_name: None`, save, commit, best-effort delete old photo |
+| `src/session/create/error.rs` | `CreateSessionError` (ValidationError, InvalidData, RepositoryError) |
+| `src/session/create/model.rs` | `CreateSessionInput { user_id, date, model_id, note }`, `SessionDto` |
+| `src/session/create/use_case.rs` | `CreateSessionUseCase<SessionUoW, ModelUoW>` — validates date/note, verifies optional `model_id` exists, creates session with empty performed variations, saves |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -176,6 +185,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 |---|---|
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
 | `src/model/transaction.rs` | `SqlxModelTransaction`, `SqlxModelUnitOfWork` |
+| `src/session/transaction.rs` | `SqlxSessionTransaction`, `SqlxSessionUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 | `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
 | `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
@@ -226,6 +236,8 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
 - `asset.photo` — identical structure to `asset.video`
 - `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(100) NOT NULL`, `vehicle_type TEXT NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
+- `session.session` — `id UUID PK`, `user_id UUID FK → user.user`, `date DATE NOT NULL`, `model_id UUID FK → model.model`, `note TEXT`
+- `session.performed_variation` — `(session_id, variation_id)` composite PK + rating columns (`quality`, `comfort`, `repeatability`) + optional note
 
 ---
 
@@ -237,7 +249,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
 | `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
-| `src/state.rs` | `AppState { maneuver_uow, model_uow, user_uow, video_resolver, photo_resolver, photo_storage, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
+| `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
@@ -257,6 +269,8 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/update_photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
 | `src/model/remove_photo/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content (no `response.rs` needed) |
 | `src/model/router.rs` | Mounts model routes |
+| `src/session/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/session/router.rs` | Mounts session routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/router.rs` | Mounts asset-path routes |
@@ -294,6 +308,8 @@ PUT    /api/models/{id}         [JWT required]  → UpdateResponse
 DELETE /api/models/{id}         [JWT required]  → 204 No Content
 PUT    /api/models/{id}/photo   [JWT required]  → UpdatePhotoResponse  (multipart form-data, field: photo)
 DELETE /api/models/{id}/photo   [JWT required]  → 204 No Content
+
+POST /api/sessions              [JWT required]  → CreateSessionResponse  (201 Created)
 ```
 
 Also adds `RemoveModelPhoto` error to `ApiError` mapping: `NotFound` → 404, `Forbidden` → 403, all other variants → 500.
@@ -333,6 +349,7 @@ Initialized in `main.rs` from `RUST_LOG` (read from `.env` before subscriber ini
 - `page`, `page_size` on list
 - `username` on sign-in/sign-up and user use cases
 - `user_id` on get-user-by-id
+- `user_id`, `date` on create-session
 
 ---
 
