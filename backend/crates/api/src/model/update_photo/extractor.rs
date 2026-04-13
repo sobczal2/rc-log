@@ -1,5 +1,5 @@
 use axum::extract::multipart::Multipart;
-use axum::extract::{FromRequest, FromRequestParts, Path};
+use axum::extract::{FromRequest, FromRequestParts, Path, Request};
 use rc_log_application::shared::validator::ValidationError;
 use uuid::Uuid;
 
@@ -16,13 +16,12 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let mut parts = req.into_parts();
 
         let model_id = {
-            let Path(id) = Path::<Uuid>::from_request_parts(&mut parts.0, state)
-                .await
-                .map_err(|e| {
+            let Path(id) =
+                Path::<Uuid>::from_request_parts(&mut parts.0, state).await.map_err(|e| {
                     ApiError::Validation(vec![ValidationError::new("id", e.to_string())])
                 })?;
             if id.is_nil() {
@@ -34,12 +33,10 @@ where
             id
         };
 
-        let reconstructed = axum::extract::Request::from_parts(parts.0, parts.1);
-        let mut multipart = Multipart::from_request(reconstructed, state)
-            .await
-            .map_err(|e| {
-                ApiError::Validation(vec![ValidationError::new("multipart", e.to_string())])
-            })?;
+        let reconstructed = Request::from_parts(parts.0, parts.1);
+        let mut multipart = Multipart::from_request(reconstructed, state).await.map_err(|e| {
+            ApiError::Validation(vec![ValidationError::new("multipart", e.to_string())])
+        })?;
 
         let mut photo_bytes: Option<Vec<u8>> = None;
 
@@ -48,10 +45,7 @@ where
         })? {
             if field.name() == Some("photo") {
                 let content_type = field.content_type().unwrap_or("").to_string();
-                if !matches!(
-                    content_type.as_str(),
-                    "image/jpeg" | "image/png" | "image/webp"
-                ) {
+                if !matches!(content_type.as_str(), "image/jpeg" | "image/png" | "image/webp") {
                     return Err(ApiError::Validation(vec![ValidationError::new(
                         "photo",
                         "content-type must be image/jpeg, image/png, or image/webp",
@@ -67,10 +61,7 @@ where
         }
 
         let data = photo_bytes.ok_or_else(|| {
-            ApiError::Validation(vec![ValidationError::new(
-                "photo",
-                "field 'photo' is required",
-            )])
+            ApiError::Validation(vec![ValidationError::new("photo", "field 'photo' is required")])
         })?;
 
         Ok(Self { model_id, data })

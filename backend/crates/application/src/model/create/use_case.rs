@@ -28,10 +28,7 @@ where
     }
 
     #[instrument(skip(self), fields(owner_id = %input.owner_id, name = %input.name))]
-    pub async fn execute(
-        &mut self,
-        input: CreateModelInput,
-    ) -> Result<ModelDto, ApplicationError> {
+    pub async fn execute(&mut self, input: CreateModelInput) -> Result<ModelDto, ApplicationError> {
         let name = ModelName::new(input.name)
             .map_err(|e| CreateModelError::ValidationError(e.to_string()))?;
 

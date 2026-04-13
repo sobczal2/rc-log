@@ -5,8 +5,10 @@ use axum::{
 use rc_log_application::maneuver::list::model::{
     ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
 };
+use rc_log_application::shared::difficulty::DifficultyDto;
 use rc_log_application::shared::pagination::PaginationDto;
-use rc_log_application::shared::validator::Validate;
+use rc_log_application::shared::validator::{Validate, ValidationError};
+use rc_log_application::shared::vehicle_type::VehicleTypeDto;
 use serde::Deserialize;
 
 use crate::error::ApiError;
@@ -42,34 +44,25 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let Query(raw) =
             Query::<RawListQuery>::from_request_parts(parts, state).await.map_err(|e| {
-                ApiError::Validation(vec![
-                    rc_log_application::shared::validator::ValidationError::new(
-                        "query",
-                        e.to_string(),
-                    ),
-                ])
+                ApiError::Validation(vec![ValidationError::new("query", e.to_string())])
             })?;
 
         let tags =
             raw.tags.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect();
 
-        use rc_log_application::shared::vehicle_type::VehicleTypeDto;
         let vehicle_type = match raw.vehicle_type.as_str() {
             "Helicopter" => Some(VehicleTypeDto::Helicopter),
             "Plane" => Some(VehicleTypeDto::Plane),
             "Drone" => Some(VehicleTypeDto::Drone),
             "" => None,
             _ => {
-                return Err(ApiError::Validation(vec![
-                    rc_log_application::shared::validator::ValidationError::new(
-                        "vehicle_type",
-                        "invalid vehicle type",
-                    ),
-                ]));
+                return Err(ApiError::Validation(vec![ValidationError::new(
+                    "vehicle_type",
+                    "invalid vehicle type",
+                )]));
             }
         };
 
-        use rc_log_application::shared::difficulty::DifficultyDto;
         let difficulty = match raw.difficulty.as_str() {
             "level1" => Some(DifficultyDto::Level1),
             "level2" => Some(DifficultyDto::Level2),
@@ -80,12 +73,10 @@ where
             "level7" => Some(DifficultyDto::Level7),
             "" => None,
             _ => {
-                return Err(ApiError::Validation(vec![
-                    rc_log_application::shared::validator::ValidationError::new(
-                        "difficulty",
-                        "invalid difficulty",
-                    ),
-                ]));
+                return Err(ApiError::Validation(vec![ValidationError::new(
+                    "difficulty",
+                    "invalid difficulty",
+                )]));
             }
         };
 

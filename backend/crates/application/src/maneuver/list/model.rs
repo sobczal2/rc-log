@@ -1,4 +1,9 @@
 use rc_log_domain::maneuver::Maneuver;
+use rc_log_domain::maneuver::difficulty::Difficulty;
+use rc_log_domain::maneuver::transaction::{
+    ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
+};
+use rc_log_domain::shared::vehicle_type::VehicleType;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -6,10 +11,6 @@ use crate::shared::difficulty::DifficultyDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 use crate::shared::vehicle_type::VehicleTypeDto;
-
-use rc_log_domain::maneuver::transaction::{
-    ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
-};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,14 +33,12 @@ pub struct ManeuverDto {
 
 impl From<Maneuver> for ManeuverDto {
     fn from(m: Maneuver) -> Self {
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         let vehicle_type = match m.vehicle_type() {
             VehicleType::Helicopter => VehicleTypeDto::Helicopter,
             VehicleType::Plane => VehicleTypeDto::Plane,
             VehicleType::Drone => VehicleTypeDto::Drone,
         };
 
-        use rc_log_domain::maneuver::difficulty::Difficulty;
         let difficulty = match m.difficulty() {
             Difficulty::Level1 => DifficultyDto::Level1,
             Difficulty::Level2 => DifficultyDto::Level2,
@@ -50,8 +49,11 @@ impl From<Maneuver> for ManeuverDto {
             Difficulty::Level7 => DifficultyDto::Level7,
         };
 
-        let tags =
-            m.tags().iter().map(|t| TagDto { id: Uuid::from(t.id()), name: t.name().to_string() }).collect();
+        let tags = m
+            .tags()
+            .iter()
+            .map(|t| TagDto { id: Uuid::from(t.id()), name: t.name().to_string() })
+            .collect();
 
         Self {
             id: Uuid::from(m.id()),
@@ -99,7 +101,6 @@ impl Validate for ManeuverFilterDto {
 
 impl From<ManeuverFilterDto> for ManeuverFilter {
     fn from(dto: ManeuverFilterDto) -> Self {
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         let vehicle_type = match dto.vehicle_type {
             Some(VehicleTypeDto::Helicopter) => Some(VehicleType::Helicopter),
             Some(VehicleTypeDto::Plane) => Some(VehicleType::Plane),
@@ -107,7 +108,6 @@ impl From<ManeuverFilterDto> for ManeuverFilter {
             None => None,
         };
 
-        use rc_log_domain::maneuver::difficulty::Difficulty;
         let difficulty = match dto.difficulty {
             Some(DifficultyDto::Level1) => Some(Difficulty::Level1),
             Some(DifficultyDto::Level2) => Some(Difficulty::Level2),
@@ -317,11 +317,8 @@ mod tests {
     fn list_input_invalid_filter_propagates_errors() {
         let mut filter = valid_filter();
         filter.search_query = Some("x".repeat(101));
-        let input = ListManeuversInput {
-            pagination: valid_pagination(),
-            filter,
-            sort: valid_sort(),
-        };
+        let input =
+            ListManeuversInput { pagination: valid_pagination(), filter, sort: valid_sort() };
         assert!(input.validate().is_err());
     }
 }

@@ -42,7 +42,12 @@ export function ModelDetailsPage() {
   // Photo upload
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: model, isLoading, isError, error } = useQuery({
+  const {
+    data: model,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["models", id],
     queryFn: () => modelsApi.getById(id!),
     enabled: !!id,
@@ -187,9 +192,7 @@ export function ModelDetailsPage() {
             disabled={isPhotoBusy}
             className="flex flex-col items-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors py-4 w-full h-full justify-center"
           >
-            <div className="text-muted-foreground/20">
-              {getVehicleIcon(model.vehicleType, 64)}
-            </div>
+            <div className="text-muted-foreground/20">{getVehicleIcon(model.vehicleType, 64)}</div>
             <span className="flex items-center gap-1 text-xs">
               <Camera size={12} />
               Upload Photo
@@ -222,11 +225,7 @@ export function ModelDetailsPage() {
           }}
           className="flex flex-col gap-3"
         >
-          <Input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            autoFocus
-          />
+          <Input value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
           <Select.Root
             value={editVehicleType}
             onValueChange={(v) => setEditVehicleType(v as VehicleType)}
@@ -250,11 +249,7 @@ export function ModelDetailsPage() {
             </p>
           )}
           <div className="flex gap-2">
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!editName.trim() || updateMutation.isPending}
-            >
+            <Button type="submit" size="sm" disabled={!editName.trim() || updateMutation.isPending}>
               {updateMutation.isPending ? "Saving…" : "Save"}
             </Button>
             <Button

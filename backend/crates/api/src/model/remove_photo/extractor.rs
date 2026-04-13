@@ -22,10 +22,7 @@ where
             .map_err(|e| ApiError::Validation(vec![ValidationError::new("id", e.to_string())]))?;
 
         if id.is_nil() {
-            return Err(ApiError::Validation(vec![ValidationError::new(
-                "id",
-                "must not be nil",
-            )]));
+            return Err(ApiError::Validation(vec![ValidationError::new("id", "must not be nil")]));
         }
 
         Ok(Self(id))

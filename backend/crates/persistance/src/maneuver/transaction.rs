@@ -6,6 +6,7 @@ use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::id::ManeuverId;
 use rc_log_domain::maneuver::tag::{Tag, TagId};
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
+use rc_log_domain::maneuver::transaction::{ManeuverSortField, SortDirection};
 use rc_log_domain::maneuver::variation::{Variation, VariationId};
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
@@ -97,7 +98,10 @@ impl ManeuverRow {
             6 => Difficulty::Level6,
             7 => Difficulty::Level7,
             other => {
-                return Err(TransactionError::InvalidData(format!("Unknown difficulty: {}", other)));
+                return Err(TransactionError::InvalidData(format!(
+                    "Unknown difficulty: {}",
+                    other
+                )));
             }
         };
 
@@ -317,8 +321,6 @@ impl SqlxManeuverTransaction {
             .fetch_one(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        use rc_log_domain::maneuver::transaction::{ManeuverSortField, SortDirection};
 
         select_query.push(" ORDER BY ");
         match sort.field {
@@ -602,8 +604,7 @@ mod tests {
     fn maneuver_row_all_difficulties_convert() {
         for d in 1..=7i32 {
             let row = make_maneuver_row("Helicopter", d);
-            let result =
-                row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+            let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
             assert!(result.is_ok(), "difficulty {d} should convert");
         }
     }
@@ -639,12 +640,12 @@ mod tests {
 
     #[test]
     fn maneuver_row_from_maneuver_round_trip() {
-        use std::collections::BTreeSet;
         use rc_log_domain::maneuver::Maneuver;
-        use rc_log_domain::maneuver::id::ManeuverId;
         use rc_log_domain::maneuver::difficulty::Difficulty;
+        use rc_log_domain::maneuver::id::ManeuverId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
         use rc_log_domain::shared::vehicle_type::VehicleType;
+        use std::collections::BTreeSet;
 
         let id = Uuid::new_v4();
         let maneuver = Maneuver::new(

@@ -1,4 +1,7 @@
-use axum::{Json, extract::FromRequest};
+use axum::{
+    Json,
+    extract::{FromRequest, Request},
+};
 use rc_log_application::shared::validator::ValidationError;
 use rc_log_application::shared::vehicle_type::VehicleTypeDto;
 use serde::Deserialize;
@@ -23,7 +26,7 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let Json(body): Json<CreateModelBody> = Json::from_request(req, state)
             .await
             .map_err(|e| ApiError::Validation(vec![ValidationError::new("body", e.to_string())]))?;

@@ -114,9 +114,7 @@ export function CreateModelDialog() {
                   onClick={() => fileInputRef.current?.click()}
                   className="flex flex-col items-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors py-4"
                 >
-                  <div className="text-muted-foreground/20">
-                    {getVehicleIcon(vehicleType, 48)}
-                  </div>
+                  <div className="text-muted-foreground/20">{getVehicleIcon(vehicleType, 48)}</div>
                   <span className="flex items-center gap-1 text-xs">
                     <Camera size={12} />
                     Add photo

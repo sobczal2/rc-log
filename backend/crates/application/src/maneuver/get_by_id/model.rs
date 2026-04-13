@@ -1,4 +1,6 @@
 use rc_log_domain::maneuver::Maneuver;
+use rc_log_domain::maneuver::difficulty::Difficulty;
+use rc_log_domain::shared::vehicle_type::VehicleType;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -51,14 +53,12 @@ pub struct ManeuverDto {
 
 impl From<Maneuver> for ManeuverDto {
     fn from(m: Maneuver) -> Self {
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         let vehicle_type = match m.vehicle_type() {
             VehicleType::Helicopter => VehicleTypeDto::Helicopter,
             VehicleType::Plane => VehicleTypeDto::Plane,
             VehicleType::Drone => VehicleTypeDto::Drone,
         };
 
-        use rc_log_domain::maneuver::difficulty::Difficulty;
         let difficulty = match m.difficulty() {
             Difficulty::Level1 => DifficultyDto::Level1,
             Difficulty::Level2 => DifficultyDto::Level2,

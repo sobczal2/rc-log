@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{FromRequest, FromRequestParts, Path},
+    extract::{FromRequest, FromRequestParts, Path, Request},
 };
 use rc_log_application::shared::validator::ValidationError;
 use rc_log_application::shared::vehicle_type::VehicleTypeDto;
@@ -28,13 +28,12 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let mut parts = req.into_parts();
 
         let id = {
-            let Path(id) = Path::<Uuid>::from_request_parts(&mut parts.0, state)
-                .await
-                .map_err(|e| {
+            let Path(id) =
+                Path::<Uuid>::from_request_parts(&mut parts.0, state).await.map_err(|e| {
                     ApiError::Validation(vec![ValidationError::new("id", e.to_string())])
                 })?;
             if id.is_nil() {
@@ -46,7 +45,7 @@ where
             id
         };
 
-        let reconstructed = axum::extract::Request::from_parts(parts.0, parts.1);
+        let reconstructed = Request::from_parts(parts.0, parts.1);
         let Json(body): Json<UpdateModelBody> = Json::from_request(reconstructed, state)
             .await
             .map_err(|e| ApiError::Validation(vec![ValidationError::new("body", e.to_string())]))?;

@@ -126,6 +126,9 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/update_photo/error.rs` | `UpdateModelPhotoError` (NotFound, Forbidden, InvalidPhotoContent, InvalidData, RepositoryError, PhotoStorageError) |
 | `src/model/update_photo/model.rs` | `UpdateModelPhotoInput { model_id, owner_id, data: Vec<u8> }`, `ModelDto` |
 | `src/model/update_photo/use_case.rs` | `UpdateModelPhotoUseCase<UoW, PS>` — get, ownership check, store new photo (name = `model-photo-{uuid}`), save, commit, best-effort delete old photo |
+| `src/model/remove_photo/error.rs` | `RemoveModelPhotoError` (NotFound, Forbidden, InvalidData, RepositoryError, PhotoStorageError) |
+| `src/model/remove_photo/model.rs` | `RemoveModelPhotoInput { model_id, owner_id }` — no output struct |
+| `src/model/remove_photo/use_case.rs` | `RemoveModelPhotoUseCase<UoW, PS>` — get, ownership check, set `photo_asset_name: None`, save, commit, best-effort delete old photo |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -252,6 +255,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/model/update_photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
+| `src/model/remove_photo/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content (no `response.rs` needed) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
@@ -289,7 +293,10 @@ GET    /api/models/{id}         [JWT required]  → GetByIdResponse
 PUT    /api/models/{id}         [JWT required]  → UpdateResponse
 DELETE /api/models/{id}         [JWT required]  → 204 No Content
 PUT    /api/models/{id}/photo   [JWT required]  → UpdatePhotoResponse  (multipart form-data, field: photo)
+DELETE /api/models/{id}/photo   [JWT required]  → 204 No Content
 ```
+
+Also adds `RemoveModelPhoto` error to `ApiError` mapping: `NotFound` → 404, `Forbidden` → 403, all other variants → 500.
 
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.
 
@@ -338,53 +345,71 @@ React/TypeScript SPA scaffolded with Vite using **shadcn/ui** components and Tai
 ```
 frontend/src/
 ├── context/             # React context providers
-│   └── AuthContext.tsx  # AuthProvider, useAuth hook — JWT + user state
-├── domain/              # Domain layer — business types and formatting logic
+│   ├── auth-context.ts  # AuthContext value type + createContext call
+│   └── AuthContext.tsx  # AuthProvider component — JWT + user state, localStorage persistence
+├── models/              # Domain layer — business types and formatting logic
 │   ├── maneuver/        # Maneuver aggregate
-│   │   ├── maneuver.ts     # Maneuver interface (matches backend DTO)
-│   │   ├── difficulty.ts   # DifficultyLevel type (level1-level7) + formatting functions
-│   │   ├── vehicle.tsx     # VehicleType type + icon component
-│   │   ├── tag.ts          # Tag interface
-│   │   ├── filters.ts      # Filter/sort/pagination types
+│   │   ├── list.ts         # ListManeuverDto, ManeuverFilter, ManeuverSort
+│   │   ├── get-by-id.ts    # GetByIdManeuverDto, TagDto, VariationDto
+│   │   └── index.ts        # Barrel export (re-exports as ListManeuverDto, GetByIdManeuverDto, etc.)
+│   ├── model/           # Model aggregate
+│   │   ├── list.ts         # ListModelDto
+│   │   ├── get-by-id.ts    # GetByIdModelDto
+│   │   ├── create.ts       # CreateModelRequest, CreateModelDto
+│   │   ├── update.ts       # UpdateModelRequest, UpdateModelDto
 │   │   └── index.ts        # Barrel export
-│   └── user/            # User aggregate
-│       ├── user.ts         # User interface (id, username, email)
+│   ├── user/            # User aggregate
+│   │   ├── get-by-id.ts    # User interface (id, username, email)
+│   │   └── index.ts        # Barrel export
+│   ├── asset/           # Asset types
+│   │   ├── photo.ts        # PhotoPathsDto + getPhotoUrl()
+│   │   ├── video.ts        # VideoPathsDto + getVideoUrl()
+│   │   └── index.ts
+│   └── shared/          # Shared domain types
+│       ├── vehicle-type.tsx # VehicleType type + getVehicleIcon(), getVehicleLabel()
+│       ├── difficulty.ts   # DifficultyLevel type + formatting functions
+│       ├── pagination.ts   # PaginatedResult, PaginationOptions
 │       └── index.ts        # Barrel export
 ├── lib/api/             # API layer — HTTP client and request/response types
 │   ├── apiClient.ts     # Axios instance with JWT request interceptor and 401 response interceptor
 │   ├── auth.ts          # authApi (signIn, signUp) — returns { token, user }
-│   └── maneuvers.ts     # maneuversApi (list, getById)
+│   ├── maneuvers.ts     # maneuversApi (list, getById)
+│   ├── models.ts        # modelsApi (list, getById, create, update, delete, updatePhoto, removePhoto)
+│   └── assets.ts        # assetsApi (getPhotoPath, getVideoPath)
 ├── hooks/               # Custom React hooks
 │   ├── useManeuverFilters.ts  # URL-synced filter state
+│   ├── usePhotoPath.ts  # React Query hook for photo path resolution
+│   ├── useVideoPath.ts  # React Query hook for video path resolution
 │   └── useDebounce.ts
 ├── components/          # React components
 │   ├── auth/            # Auth-related components
 │   │   └── ProtectedRoute.tsx  # Redirects to /sign-in when not authenticated
 │   ├── maneuvers/       # Maneuver-specific components
-│   │   ├── ManeuverCard.tsx
-│   │   ├── ManeuverFilters.tsx
-│   │   └── ActiveFilterBadge.tsx
+│   ├── models/          # Model-specific components (ModelCard, CreateModelDialog)
 │   ├── layout/          # Layout components
 │   └── ui/              # shadcn/ui components
 └── pages/               # Page components
     ├── HomePage.tsx
     ├── ManeuverDetailsPage.tsx
     ├── ManeuversPage.tsx
+    ├── ModelDetailsPage.tsx
+    ├── ProfilePage.tsx
     ├── SignInPage.tsx    # Username + password form — calls authApi.signIn
     └── SignUpPage.tsx    # Username + email + password form — calls authApi.signUp
 ```
 
-### Domain Layer (`domain/`)
+### Domain Layer (`models/`)
 
 **Principles:**
 - Types directly reflect backend DTOs (camelCase field names)
-- Use **types** (interfaces/type aliases), not interfaces for data
+- Use **interfaces** for DTO shapes; `type` aliases for union types (e.g. `VehicleType`, `DifficultyLevel`)
 - Formatting logic lives in domain functions, not components
 - No mappers needed — domain types match API response exactly
+- Files use **kebab-case** naming (e.g. `get-by-id.ts`, `vehicle-type.tsx`)
 
 **Example — difficulty formatting:**
 ```typescript
-// domain/maneuver/difficulty.ts
+// models/shared/difficulty.ts
 export type DifficultyLevel = "level1" | "level2" | ... | "level7";
 
 export function getDifficultyColor(difficulty: DifficultyLevel): string { ... }
@@ -396,7 +421,7 @@ export function getDifficultyLevelName(vehicleType: VehicleType, difficulty: Dif
 
 **Example — vehicle icons:**
 ```typescript
-// domain/maneuver/vehicle.tsx (JSX file for React component return)
+// models/shared/vehicle-type.tsx (JSX file for React component return)
 export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
   switch (vehicleType) {
     case "Plane": return <Plane size={size} />;
@@ -421,11 +446,15 @@ export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
 - **Request**: attaches `Authorization: Bearer <token>` if a token is present in `localStorage`.
 - **Response**: on 401, clears `token` and `user` from `localStorage` and redirects to `/sign-in`.
 
+> **`localStorage` rule**: `localStorage` is accessed in two places only — `AuthContext.tsx` (read/write user state on sign-in/sign-out) and `lib/apiClient.ts` (read token in Axios interceptors, clear on 401). The apiClient exception is necessary because Axios interceptors cannot receive React context. No other file should access `localStorage` directly.
+
 **`ProtectedRoute`** (`components/auth/ProtectedRoute.tsx`) — wraps any route element that requires auth; redirects to `/sign-in` when `isAuthenticated` is `false`.
 
 **Routes:** `/sign-in` → `SignInPage`, `/sign-up` → `SignUpPage`.
 
 The sidebar footer shows **Sign In / Register** buttons when logged out, and a **Sign Out** button with the username when logged in.
+
+**Hook naming**: hooks use `camelCase` file names (e.g. `useAuth.ts`, `usePhotoPath.ts`). The `use-mobile.ts` exception is a shadcn/ui scaffold artifact — new hooks must use `camelCase`.
 
 ### API Layer (`lib/api/`)
 
@@ -437,11 +466,11 @@ The sidebar footer shows **Sign In / Register** buttons when logged out, and a *
 **Example:**
 ```typescript
 // lib/api/maneuvers.ts
-import type { Maneuver, ManeuverFilter, ManeuverSort } from "@/domain/maneuver";
+import type { ListManeuverDto, ListManeuverFilter, ListManeuverSort } from "@/models/maneuver";
 
 export interface ListManeuversRequest extends PaginationOptions {
-  filter?: ManeuverFilter;
-  sort?: ManeuverSort;
+  filter?: ListManeuverFilter;
+  sort?: ListManeuverSort;
 }
 
 export const maneuversApi = {
@@ -467,13 +496,13 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 
 ### Adding a New Feature — Frontend Checklist
 
-1. **Domain**: Add types in `domain/<entity>/` matching backend DTOs. Add formatting functions for display logic.
-2. **API**: Add request/response types in `lib/api/<entity>.ts`. Request types reference domain types.
+1. **Domain**: Add types in `models/<entity>/` matching backend DTOs. Add formatting functions (display logic) in domain files, not components.
+2. **API**: Add request/response types in `lib/api/<entity>.ts`. Request types reference domain types from `@/models/`.
 3. **Components**: Use domain types and domain formatting functions — never duplicate display logic.
 4. **Auth-gated routes**: Wrap the route element in `<ProtectedRoute>` in `App.tsx`.
 5. **Import rules**:
-   - Components import from `@/domain/maneuver` (or other entity) for types and formatting
-   - API layer imports from `@/domain/<entity>` for type references
+   - Components import from `@/models/maneuver` (or other entity) for types and formatting
+   - API layer imports from `@/models/<entity>` for type references
    - Never duplicate domain types in API layer
 
 ---

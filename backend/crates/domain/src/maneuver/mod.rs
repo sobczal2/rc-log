@@ -7,7 +7,12 @@ pub mod variation;
 use std::collections::BTreeSet;
 
 use crate::{
-    maneuver::{difficulty::Difficulty, id::ManeuverId, tag::{Tag, TagId}, variation::Variation},
+    maneuver::{
+        difficulty::Difficulty,
+        id::ManeuverId,
+        tag::{Tag, TagId},
+        variation::Variation,
+    },
     shared::{markdown_text::MarkdownText, vehicle_type::VehicleType},
 };
 
@@ -83,8 +88,8 @@ impl Maneuver {
     }
 
     pub fn remove_tag(&mut self, tag_id: TagId) -> Option<Tag> {
-        let found = self.tags.iter().find(|t| t.id() == tag_id).cloned()?
-;        self.tags.remove(&found);
+        let found = self.tags.iter().find(|t| t.id() == tag_id).cloned()?;
+        self.tags.remove(&found);
         Some(found)
     }
 

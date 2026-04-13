@@ -25,13 +25,7 @@ impl Model {
         vehicle_type: VehicleType,
         photo_asset_name: Option<AssetName>,
     ) -> Self {
-        Self {
-            id,
-            owner_id,
-            name,
-            vehicle_type,
-            photo_asset_name,
-        }
+        Self { id, owner_id, name, vehicle_type, photo_asset_name }
     }
 
     pub fn id(&self) -> ModelId {

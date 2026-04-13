@@ -17,9 +17,8 @@ pub async fn list_models(
 ) -> Result<Json<ListResponse>, ApiError> {
     debug!("Handling list_models request");
     let mut use_case = ListModelsUseCase::new(state.model_uow);
-    let result = use_case
-        .execute(ListModelsInput { owner_id: auth.id, pagination: pagination.0 })
-        .await?;
+    let result =
+        use_case.execute(ListModelsInput { owner_id: auth.id, pagination: pagination.0 }).await?;
     debug!(total = result.total, "Models retrieved, returning response");
     Ok(Json(ListResponse::from(result)))
 }

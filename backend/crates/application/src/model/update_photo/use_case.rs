@@ -62,9 +62,7 @@ where
             .photo_storage
             .store(&new_asset_name, &input.data)
             .await
-            .map_err(|e| {
-                UpdateModelPhotoError::PhotoStorageError(e.to_string())
-            })?;
+            .map_err(|e| UpdateModelPhotoError::PhotoStorageError(e.to_string()))?;
 
         let updated = Model::new(
             model.id(),
@@ -75,9 +73,7 @@ where
         );
 
         debug!("Saving updated model");
-        tx.save(&updated).await.map_err(|e| {
-            UpdateModelPhotoError::from(e)
-        })?;
+        tx.save(&updated).await.map_err(|e| UpdateModelPhotoError::from(e))?;
 
         debug!("Committing transaction");
         tx.commit().await.map_err(UpdateModelPhotoError::from)?;

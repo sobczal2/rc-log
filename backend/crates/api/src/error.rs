@@ -10,8 +10,8 @@ use rc_log_application::model::create::error::CreateModelError;
 use rc_log_application::model::delete::error::DeleteModelError;
 use rc_log_application::model::get_by_id::error::GetModelByIdError;
 use rc_log_application::model::list::error::ListModelsError;
-use rc_log_application::model::update::error::UpdateModelError;
 use rc_log_application::model::remove_photo::error::RemoveModelPhotoError;
+use rc_log_application::model::update::error::UpdateModelError;
 use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
@@ -62,7 +62,10 @@ impl IntoResponse for ApiError {
                 ListManeuversError::InvalidData(ref msg),
             )) => {
                 error!(details = %msg, "invalid data in maneuver response");
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "Internal server error" })),
+                )
                     .into_response()
             }
             ApiError::Application(ApplicationError::GetManeuverById(
@@ -95,7 +98,10 @@ impl IntoResponse for ApiError {
                 GetUserByUsernameError::InvalidData(ref msg),
             )) => {
                 error!(details = %msg, "invalid data in user response");
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "Internal server error" })),
+                )
                     .into_response()
             }
             ApiError::Application(ApplicationError::GetUserById(
@@ -193,9 +199,9 @@ impl IntoResponse for ApiError {
             ApiError::Application(ApplicationError::GetModelById(
                 GetModelByIdError::InvalidData(ref msg),
             ))
-            | ApiError::Application(ApplicationError::ListModels(
-                ListModelsError::InvalidData(ref msg),
-            ))
+            | ApiError::Application(ApplicationError::ListModels(ListModelsError::InvalidData(
+                ref msg,
+            )))
             | ApiError::Application(ApplicationError::CreateModel(
                 CreateModelError::InvalidData(ref msg),
             ))
@@ -203,7 +209,10 @@ impl IntoResponse for ApiError {
                 UpdateModelError::InvalidData(ref msg),
             )) => {
                 error!(details = %msg, "invalid data in model response");
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Internal server error" })))
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "Internal server error" })),
+                )
                     .into_response()
             }
             ApiError::Application(ApplicationError::GetModelById(

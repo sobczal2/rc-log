@@ -121,10 +121,7 @@ impl UserTransaction for SqlxUserTransaction {
         user_row.map(UserRow::try_into_user).transpose()
     }
 
-    async fn get_by_email(
-        &mut self,
-        email: &Email,
-    ) -> Result<Option<User>, TransactionError> {
+    async fn get_by_email(&mut self, email: &Email) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
             SELECT id, username, email, password_hash

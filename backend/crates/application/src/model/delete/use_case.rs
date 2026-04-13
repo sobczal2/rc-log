@@ -50,9 +50,7 @@ where
         let photo_name = model.photo_asset_name().cloned();
 
         debug!("Deleting model");
-        tx.delete_by_id(ModelId::new(input.id))
-            .await
-            .map_err(DeleteModelError::from)?;
+        tx.delete_by_id(ModelId::new(input.id)).await.map_err(DeleteModelError::from)?;
 
         debug!("Committing transaction");
         tx.commit().await.map_err(DeleteModelError::from)?;

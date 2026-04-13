@@ -48,13 +48,11 @@ pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoStorageE
 
     let small = encode_webp(&resize_to(&img, SMALL_PX))?;
 
-    let medium = (longest > SMALL_PX)
-        .then(|| encode_webp(&resize_to(&img, MEDIUM_PX)))
-        .transpose()?;
+    let medium =
+        (longest > SMALL_PX).then(|| encode_webp(&resize_to(&img, MEDIUM_PX))).transpose()?;
 
-    let large = (longest > MEDIUM_PX)
-        .then(|| encode_webp(&resize_to(&img, LARGE_PX)))
-        .transpose()?;
+    let large =
+        (longest > MEDIUM_PX).then(|| encode_webp(&resize_to(&img, LARGE_PX))).transpose()?;
 
     Ok(ProcessedPhoto { small, medium, large })
 }
@@ -195,9 +193,8 @@ impl PhotoStorage for DiskDbPhotoStorage {
             .map_err(|e| PhotoStorageError::DatabaseError(format!("delete photo: {e}")))?;
 
         if let Some(row) = row {
-            for rel_path in [Some(row.small_path), row.medium_path, row.large_path]
-                .into_iter()
-                .flatten()
+            for rel_path in
+                [Some(row.small_path), row.medium_path, row.large_path].into_iter().flatten()
             {
                 let abs = self.asset_path.join(&rel_path);
                 if let Err(e) = fs::remove_file(&abs).await {

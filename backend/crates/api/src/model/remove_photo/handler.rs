@@ -16,12 +16,7 @@ pub async fn remove_model_photo(
 ) -> Result<StatusCode, ApiError> {
     debug!("Handling remove_model_photo request");
     let mut use_case = RemoveModelPhotoUseCase::new(state.model_uow, state.photo_storage);
-    use_case
-        .execute(RemoveModelPhotoInput {
-            model_id: id.0,
-            owner_id: auth.id,
-        })
-        .await?;
+    use_case.execute(RemoveModelPhotoInput { model_id: id.0, owner_id: auth.id }).await?;
     debug!("Model photo removed");
     Ok(StatusCode::NO_CONTENT)
 }

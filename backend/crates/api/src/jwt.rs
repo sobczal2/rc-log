@@ -44,7 +44,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use super::{JwtClaims, create_token, new_claims, verify_token, TOKEN_EXPIRY_SECS};
+    use super::{JwtClaims, TOKEN_EXPIRY_SECS, create_token, new_claims, verify_token};
 
     const SECRET: &str = "test-secret-key";
 
@@ -85,15 +85,9 @@ mod tests {
 
     #[test]
     fn new_claims_sets_exp_in_future() {
-        let before = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let before = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         let claims = new_claims(Uuid::new_v4(), "user".to_string());
-        let after = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let after = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         assert!(claims.exp >= before + TOKEN_EXPIRY_SECS);
         assert!(claims.exp <= after + TOKEN_EXPIRY_SECS);
     }

@@ -17,9 +17,7 @@ pub async fn get_model_by_id(
 ) -> Result<Json<GetByIdResponse>, ApiError> {
     debug!("Handling get_model_by_id request");
     let mut use_case = GetModelByIdUseCase::new(state.model_uow);
-    let dto = use_case
-        .execute(GetModelByIdInput { id: id.0, owner_id: auth.id })
-        .await?;
+    let dto = use_case.execute(GetModelByIdInput { id: id.0, owner_id: auth.id }).await?;
     debug!("Model found, returning response");
     Ok(Json(GetByIdResponse::from(dto)))
 }

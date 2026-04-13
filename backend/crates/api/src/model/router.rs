@@ -1,4 +1,7 @@
-use axum::{Router, routing::{get, put}};
+use axum::{
+    Router,
+    routing::{get, put},
+};
 
 use crate::model::create::create_model;
 use crate::model::delete::delete_model;
@@ -12,12 +15,6 @@ use crate::state::AppState;
 pub fn model_router() -> Router<AppState> {
     Router::new()
         .route("/api/models", get(list_models).post(create_model))
-        .route(
-            "/api/models/{id}",
-            get(get_model_by_id).put(update_model).delete(delete_model),
-        )
-        .route(
-            "/api/models/{id}/photo",
-            put(update_model_photo).delete(remove_model_photo),
-        )
+        .route("/api/models/{id}", get(get_model_by_id).put(update_model).delete(delete_model))
+        .route("/api/models/{id}/photo", put(update_model_photo).delete(remove_model_photo))
 }

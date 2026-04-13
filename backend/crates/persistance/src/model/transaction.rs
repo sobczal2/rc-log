@@ -22,16 +22,14 @@ struct ModelRow {
 
 impl ModelRow {
     fn try_into_model(self) -> Result<Model, TransactionError> {
-        let name = ModelName::new(self.name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let name =
+            ModelName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let vehicle_type = match self.vehicle_type.as_str() {
             "Helicopter" => VehicleType::Helicopter,
             "Plane" => VehicleType::Plane,
             "Drone" => VehicleType::Drone,
             other => {
-                return Err(TransactionError::InvalidData(format!(
-                    "unknown vehicle type: {other}"
-                )))
+                return Err(TransactionError::InvalidData(format!("unknown vehicle type: {other}")));
             }
         };
         let photo_asset_name = self
@@ -152,10 +150,8 @@ impl ModelTransaction for SqlxModelTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        let models = rows
-            .into_iter()
-            .map(ModelRow::try_into_model)
-            .collect::<Result<Vec<_>, _>>()?;
+        let models =
+            rows.into_iter().map(ModelRow::try_into_model).collect::<Result<Vec<_>, _>>()?;
 
         Ok((models, total as u64))
     }

@@ -1,5 +1,5 @@
-use axum::extract::State;
 use axum::Json;
+use axum::extract::State;
 use rc_log_application::model::update_photo::UpdateModelPhotoUseCase;
 use rc_log_application::model::update_photo::model::UpdateModelPhotoInput;
 use tracing::{debug, instrument};

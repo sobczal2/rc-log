@@ -38,10 +38,8 @@ where
         let owner_id = UserId::new(input.owner_id);
 
         debug!("Querying models from repository");
-        let (models, total) = tx
-            .list_by_owner(owner_id, pagination)
-            .await
-            .map_err(ListModelsError::from)?;
+        let (models, total) =
+            tx.list_by_owner(owner_id, pagination).await.map_err(ListModelsError::from)?;
 
         debug!(total, count = models.len(), "Models retrieved, committing transaction");
         tx.commit().await.map_err(ListModelsError::from)?;

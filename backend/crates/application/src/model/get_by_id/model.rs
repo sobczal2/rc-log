@@ -1,4 +1,5 @@
 use rc_log_domain::model::Model;
+use rc_log_domain::shared::vehicle_type::VehicleType;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -32,7 +33,6 @@ pub struct ModelDto {
 
 impl From<Model> for ModelDto {
     fn from(m: Model) -> Self {
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         let vehicle_type = match m.vehicle_type() {
             VehicleType::Helicopter => VehicleTypeDto::Helicopter,
             VehicleType::Plane => VehicleTypeDto::Plane,
