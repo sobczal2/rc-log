@@ -1,6 +1,6 @@
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
-use rc_log_domain::model::name::ModelName;
+use rc_log_domain::model::name::Name;
 use rc_log_domain::model::transaction::ModelTransaction;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -29,7 +29,7 @@ where
 
     #[instrument(skip(self), fields(model_id = %input.id, owner_id = %input.owner_id))]
     pub async fn execute(&mut self, input: UpdateModelInput) -> Result<ModelDto, ApplicationError> {
-        let name = ModelName::new(input.name)
+        let name = Name::new(input.name)
             .map_err(|e| UpdateModelError::ValidationError(e.to_string()))?;
 
         let vehicle_type = match input.vehicle_type {

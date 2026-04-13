@@ -1,7 +1,7 @@
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
-use rc_log_domain::model::name::ModelName;
+use rc_log_domain::model::name::Name;
 use rc_log_domain::model::transaction::ModelTransaction;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -23,7 +23,7 @@ struct ModelRow {
 impl ModelRow {
     fn try_into_model(self) -> Result<Model, TransactionError> {
         let name =
-            ModelName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+            Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let vehicle_type = match self.vehicle_type.as_str() {
             "Helicopter" => VehicleType::Helicopter,
             "Plane" => VehicleType::Plane,
@@ -269,7 +269,7 @@ mod tests {
     fn from_model_round_trip() {
         use rc_log_domain::model::Model;
         use rc_log_domain::model::id::ModelId;
-        use rc_log_domain::model::name::ModelName;
+        use rc_log_domain::model::name::Name;
         use rc_log_domain::shared::vehicle_type::VehicleType;
         use rc_log_domain::user::id::UserId;
 
@@ -278,7 +278,7 @@ mod tests {
         let model = Model::new(
             ModelId::new(id),
             UserId::new(owner_id),
-            ModelName::new("My Trex 700".to_string()).unwrap(),
+            Name::new("My Trex 700".to_string()).unwrap(),
             VehicleType::Helicopter,
             None,
         );

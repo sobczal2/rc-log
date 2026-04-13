@@ -4,7 +4,7 @@ pub mod transaction;
 
 use crate::asset::name::AssetName;
 use crate::model::id::ModelId;
-use crate::model::name::ModelName;
+use crate::model::name::Name;
 use crate::shared::vehicle_type::VehicleType;
 use crate::user::id::UserId;
 
@@ -12,7 +12,7 @@ use crate::user::id::UserId;
 pub struct Model {
     id: ModelId,
     owner_id: UserId,
-    name: ModelName,
+    name: Name,
     vehicle_type: VehicleType,
     photo_asset_name: Option<AssetName>,
 }
@@ -21,7 +21,7 @@ impl Model {
     pub fn new(
         id: ModelId,
         owner_id: UserId,
-        name: ModelName,
+        name: Name,
         vehicle_type: VehicleType,
         photo_asset_name: Option<AssetName>,
     ) -> Self {
@@ -36,7 +36,7 @@ impl Model {
         self.owner_id
     }
 
-    pub fn name(&self) -> &ModelName {
+    pub fn name(&self) -> &Name {
         &self.name
     }
 

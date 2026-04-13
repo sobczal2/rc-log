@@ -1,32 +1,32 @@
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModelName(String);
+pub struct Name(String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ModelNameError {
+pub enum NameError {
     Empty,
     TooLong,
 }
 
-impl fmt::Display for ModelNameError {
+impl fmt::Display for NameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ModelNameError::Empty => write!(f, "model name must not be empty"),
-            ModelNameError::TooLong => write!(f, "model name must not exceed 255 characters"),
+            NameError::Empty => write!(f, "model name must not be empty"),
+            NameError::TooLong => write!(f, "model name must not exceed 255 characters"),
         }
     }
 }
 
-impl std::error::Error for ModelNameError {}
+impl std::error::Error for NameError {}
 
-impl ModelName {
-    pub fn new(value: String) -> Result<Self, ModelNameError> {
+impl Name {
+    pub fn new(value: String) -> Result<Self, NameError> {
         if value.trim().is_empty() {
-            return Err(ModelNameError::Empty);
+            return Err(NameError::Empty);
         }
         if value.len() > 255 {
-            return Err(ModelNameError::TooLong);
+            return Err(NameError::TooLong);
         }
         Ok(Self(value))
     }
@@ -38,33 +38,33 @@ impl ModelName {
 
 #[cfg(test)]
 mod tests {
-    use super::{ModelName, ModelNameError};
+    use super::{Name, NameError};
 
     #[test]
     fn valid_name() {
-        let n = ModelName::new("My Trex 700".to_string()).unwrap();
+        let n = Name::new("My Trex 700".to_string()).unwrap();
         assert_eq!(n.as_str(), "My Trex 700");
     }
 
     #[test]
     fn empty_is_err() {
-        assert_eq!(ModelName::new("".to_string()), Err(ModelNameError::Empty));
+        assert_eq!(Name::new("".to_string()), Err(NameError::Empty));
     }
 
     #[test]
     fn whitespace_only_is_err() {
-        assert_eq!(ModelName::new("   ".to_string()), Err(ModelNameError::Empty));
+        assert_eq!(Name::new("   ".to_string()), Err(NameError::Empty));
     }
 
     #[test]
     fn exactly_255_chars_is_ok() {
         let name = "a".repeat(255);
-        assert!(ModelName::new(name).is_ok());
+        assert!(Name::new(name).is_ok());
     }
 
     #[test]
     fn over_255_chars_is_err() {
         let name = "a".repeat(256);
-        assert_eq!(ModelName::new(name), Err(ModelNameError::TooLong));
+        assert_eq!(Name::new(name), Err(NameError::TooLong));
     }
 }
