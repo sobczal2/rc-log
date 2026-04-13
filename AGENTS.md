@@ -210,7 +210,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `::new(pool, asset_path: PathBuf)` — wired in `AppState::new`.
 - `store(&self, name, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
 - `delete(&self, name)`: fetch paths from DB → delete DB row → remove files (ignore `NotFound`). Always returns `Ok(())`; file errors are logged as warnings.
-- **Adaptive sizing** (longest side = max(width, height)): ≤400px → `small` only; ≤800px → `small` + `medium`; >800px → `small` + `medium` + `large` (original dims re-encoded as WebP).
+- **Adaptive sizing** (longest side = max(width, height)): ≤400px → `small` only; ≤800px → `small` + `medium`; >800px → `small` + `medium` + `large`. Target pixel sizes: small=400, medium=800, large=1600. Images smaller than a tier's target are never upscaled.
 - **Stored paths** are relative to `asset_path`, e.g. `photos/{name}_small.webp`.
 - **Asset name convention** for model photos: `model-photo-{uuid}` (fresh UUID per upload).
 

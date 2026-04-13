@@ -11,7 +11,68 @@ use sqlx::PgPool;
 use tokio::fs;
 use uuid::Uuid;
 
-/// Encode a `DynamicImage` to WebP bytes.
+// ─── Size constants ────────────────────────────────────────────────────────────
+
+/// Longest-side pixel targets for each size tier.
+const SMALL_PX: u32 = 400;
+const MEDIUM_PX: u32 = 800;
+const LARGE_PX: u32 = 1_600;
+
+// ─── Pure image-processing layer (CPU-bound, no I/O) ──────────────────────────
+
+/// WebP-encoded bytes for all size tiers produced from a single upload.
+pub(crate) struct ProcessedPhoto {
+    /// Always produced; longest side ≤ [`SMALL_PX`].
+    pub small: Vec<u8>,
+    /// Present when source longest side > [`SMALL_PX`]; longest side ≤ [`MEDIUM_PX`].
+    pub medium: Option<Vec<u8>>,
+    /// Present when source longest side > [`MEDIUM_PX`]; longest side ≤ [`LARGE_PX`].
+    pub large: Option<Vec<u8>>,
+}
+
+/// Decode `data`, produce up to three WebP size tiers, and return them.
+///
+/// |  Source longest side  | Tiers produced         |
+/// |-----------------------|------------------------|
+/// | ≤ 400 px              | small                  |
+/// | 401 – 800 px          | small + medium         |
+/// | > 800 px              | small + medium + large |
+///
+/// Images are never upscaled — if the source is already smaller than a tier's
+/// target, that tier receives the source at its natural dimensions.
+pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoStorageError> {
+    let img = image::load_from_memory(data)
+        .map_err(|e| PhotoStorageError::InvalidData(format!("Decode error: {e}")))?;
+
+    let longest = img.width().max(img.height());
+
+    let small = encode_webp(&resize_to(&img, SMALL_PX))?;
+
+    let medium = (longest > SMALL_PX)
+        .then(|| encode_webp(&resize_to(&img, MEDIUM_PX)))
+        .transpose()?;
+
+    let large = (longest > MEDIUM_PX)
+        .then(|| encode_webp(&resize_to(&img, LARGE_PX)))
+        .transpose()?;
+
+    Ok(ProcessedPhoto { small, medium, large })
+}
+
+/// Resize `img` so its longest side is at most `max_px`, preserving aspect ratio.
+/// Returns a clone unchanged when the image already fits (no upscaling).
+fn resize_to(img: &DynamicImage, max_px: u32) -> DynamicImage {
+    let longest = img.width().max(img.height());
+    if longest <= max_px {
+        return img.clone();
+    }
+    let scale = max_px as f64 / longest as f64;
+    let new_w = (img.width() as f64 * scale).round() as u32;
+    let new_h = (img.height() as f64 * scale).round() as u32;
+    img.resize(new_w, new_h, FilterType::Lanczos3)
+}
+
+/// Encode `img` to lossy WebP bytes.
 fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoStorageError> {
     let mut buf = Cursor::new(Vec::new());
     img.write_to(&mut buf, ImageFormat::WebP)
@@ -19,29 +80,7 @@ fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoStorageError> {
     Ok(buf.into_inner())
 }
 
-/// Resize `img` so its longest side is at most `max_px`, preserving aspect ratio.
-/// Uses Lanczos3 for high quality.
-fn resize_to(img: &DynamicImage, max_px: u32) -> DynamicImage {
-    let (w, h) = (img.width(), img.height());
-    let longest = w.max(h);
-    if longest <= max_px {
-        return img.clone();
-    }
-    let scale = max_px as f64 / longest as f64;
-    let new_w = (w as f64 * scale).round() as u32;
-    let new_h = (h as f64 * scale).round() as u32;
-    img.resize(new_w, new_h, FilterType::Lanczos3)
-}
-
-/// Resolve a file path relative to `asset_path` and convert to a domain `AssetPath`.
-fn make_asset_path(
-    asset_path: &std::path::Path,
-    rel: &str,
-) -> Result<AssetPath, PhotoStorageError> {
-    let _ = asset_path; // absolute path only used for writing; stored path is relative
-    AssetPath::new(rel.to_string())
-        .map_err(|e| PhotoStorageError::InvalidData(format!("Invalid asset path: {e}")))
-}
+// ─── Disk + DB storage ────────────────────────────────────────────────────────
 
 #[derive(Clone)]
 pub struct DiskDbPhotoStorage {
@@ -53,44 +92,24 @@ impl DiskDbPhotoStorage {
     pub fn new(pool: PgPool, asset_path: PathBuf) -> Self {
         Self { pool, asset_path }
     }
+
+    fn rel_path(name: &str, suffix: &str) -> String {
+        format!("photos/{}_{}.webp", name, suffix)
+    }
+
+    fn to_asset_path(rel: &str) -> Result<AssetPath, PhotoStorageError> {
+        AssetPath::new(rel.to_string())
+            .map_err(|e| PhotoStorageError::InvalidData(format!("Invalid asset path: {e}")))
+    }
 }
 
 impl PhotoStorage for DiskDbPhotoStorage {
     async fn store(&self, name: &AssetName, data: &[u8]) -> Result<Photo, PhotoStorageError> {
         let data = data.to_vec();
         let name_str = name.as_str().to_string();
-        let asset_path = self.asset_path.clone();
 
         // All CPU-bound work (decode, resize, encode) runs off the async executor.
-        let (small_bytes, medium_bytes, large_bytes) =
-            tokio::task::spawn_blocking(move || -> Result<_, PhotoStorageError> {
-                let img = image::load_from_memory(&data)
-                    .map_err(|e| PhotoStorageError::InvalidData(format!("Decode error: {e}")))?;
-
-                let longest = img.width().max(img.height());
-
-                let small = resize_to(&img, 400);
-                let small_bytes = encode_webp(&small)?;
-
-                let medium_bytes = if longest > 400 {
-                    let medium = resize_to(&img, 800);
-                    Some(encode_webp(&medium)?)
-                } else {
-                    None
-                };
-
-                let large_bytes = if longest > 800 {
-                    Some(encode_webp(&img)?)
-                } else {
-                    None
-                };
-
-                // Verify paths are constructable (side-effect free check).
-                let photos_dir = asset_path.join("photos");
-                let _ = photos_dir; // used below in async context
-
-                Ok((small_bytes, medium_bytes, large_bytes))
-            })
+        let processed = tokio::task::spawn_blocking(move || process_image(&data))
             .await
             .map_err(|e| PhotoStorageError::IoError(format!("spawn_blocking error: {e}")))??;
 
@@ -99,41 +118,38 @@ impl PhotoStorage for DiskDbPhotoStorage {
             .await
             .map_err(|e| PhotoStorageError::IoError(format!("create_dir_all: {e}")))?;
 
-        let small_rel = format!("photos/{}_small.webp", name_str);
-        let small_abs = self.asset_path.join(&small_rel);
-        fs::write(&small_abs, &small_bytes)
+        let small_rel = Self::rel_path(&name_str, "small");
+        fs::write(self.asset_path.join(&small_rel), &processed.small)
             .await
             .map_err(|e| PhotoStorageError::IoError(format!("write small: {e}")))?;
 
-        let medium_rel = medium_bytes
-            .as_ref()
-            .map(|_| format!("photos/{}_medium.webp", name_str));
-        if let (Some(rel), Some(bytes)) = (medium_rel.as_ref(), medium_bytes.as_ref()) {
-            let abs = self.asset_path.join(rel);
-            fs::write(&abs, bytes)
-                .await
-                .map_err(|e| PhotoStorageError::IoError(format!("write medium: {e}")))?;
-        }
+        let medium_rel = match processed.medium {
+            Some(ref bytes) => {
+                let rel = Self::rel_path(&name_str, "medium");
+                fs::write(self.asset_path.join(&rel), bytes)
+                    .await
+                    .map_err(|e| PhotoStorageError::IoError(format!("write medium: {e}")))?;
+                Some(rel)
+            }
+            None => None,
+        };
 
-        let large_rel = large_bytes
-            .as_ref()
-            .map(|_| format!("photos/{}_large.webp", name_str));
-        if let (Some(rel), Some(bytes)) = (large_rel.as_ref(), large_bytes.as_ref()) {
-            let abs = self.asset_path.join(rel);
-            fs::write(&abs, bytes)
-                .await
-                .map_err(|e| PhotoStorageError::IoError(format!("write large: {e}")))?;
-        }
-
-        let small_path = make_asset_path(&self.asset_path, &small_rel)?;
-        let medium_path = medium_rel
-            .map(|r| make_asset_path(&self.asset_path, &r))
-            .transpose()?;
-        let large_path = large_rel
-            .map(|r| make_asset_path(&self.asset_path, &r))
-            .transpose()?;
+        let large_rel = match processed.large {
+            Some(ref bytes) => {
+                let rel = Self::rel_path(&name_str, "large");
+                fs::write(self.asset_path.join(&rel), bytes)
+                    .await
+                    .map_err(|e| PhotoStorageError::IoError(format!("write large: {e}")))?;
+                Some(rel)
+            }
+            None => None,
+        };
 
         let photo_id = PhotoId::new(Uuid::new_v4());
+        let small_path = Self::to_asset_path(&small_rel)?;
+        let medium_path = medium_rel.as_deref().map(Self::to_asset_path).transpose()?;
+        let large_path = large_rel.as_deref().map(Self::to_asset_path).transpose()?;
+
         sqlx::query(
             r#"
             INSERT INTO asset.photo (id, name, small_path, medium_path, large_path)
@@ -186,12 +202,111 @@ impl PhotoStorage for DiskDbPhotoStorage {
                 let abs = self.asset_path.join(&rel_path);
                 if let Err(e) = fs::remove_file(&abs).await {
                     if e.kind() != std::io::ErrorKind::NotFound {
-                        tracing::warn!(path = %abs.display(), error = %e, "Failed to delete photo file");
+                        tracing::warn!(
+                            path = %abs.display(),
+                            error = %e,
+                            "Failed to delete photo file"
+                        );
                     }
                 }
             }
         }
 
         Ok(())
+    }
+}
+
+// ─── Unit tests ───────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Encode a blank RGBA image of the given dimensions to PNG bytes.
+    fn make_png(width: u32, height: u32) -> Vec<u8> {
+        let img = DynamicImage::ImageRgba8(image::RgbaImage::new(width, height));
+        let mut buf = Cursor::new(Vec::new());
+        img.write_to(&mut buf, ImageFormat::Png).unwrap();
+        buf.into_inner()
+    }
+
+    /// Decode WebP bytes and return `(width, height)`.
+    fn webp_dims(bytes: &[u8]) -> (u32, u32) {
+        let img = image::load_from_memory(bytes).expect("valid WebP output");
+        (img.width(), img.height())
+    }
+
+    // ── Tier selection ────────────────────────────────────────────────────────
+
+    #[test]
+    fn small_only_when_image_fits_in_400() {
+        let result = process_image(&make_png(300, 200)).unwrap();
+        assert!(result.medium.is_none());
+        assert!(result.large.is_none());
+    }
+
+    #[test]
+    fn small_and_medium_when_between_400_and_800() {
+        let result = process_image(&make_png(600, 400)).unwrap();
+        assert!(result.medium.is_some());
+        assert!(result.large.is_none());
+    }
+
+    #[test]
+    fn all_sizes_when_larger_than_800() {
+        let result = process_image(&make_png(1200, 900)).unwrap();
+        assert!(result.medium.is_some());
+        assert!(result.large.is_some());
+    }
+
+    // ── Output dimensions ─────────────────────────────────────────────────────
+
+    #[test]
+    fn small_longest_side_is_400() {
+        let result = process_image(&make_png(800, 600)).unwrap();
+        let (w, h) = webp_dims(&result.small);
+        assert_eq!(w.max(h), SMALL_PX);
+    }
+
+    #[test]
+    fn medium_longest_side_is_800() {
+        let result = process_image(&make_png(1600, 1000)).unwrap();
+        let (w, h) = webp_dims(result.medium.as_ref().unwrap());
+        assert_eq!(w.max(h), MEDIUM_PX);
+    }
+
+    #[test]
+    fn large_longest_side_is_1600() {
+        let result = process_image(&make_png(3200, 2400)).unwrap();
+        let (w, h) = webp_dims(result.large.as_ref().unwrap());
+        assert_eq!(w.max(h), LARGE_PX);
+    }
+
+    #[test]
+    fn small_image_is_not_upscaled() {
+        let result = process_image(&make_png(200, 150)).unwrap();
+        let (w, h) = webp_dims(&result.small);
+        // Source is below SMALL_PX — must not be upscaled.
+        assert_eq!((w, h), (200, 150));
+    }
+
+    // ── Aspect ratio ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn aspect_ratio_preserved_in_small() {
+        // 2:1 landscape — after resize longest side = 400, shorter side ≈ 200.
+        let result = process_image(&make_png(800, 400)).unwrap();
+        let (w, h) = webp_dims(&result.small);
+        assert_eq!(w.max(h), SMALL_PX);
+        let ratio = w as f64 / h as f64;
+        assert!((ratio - 2.0).abs() < 0.1, "expected ~2:1, got {w}×{h}");
+    }
+
+    // ── Error handling ────────────────────────────────────────────────────────
+
+    #[test]
+    fn invalid_bytes_return_error() {
+        let result = process_image(b"not an image");
+        assert!(matches!(result, Err(PhotoStorageError::InvalidData(_))));
     }
 }
