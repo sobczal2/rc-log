@@ -11,6 +11,7 @@ use rc_log_application::model::delete::error::DeleteModelError;
 use rc_log_application::model::get_by_id::error::GetModelByIdError;
 use rc_log_application::model::list::error::ListModelsError;
 use rc_log_application::model::update::error::UpdateModelError;
+use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
@@ -211,6 +212,33 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::DeleteModel(
                 DeleteModelError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Update model photo errors
+            ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Model not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::InvalidPhotoContent(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateModelPhoto(
+                UpdateModelPhotoError::PhotoStorageError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

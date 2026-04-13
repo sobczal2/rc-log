@@ -9,7 +9,6 @@ pub struct CreateModelInput {
     pub owner_id: Uuid,
     pub name: String,
     pub vehicle_type: VehicleTypeDto,
-    pub photo_asset_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

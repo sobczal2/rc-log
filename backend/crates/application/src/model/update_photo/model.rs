@@ -5,11 +5,10 @@ use uuid::Uuid;
 use crate::shared::vehicle_type::VehicleTypeDto;
 
 #[derive(Debug, Clone)]
-pub struct UpdateModelInput {
-    pub id: Uuid,
+pub struct UpdateModelPhotoInput {
+    pub model_id: Uuid,
     pub owner_id: Uuid,
-    pub name: String,
-    pub vehicle_type: VehicleTypeDto,
+    pub data: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Serialize)]

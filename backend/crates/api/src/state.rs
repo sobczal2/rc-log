@@ -1,4 +1,7 @@
+use std::path::PathBuf;
+
 use rc_log_persistance::asset::photo::SqlxPhotoResolver;
+use rc_log_persistance::asset::photo_storage::DiskDbPhotoStorage;
 use rc_log_persistance::asset::video::SqlxVideoResolver;
 use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
@@ -12,17 +15,24 @@ pub struct AppState {
     pub user_uow: SqlxUserUnitOfWork,
     pub video_resolver: SqlxVideoResolver,
     pub photo_resolver: SqlxPhotoResolver,
+    pub photo_storage: DiskDbPhotoStorage,
     pub jwt_secret: String,
 }
 
 impl AppState {
-    pub fn new(pool: PgPool, jwt_secret: String, asset_cache_size: u64) -> Self {
+    pub fn new(
+        pool: PgPool,
+        jwt_secret: String,
+        asset_cache_size: u64,
+        asset_path: PathBuf,
+    ) -> Self {
         Self {
             maneuver_uow: SqlxManeuverUnitOfWork::new(pool.clone()),
             model_uow: SqlxModelUnitOfWork::new(pool.clone()),
             user_uow: SqlxUserUnitOfWork::new(pool.clone()),
             video_resolver: SqlxVideoResolver::new(pool.clone(), asset_cache_size),
-            photo_resolver: SqlxPhotoResolver::new(pool, asset_cache_size),
+            photo_resolver: SqlxPhotoResolver::new(pool.clone(), asset_cache_size),
+            photo_storage: DiskDbPhotoStorage::new(pool, asset_path),
             jwt_secret,
         }
     }

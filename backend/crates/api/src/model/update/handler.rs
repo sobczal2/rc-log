@@ -23,7 +23,6 @@ pub async fn update_model(
             owner_id: auth.id,
             name: input.name,
             vehicle_type: input.vehicle_type,
-            photo_asset_name: input.photo_asset_name,
         })
         .await?;
     debug!("Model updated, returning response");

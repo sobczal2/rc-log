@@ -10,13 +10,11 @@ use crate::error::ApiError;
 struct CreateModelBody {
     name: String,
     vehicle_type: String,
-    photo_asset_name: Option<String>,
 }
 
 pub struct CreateRequest {
     pub name: String,
     pub vehicle_type: VehicleTypeDto,
-    pub photo_asset_name: Option<String>,
 }
 
 impl<S> FromRequest<S> for CreateRequest
@@ -49,6 +47,6 @@ where
             }
         };
 
-        Ok(Self { name: body.name, vehicle_type, photo_asset_name: body.photo_asset_name })
+        Ok(Self { name: body.name, vehicle_type })
     }
 }

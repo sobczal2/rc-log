@@ -14,14 +14,12 @@ use crate::error::ApiError;
 struct UpdateModelBody {
     name: String,
     vehicle_type: String,
-    photo_asset_name: Option<String>,
 }
 
 pub struct UpdateRequest {
     pub id: Uuid,
     pub name: String,
     pub vehicle_type: VehicleTypeDto,
-    pub photo_asset_name: Option<String>,
 }
 
 impl<S> FromRequest<S> for UpdateRequest
@@ -72,6 +70,6 @@ where
             }
         };
 
-        Ok(Self { id, name: body.name, vehicle_type, photo_asset_name: body.photo_asset_name })
+        Ok(Self { id, name: body.name, vehicle_type })
     }
 }

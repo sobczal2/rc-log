@@ -22,7 +22,6 @@ pub async fn create_model(
             owner_id: auth.id,
             name: input.name,
             vehicle_type: input.vehicle_type,
-            photo_asset_name: input.photo_asset_name,
         })
         .await?;
     debug!(model_id = %dto.id, "Model created, returning response");

@@ -57,6 +57,7 @@ Pure domain model. No framework dependencies. Owns:
 | `src/asset/photo.rs` | `Photo` aggregate (identical structure to `Video`) |
 | `src/asset/video_resolver.rs` | `VideoResolver` trait — `get(&self, &AssetName) -> Option<Video>` |
 | `src/asset/photo_resolver.rs` | `PhotoResolver` trait — `get(&self, &AssetName) -> Option<Photo>` |
+| `src/asset/photo_storage.rs` | `PhotoStorage` trait — `store(&self, &AssetName, &[u8]) -> Photo` and `delete(&self, &AssetName) -> ()` + `PhotoStorageError` |
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
@@ -114,15 +115,17 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/list/error.rs` | `ListModelsError` (InvalidData, RepositoryError) |
 | `src/model/list/model.rs` | `ListModelsInput { owner_id, pagination }`, `ModelDto` |
 | `src/model/list/use_case.rs` | `ListModelsUseCase<UoW>` — returns `PaginatedResult<ModelDto>` scoped to owner |
-| `src/model/create/error.rs` | `CreateModelError` (ValidationError, InvalidData, RepositoryError) |
-| `src/model/create/model.rs` | `CreateModelInput { owner_id, name, vehicle_type, photo_asset_name? }`, `ModelDto` |
-| `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name + photo, creates model, saves |
+| `src/model/create/model.rs` | `CreateModelInput { owner_id, name, vehicle_type }`, `ModelDto` |
+| `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name, creates model with `photo_asset_name: None`, saves |
 | `src/model/update/error.rs` | `UpdateModelError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
-| `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, vehicle_type, photo_asset_name? }`, `ModelDto` |
-| `src/model/update/use_case.rs` | `UpdateModelUseCase<UoW>` — get, ownership check, create updated Model, save |
+| `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, vehicle_type }`, `ModelDto` |
+| `src/model/update/use_case.rs` | `UpdateModelUseCase<UoW>` — get, ownership check, preserve existing photo, save |
 | `src/model/delete/error.rs` | `DeleteModelError` (NotFound, Forbidden, RepositoryError) |
 | `src/model/delete/model.rs` | `DeleteModelInput { id, owner_id }` — no output struct |
-| `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW>` — get, ownership check, delete_by_id, returns `()` |
+| `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW, PS>` — get, ownership check, delete_by_id, commit, then best-effort `photo_storage.delete` |
+| `src/model/update_photo/error.rs` | `UpdateModelPhotoError` (NotFound, Forbidden, InvalidPhotoContent, InvalidData, RepositoryError, PhotoStorageError) |
+| `src/model/update_photo/model.rs` | `UpdateModelPhotoInput { model_id, owner_id, data: Vec<u8> }`, `ModelDto` |
+| `src/model/update_photo/use_case.rs` | `UpdateModelPhotoUseCase<UoW, PS>` — get, ownership check, store new photo (name = `model-photo-{uuid}`), save, commit, best-effort delete old photo |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -173,6 +176,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 | `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
 | `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
+| `src/asset/photo_storage.rs` | `DiskDbPhotoStorage` — implements `PhotoStorage`; resizes images adaptively to WebP, writes to disk, upserts `asset.photo` row |
 
 **Conventions:**
 - Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`, `ModelId`, `UserId`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
@@ -201,6 +205,15 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
 - Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
 
+**Photo storage** (`src/asset/photo_storage.rs`):
+- `DiskDbPhotoStorage { pool: PgPool, asset_path: PathBuf }` — `Clone`-derived; implements the `PhotoStorage` domain trait.
+- `::new(pool, asset_path: PathBuf)` — wired in `AppState::new`.
+- `store(&self, name, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
+- `delete(&self, name)`: fetch paths from DB → delete DB row → remove files (ignore `NotFound`). Always returns `Ok(())`; file errors are logged as warnings.
+- **Adaptive sizing** (longest side = max(width, height)): ≤400px → `small` only; ≤800px → `small` + `medium`; >800px → `small` + `medium` + `large` (original dims re-encoded as WebP).
+- **Stored paths** are relative to `asset_path`, e.g. `photos/{name}_small.webp`.
+- **Asset name convention** for model photos: `model-photo-{uuid}` (fresh UUID per upload).
+
 **Database schema** (`migrations/`):
 - `maneuver.maneuver` — core entity table (no `video_path` column)
 - `maneuver.tag` — tag lookup table
@@ -221,7 +234,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
 | `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
-| `src/state.rs` | `AppState { maneuver_uow, model_uow, user_uow, video_resolver, photo_resolver, jwt_secret }` — passed via axum `State` |
+| `src/state.rs` | `AppState { maneuver_uow, model_uow, user_uow, video_resolver, photo_resolver, photo_storage, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
@@ -238,6 +251,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
+| `src/model/update_photo/` | `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
@@ -251,7 +265,8 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `InvalidData` | 500 (bad DB data is a server problem) |
 | `RepositoryError` / `ResolverError` | 500 (internal details not leaked) |
 | `UsernameTaken` / `EmailTaken` | 409 |
-| `ValidationError` / `InvalidName` | 400 |
+| `InvalidPhotoContent` (bad image data) | 400 |
+| `PhotoStorageError` | 500 |
 | `InvalidCredentials` (sign-in) | 401 |
 | `Unauthorized` (missing/invalid JWT) | 401 |
 
@@ -273,6 +288,7 @@ POST   /api/models              [JWT required]  → CreateResponse  (201 Created
 GET    /api/models/{id}         [JWT required]  → GetByIdResponse
 PUT    /api/models/{id}         [JWT required]  → UpdateResponse
 DELETE /api/models/{id}         [JWT required]  → 204 No Content
+PUT    /api/models/{id}/photo   [JWT required]  → UpdatePhotoResponse  (multipart form-data, field: photo)
 ```
 
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.

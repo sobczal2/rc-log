@@ -1,4 +1,3 @@
-use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::name::ModelName;
@@ -42,19 +41,12 @@ where
             VehicleTypeDto::Drone => VehicleType::Drone,
         };
 
-        let photo_asset_name = input
-            .photo_asset_name
-            .map(|s| {
-                AssetName::new(s).map_err(|e| CreateModelError::ValidationError(e.to_string()))
-            })
-            .transpose()?;
-
         let model = Model::new(
             ModelId::new(Uuid::new_v4()),
             UserId::new(input.owner_id),
             name,
             vehicle_type,
-            photo_asset_name,
+            None,
         );
 
         debug!("Beginning transaction");

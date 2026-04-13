@@ -5,6 +5,7 @@ use crate::model::delete::error::DeleteModelError;
 use crate::model::get_by_id::error::GetModelByIdError;
 use crate::model::list::error::ListModelsError;
 use crate::model::update::error::UpdateModelError;
+use crate::model::update_photo::error::UpdateModelPhotoError;
 use crate::photo::resolve::error::ResolvePhotoError;
 use crate::user::get_by_id::error::GetUserByIdError;
 use crate::user::get_by_username::error::GetUserByUsernameError;
@@ -28,6 +29,8 @@ pub enum ApplicationError {
     UpdateModel(#[from] UpdateModelError),
     #[error(transparent)]
     DeleteModel(#[from] DeleteModelError),
+    #[error(transparent)]
+    UpdateModelPhoto(#[from] UpdateModelPhotoError),
     #[error(transparent)]
     GetUserById(#[from] GetUserByIdError),
     #[error(transparent)]

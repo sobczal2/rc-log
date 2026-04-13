@@ -8,6 +8,9 @@ rc-log-domain.workspace = true
 sqlx = { workspace = true, features = ["runtime-tokio", "postgres", "uuid"] }
 uuid.workspace = true
 moka = { workspace = true, features = ["future"] }
+image = { workspace = true, features = ["webp"] }
+tokio = { workspace = true, features = ["fs"] }
+tracing.workspace = true
 
 [build-dependencies]
 glob = "0.3"

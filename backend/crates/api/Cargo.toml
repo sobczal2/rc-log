@@ -7,7 +7,7 @@ edition = "2024"
 rc-log-application.workspace = true
 rc-log-domain.workspace = true
 rc-log-persistance.workspace = true
-axum = { workspace = true, features = ["macros"] }
+axum = { workspace = true, features = ["macros", "multipart"] }
 jsonwebtoken = { workspace = true, features = ["rust_crypto"] }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
