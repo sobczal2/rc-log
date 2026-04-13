@@ -3,9 +3,8 @@ use axum::{
     http::request::Parts,
 };
 use rc_log_application::maneuver::list::model::{
-    ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
+    DifficultyDto, ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
 };
-use rc_log_application::shared::difficulty::DifficultyDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::shared::validator::{Validate, ValidationError};
 use rc_log_application::shared::vehicle_type::VehicleTypeDto;

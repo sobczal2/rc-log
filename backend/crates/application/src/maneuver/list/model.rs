@@ -4,13 +4,24 @@ use rc_log_domain::maneuver::transaction::{
     ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
 };
 use rc_log_domain::shared::vehicle_type::VehicleType;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::shared::difficulty::DifficultyDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 use crate::shared::vehicle_type::VehicleTypeDto;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum DifficultyDto {
+    Level1,
+    Level2,
+    Level3,
+    Level4,
+    Level5,
+    Level6,
+    Level7,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
