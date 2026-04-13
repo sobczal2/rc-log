@@ -1,0 +1,66 @@
+use rc_log_domain::session::Session;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum QualityDto {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ComfortDto {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum RepeatabilityDto {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddPerformedVariationInput {
+    pub session_id: Uuid,
+    pub owner_id: Uuid,
+    pub variation_id: Uuid,
+    pub quality: QualityDto,
+    pub comfort: ComfortDto,
+    pub repeatability: RepeatabilityDto,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionDto {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub date: String,
+    pub model_id: Option<Uuid>,
+    pub note: Option<String>,
+}
+
+impl From<Session> for SessionDto {
+    fn from(session: Session) -> Self {
+        Self {
+            id: Uuid::from(session.id()),
+            user_id: Uuid::from(session.user_id()),
+            date: session.date().as_naive_date().format("%Y-%m-%d").to_string(),
+            model_id: session.model_id().map(Uuid::from),
+            note: session.note().map(|n| n.as_str().to_string()),
+        }
+    }
+}

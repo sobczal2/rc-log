@@ -14,7 +14,9 @@ use rc_log_application::model::remove_photo::error::RemoveModelPhotoError;
 use rc_log_application::model::update::error::UpdateModelError;
 use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
+use rc_log_application::session::add_performed_variation::error::AddPerformedVariationError;
 use rc_log_application::session::create::error::CreateSessionError;
+use rc_log_application::session::remove_performed_variation::error::RemovePerformedVariationError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::remove_photo::error::RemoveUserPhotoError;
@@ -303,6 +305,58 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::CreateSession(
                 CreateSessionError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Add performed variation errors
+            ApiError::Application(ApplicationError::AddPerformedVariation(
+                AddPerformedVariationError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::AddPerformedVariation(
+                AddPerformedVariationError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::AddPerformedVariation(
+                AddPerformedVariationError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::AddPerformedVariation(
+                AddPerformedVariationError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::AddPerformedVariation(
+                AddPerformedVariationError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Remove performed variation errors
+            ApiError::Application(ApplicationError::RemovePerformedVariation(
+                RemovePerformedVariationError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::RemovePerformedVariation(
+                RemovePerformedVariationError::PerformedVariationNotFound,
+            )) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Performed variation not found" })),
+            )
+                .into_response(),
+            ApiError::Application(ApplicationError::RemovePerformedVariation(
+                RemovePerformedVariationError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::RemovePerformedVariation(
+                RemovePerformedVariationError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::RemovePerformedVariation(
+                RemovePerformedVariationError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
