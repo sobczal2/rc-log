@@ -64,7 +64,7 @@ where
 
         let mut items = Vec::with_capacity(sessions.len());
         for session in sessions {
-            let (model_name, model_type) = match session.model_id() {
+            let (model_name, mut model_type) = match session.model_id() {
                 None => (None, None),
                 Some(model_id) => {
                     let model = self
@@ -87,6 +87,7 @@ where
                 }
             };
 
+            let mut inferred_model_type_from_variations = None;
             let mut performed_variations = Vec::with_capacity(session.performed_variations().len());
             for performed in session.performed_variations() {
                 let variation_id = performed.variation_id();
@@ -106,6 +107,16 @@ where
                             .await
                             .map_err(ListSessionsError::from)?;
 
+                        if inferred_model_type_from_variations.is_none() {
+                            if let Some(ref m) = maneuver {
+                                inferred_model_type_from_variations = Some(match *m.vehicle_type() {
+                                    VehicleType::Helicopter => VehicleTypeDto::Helicopter,
+                                    VehicleType::Plane => VehicleTypeDto::Plane,
+                                    VehicleType::Drone => VehicleTypeDto::Drone,
+                                });
+                            }
+                        }
+
                         let maneuver_name = maneuver.map(|m| m.name().to_string());
                         (variation_name, maneuver_name)
                     }
@@ -120,6 +131,10 @@ where
                     comfort: comfort_to_dto(rating.comfort()),
                     repeatability: repeatability_to_dto(rating.repeatability()),
                 });
+            }
+
+            if model_type.is_none() {
+                model_type = inferred_model_type_from_variations;
             }
 
             items.push(SessionDto {

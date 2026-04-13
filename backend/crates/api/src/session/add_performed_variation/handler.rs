@@ -17,7 +17,12 @@ pub async fn add_performed_variation(
 ) -> Result<Json<AddPerformedVariationResponse>, ApiError> {
     debug!("Handling add_performed_variation request");
 
-    let mut use_case = AddPerformedVariationUseCase::new(state.session_uow);
+    let mut use_case = AddPerformedVariationUseCase::new(
+        state.session_uow,
+        state.model_resolver,
+        state.maneuver_resolver,
+        state.variation_resolver,
+    );
     let session = use_case
         .execute(AddPerformedVariationInput {
             session_id: input.session_id,
