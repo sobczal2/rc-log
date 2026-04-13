@@ -23,7 +23,6 @@ pub struct Maneuver {
     name: String,
     tags: BTreeSet<Tag>,
     description: MarkdownText,
-    difficulty: Difficulty,
     default_variation: Variation,
     other_variations: Vec<Variation>,
 }
@@ -35,7 +34,6 @@ impl Maneuver {
         name: String,
         tags: BTreeSet<Tag>,
         description: MarkdownText,
-        difficulty: Difficulty,
         default_variation: Variation,
         other_variations: Vec<Variation>,
     ) -> Self {
@@ -45,7 +43,6 @@ impl Maneuver {
             name,
             tags,
             description,
-            difficulty,
             default_variation,
             other_variations,
         }
@@ -71,8 +68,18 @@ impl Maneuver {
         &self.description
     }
 
-    pub fn difficulty(&self) -> Difficulty {
-        self.difficulty
+    pub fn min_difficulty(&self) -> Difficulty {
+        std::iter::once(self.default_variation.difficulty())
+            .chain(self.other_variations.iter().map(|v| v.difficulty()))
+            .min()
+            .expect("maneuver always has at least one variation")
+    }
+
+    pub fn max_difficulty(&self) -> Difficulty {
+        std::iter::once(self.default_variation.difficulty())
+            .chain(self.other_variations.iter().map(|v| v.difficulty()))
+            .max()
+            .expect("maneuver always has at least one variation")
     }
 
     pub fn default_variation(&self) -> &Variation {
@@ -97,7 +104,6 @@ impl Maneuver {
         self.description = description;
     }
 }
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
@@ -114,12 +120,13 @@ mod tests {
 
     use super::Maneuver;
 
-    fn make_variation() -> Variation {
+    fn make_variation(difficulty: Difficulty) -> Variation {
         Variation::new(
             VariationId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("description".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),
+            difficulty,
         )
     }
 
@@ -130,8 +137,7 @@ mod tests {
             "test maneuver".to_string(),
             BTreeSet::new(),
             MarkdownText::new("some description".to_string()).unwrap(),
-            Difficulty::Level1,
-            make_variation(),
+            make_variation(Difficulty::Level1),
             vec![],
         )
     }
@@ -167,9 +173,6 @@ mod tests {
 
     #[test]
     fn remove_tag_with_non_empty_name_works() {
-        // Regression: the previous implementation using BTreeSet::take with an
-        // empty-name sentinel would silently return None for any tag with a
-        // non-empty name because the Ord-based lookup would not find it.
         let mut m = make_maneuver();
         let tag_id = TagId::new(Uuid::new_v4());
         m.add_tag(Tag::new(tag_id, "a-tag-with-a-real-name".to_string()));
@@ -191,4 +194,27 @@ mod tests {
         m.update_description(new_desc);
         assert_eq!(m.description().as_str(), "updated description");
     }
+
+    #[test]
+    fn min_max_difficulty_single_variation() {
+        let m = make_maneuver();
+        assert_eq!(m.min_difficulty(), Difficulty::Level1);
+        assert_eq!(m.max_difficulty(), Difficulty::Level1);
+    }
+
+    #[test]
+    fn min_max_difficulty_multiple_variations() {
+        let m = Maneuver::new(
+            ManeuverId::new(Uuid::new_v4()),
+            VehicleType::Helicopter,
+            "test".to_string(),
+            BTreeSet::new(),
+            MarkdownText::new("desc".to_string()).unwrap(),
+            make_variation(Difficulty::Level2),
+            vec![make_variation(Difficulty::Level4), make_variation(Difficulty::Level1)],
+        );
+        assert_eq!(m.min_difficulty(), Difficulty::Level1);
+        assert_eq!(m.max_difficulty(), Difficulty::Level4);
+    }
 }
+

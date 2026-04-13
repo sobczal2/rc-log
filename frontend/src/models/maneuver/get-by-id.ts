@@ -11,13 +11,15 @@ export interface VariationDto {
   name: string;
   description: string;
   videoAssetName: string;
+  difficulty: DifficultyLevel;
 }
 
 export interface ManeuverDto {
   id: string;
   name: string;
   vehicleType: VehicleType;
-  difficulty: DifficultyLevel;
+  minDifficulty: DifficultyLevel;
+  maxDifficulty: DifficultyLevel;
   tags: TagDto[];
   description: string;
   defaultVariation: VariationDto;

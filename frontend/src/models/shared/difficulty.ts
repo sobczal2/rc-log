@@ -95,3 +95,24 @@ export function getDifficultyLevelNumber(difficulty: DifficultyLevel): number {
       return 7;
   }
 }
+
+export function getDifficultyRangeLabel(
+  vehicleType: VehicleType,
+  minDifficulty: DifficultyLevel,
+  maxDifficulty: DifficultyLevel,
+): string {
+  const minNum = getDifficultyLevelNumber(minDifficulty);
+  const maxNum = getDifficultyLevelNumber(maxDifficulty);
+  if (minNum === maxNum) {
+    return getDifficultyLevelLabel(vehicleType, minDifficulty);
+  }
+  return `L${minNum}–L${maxNum}`;
+}
+
+export function getDifficultyRangeColor(
+  _minDifficulty: DifficultyLevel,
+  maxDifficulty: DifficultyLevel,
+): string {
+  // Use the max difficulty's color to represent the overall difficulty
+  return getDifficultyLevelColor(maxDifficulty);
+}

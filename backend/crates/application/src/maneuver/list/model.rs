@@ -27,7 +27,8 @@ pub struct ManeuverDto {
     pub name: String,
     pub tags: Vec<TagDto>,
     pub description: String,
-    pub difficulty: DifficultyDto,
+    pub min_difficulty: DifficultyDto,
+    pub max_difficulty: DifficultyDto,
     pub default_variation_video_asset_name: String,
 }
 
@@ -39,7 +40,17 @@ impl From<Maneuver> for ManeuverDto {
             VehicleType::Drone => VehicleTypeDto::Drone,
         };
 
-        let difficulty = match m.difficulty() {
+        let min_difficulty = match m.min_difficulty() {
+            Difficulty::Level1 => DifficultyDto::Level1,
+            Difficulty::Level2 => DifficultyDto::Level2,
+            Difficulty::Level3 => DifficultyDto::Level3,
+            Difficulty::Level4 => DifficultyDto::Level4,
+            Difficulty::Level5 => DifficultyDto::Level5,
+            Difficulty::Level6 => DifficultyDto::Level6,
+            Difficulty::Level7 => DifficultyDto::Level7,
+        };
+
+        let max_difficulty = match m.max_difficulty() {
             Difficulty::Level1 => DifficultyDto::Level1,
             Difficulty::Level2 => DifficultyDto::Level2,
             Difficulty::Level3 => DifficultyDto::Level3,
@@ -61,7 +72,8 @@ impl From<Maneuver> for ManeuverDto {
             name: m.name().to_string(),
             tags,
             description: m.description().as_str().to_string(),
-            difficulty,
+            min_difficulty,
+            max_difficulty,
             default_variation_video_asset_name: m
                 .default_variation()
                 .video_asset_name()

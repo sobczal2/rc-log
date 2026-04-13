@@ -31,8 +31,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CONTENT_DIR = REPO_ROOT / "content" / "maneuver"
 TAGS_FILE = CONTENT_DIR / "tags.json"
 
-REQUIRED_MANEUVER_FIELDS = {"id", "vehicleType", "name", "difficulty", "tags", "description"}
-REQUIRED_VARIATION_FIELDS = {"id", "videoAssetName", "videoAssetId", "name", "description"}
+REQUIRED_MANEUVER_FIELDS = {"id", "vehicleType", "name", "tags", "description"}
+REQUIRED_VARIATION_FIELDS = {"id", "videoAssetName", "videoAssetId", "name", "description", "difficulty"}
 
 
 def load_tags() -> dict[str, str]:
@@ -152,19 +152,17 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
     lines.append("-- 2. Maneuvers")
     for m in maneuvers:
         lines.append(
-            f"INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty)"
+            f"INSERT INTO maneuver.maneuver (id, vehicle_type, name, description)"
             f" VALUES ("
             f"'{m['id']}', "
             f"{sql_str(m['vehicleType'])}, "
             f"{sql_str(m['name'])}, "
-            f"{sql_str(m['description'])}, "
-            f"{m['difficulty']}"
+            f"{sql_str(m['description'])}"
             f")"
             f" ON CONFLICT (id) DO UPDATE SET"
             f"  vehicle_type = EXCLUDED.vehicle_type,"
             f"  name = EXCLUDED.name,"
-            f"  description = EXCLUDED.description,"
-            f"  difficulty = EXCLUDED.difficulty;"
+            f"  description = EXCLUDED.description;"
         )
     lines.append("")
 
@@ -212,21 +210,23 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
         is_default_sql = "TRUE" if v["_is_default"] else "FALSE"
         lines.append(
             f"INSERT INTO maneuver.variation"
-            f" (id, maneuver_id, name, description, video_asset_name, is_default)"
+            f" (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)"
             f" VALUES ("
             f"'{v['id']}', "
             f"'{v['_maneuver_id']}', "
             f"{sql_str(v['name'])}, "
             f"{sql_str(v['description'])}, "
             f"{sql_str(v['videoAssetName'])}, "
-            f"{is_default_sql}"
+            f"{is_default_sql}, "
+            f"{v['difficulty']}"
             f")"
             f" ON CONFLICT (id) DO UPDATE SET"
             f"  maneuver_id = EXCLUDED.maneuver_id,"
             f"  name = EXCLUDED.name,"
             f"  description = EXCLUDED.description,"
             f"  video_asset_name = EXCLUDED.video_asset_name,"
-            f"  is_default = EXCLUDED.is_default;"
+            f"  is_default = EXCLUDED.is_default,"
+            f"  difficulty = EXCLUDED.difficulty;"
         )
     lines.append("")
 

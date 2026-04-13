@@ -1,7 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { getDifficultyLevelColor, getDifficultyLevelLabel, getVehicleIcon } from "@/models/shared";
+import {
+  getDifficultyRangeColor,
+  getDifficultyRangeLabel,
+  getVehicleIcon,
+} from "@/models/shared";
 import type { ListManeuverDto } from "@/models/maneuver";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
@@ -49,9 +53,9 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
           <div className="absolute bottom-3.5 right-3.5 flex mt-auto ml-auto">
             <Badge
               variant="outline"
-              className={`px-1.5 py-0.5 rounded-sm font-mono font-bold ${getDifficultyLevelColor(maneuver.difficulty)}`}
+              className={`px-1.5 py-0.5 rounded-sm font-mono font-bold ${getDifficultyRangeColor(maneuver.minDifficulty, maneuver.maxDifficulty)}`}
             >
-              {getDifficultyLevelLabel(maneuver.vehicleType, maneuver.difficulty)}
+              {getDifficultyRangeLabel(maneuver.vehicleType, maneuver.minDifficulty, maneuver.maxDifficulty)}
             </Badge>
           </div>
         </CardContent>

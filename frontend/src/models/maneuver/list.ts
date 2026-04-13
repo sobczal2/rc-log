@@ -10,7 +10,8 @@ export interface ManeuverDto {
   id: string;
   name: string;
   vehicleType: VehicleType;
-  difficulty: DifficultyLevel;
+  minDifficulty: DifficultyLevel;
+  maxDifficulty: DifficultyLevel;
   tags: TagDto[];
   description: string;
   defaultVariationVideoAssetName: string;

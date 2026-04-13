@@ -9,15 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import type { GetByIdVariationDto } from "@/models/maneuver";
+import type { VehicleType } from "@/models/shared";
+import { getDifficultyLevelColor, getDifficultyLevelLabel } from "@/models/shared";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
 
 interface VariationCardProps {
   variation: GetByIdVariationDto;
+  vehicleType: VehicleType;
   isDefault?: boolean;
 }
 
-export function VariationCard({ variation, isDefault }: VariationCardProps) {
+export function VariationCard({ variation, vehicleType, isDefault }: VariationCardProps) {
   const { data: videoPathData } = useVideoPath(variation.videoAssetName);
   const smallSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   const largeSrc = videoPathData
@@ -46,14 +49,22 @@ export function VariationCard({ variation, isDefault }: VariationCardProps) {
             <span className="font-semibold text-[13px] leading-tight line-clamp-1">
               {variation.name}
             </span>
-            {isDefault && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {isDefault && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-4 rounded-sm font-normal"
+                >
+                  Default
+                </Badge>
+              )}
               <Badge
-                variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-4 rounded-sm flex-shrink-0 font-normal"
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 h-4 rounded-sm font-mono font-bold ${getDifficultyLevelColor(variation.difficulty)}`}
               >
-                Default
+                L{variation.difficulty.charAt(5)}
               </Badge>
-            )}
+            </div>
           </CardContent>
         </Card>
       </DialogTrigger>
@@ -85,6 +96,12 @@ export function VariationCard({ variation, isDefault }: VariationCardProps) {
                   Default
                 </Badge>
               )}
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 h-4 rounded-sm font-mono font-bold ${getDifficultyLevelColor(variation.difficulty)}`}
+              >
+                {getDifficultyLevelLabel(vehicleType, variation.difficulty)}
+              </Badge>
             </DialogTitle>
           </DialogHeader>
           <article className="prose prose-zinc dark:prose-invert prose-sm mt-1 w-full max-w-none">

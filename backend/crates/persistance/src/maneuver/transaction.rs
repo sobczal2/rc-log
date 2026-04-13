@@ -22,7 +22,6 @@ struct ManeuverRow {
     vehicle_type: String,
     name: String,
     description: String,
-    difficulty: i32,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -33,6 +32,7 @@ struct VariationRow {
     description: String,
     video_asset_name: String,
     is_default: bool,
+    difficulty: i32,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -66,7 +66,28 @@ impl VariationRow {
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let video_asset_name = AssetName::new(self.video_asset_name)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(Variation::new(VariationId::new(self.id), self.name, description, video_asset_name))
+        let difficulty = match self.difficulty {
+            1 => Difficulty::Level1,
+            2 => Difficulty::Level2,
+            3 => Difficulty::Level3,
+            4 => Difficulty::Level4,
+            5 => Difficulty::Level5,
+            6 => Difficulty::Level6,
+            7 => Difficulty::Level7,
+            other => {
+                return Err(TransactionError::InvalidData(format!(
+                    "Unknown difficulty: {}",
+                    other
+                )));
+            }
+        };
+        Ok(Variation::new(
+            VariationId::new(self.id),
+            self.name,
+            description,
+            video_asset_name,
+            difficulty,
+        ))
     }
 }
 
@@ -89,22 +110,6 @@ impl ManeuverRow {
             }
         };
 
-        let difficulty = match self.difficulty {
-            1 => Difficulty::Level1,
-            2 => Difficulty::Level2,
-            3 => Difficulty::Level3,
-            4 => Difficulty::Level4,
-            5 => Difficulty::Level5,
-            6 => Difficulty::Level6,
-            7 => Difficulty::Level7,
-            other => {
-                return Err(TransactionError::InvalidData(format!(
-                    "Unknown difficulty: {}",
-                    other
-                )));
-            }
-        };
-
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
 
@@ -114,7 +119,6 @@ impl ManeuverRow {
             self.name,
             tags,
             description,
-            difficulty,
             default_variation,
             other_variations,
         ))
@@ -126,22 +130,12 @@ impl ManeuverRow {
             VehicleType::Plane => "Plane".to_string(),
             VehicleType::Drone => "Drone".to_string(),
         };
-        let difficulty = match maneuver.difficulty() {
-            Difficulty::Level1 => 1,
-            Difficulty::Level2 => 2,
-            Difficulty::Level3 => 3,
-            Difficulty::Level4 => 4,
-            Difficulty::Level5 => 5,
-            Difficulty::Level6 => 6,
-            Difficulty::Level7 => 7,
-        };
 
         Self {
             id: Uuid::from(maneuver.id()),
             vehicle_type,
             name: maneuver.name().to_string(),
             description: maneuver.description().as_str().to_string(),
-            difficulty,
         }
     }
 }
@@ -156,20 +150,18 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description, difficulty)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) DO UPDATE SET
                 vehicle_type = EXCLUDED.vehicle_type,
                 name = EXCLUDED.name,
-                description = EXCLUDED.description,
-                difficulty = EXCLUDED.difficulty
+                description = EXCLUDED.description
             "#,
         )
         .bind(maneuver_row.id)
         .bind(&maneuver_row.vehicle_type)
         .bind(&maneuver_row.name)
         .bind(&maneuver_row.description)
-        .bind(maneuver_row.difficulty)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -202,10 +194,19 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         let default_var = maneuver.default_variation();
+        let default_difficulty = match default_var.difficulty() {
+            Difficulty::Level1 => 1i32,
+            Difficulty::Level2 => 2,
+            Difficulty::Level3 => 3,
+            Difficulty::Level4 => 4,
+            Difficulty::Level5 => 5,
+            Difficulty::Level6 => 6,
+            Difficulty::Level7 => 7,
+        };
         sqlx::query(
             r#"
-            INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default)
-            VALUES ($1, $2, $3, $4, $5, TRUE)
+            INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)
+            VALUES ($1, $2, $3, $4, $5, TRUE, $6)
             "#,
         )
         .bind(Uuid::from(default_var.id()))
@@ -213,15 +214,25 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(default_var.name())
         .bind(default_var.description().as_str())
         .bind(default_var.video_asset_name().as_str())
+        .bind(default_difficulty)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         for var in maneuver.other_variations() {
+            let var_difficulty = match var.difficulty() {
+                Difficulty::Level1 => 1i32,
+                Difficulty::Level2 => 2,
+                Difficulty::Level3 => 3,
+                Difficulty::Level4 => 4,
+                Difficulty::Level5 => 5,
+                Difficulty::Level6 => 6,
+                Difficulty::Level7 => 7,
+            };
             sqlx::query(
                 r#"
-                INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default)
-                VALUES ($1, $2, $3, $4, $5, FALSE)
+                INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)
+                VALUES ($1, $2, $3, $4, $5, FALSE, $6)
                 "#,
             )
             .bind(Uuid::from(var.id()))
@@ -229,6 +240,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .bind(var.name())
             .bind(var.description().as_str())
             .bind(var.video_asset_name().as_str())
+            .bind(var_difficulty)
             .execute(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -256,7 +268,7 @@ impl SqlxManeuverTransaction {
         let mut count_query =
             QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new(
-            "SELECT m.id, m.vehicle_type, m.name, m.description, m.difficulty FROM maneuver.maneuver m",
+            "SELECT m.id, m.vehicle_type, m.name, m.description FROM maneuver.maneuver m",
         );
 
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
@@ -284,7 +296,7 @@ impl SqlxManeuverTransaction {
             if let Some(diff) = &filter.difficulty {
                 add_clause(q);
                 let d_val = match diff {
-                    Difficulty::Level1 => 1,
+                    Difficulty::Level1 => 1i32,
                     Difficulty::Level2 => 2,
                     Difficulty::Level3 => 3,
                     Difficulty::Level4 => 4,
@@ -292,8 +304,12 @@ impl SqlxManeuverTransaction {
                     Difficulty::Level6 => 6,
                     Difficulty::Level7 => 7,
                 };
-                q.push("m.difficulty = ");
-                q.push_bind(d_val);
+                // Include maneuvers whose difficulty range contains the requested level
+                q.push(d_val);
+                q.push(
+                    " BETWEEN (SELECT MIN(v.difficulty) FROM maneuver.variation v WHERE v.maneuver_id = m.id) \
+                    AND (SELECT MAX(v.difficulty) FROM maneuver.variation v WHERE v.maneuver_id = m.id)",
+                );
             }
 
             if let Some(sq) = &filter.search_query {
@@ -328,7 +344,9 @@ impl SqlxManeuverTransaction {
                 select_query.push("m.name ");
             }
             ManeuverSortField::Difficulty => {
-                select_query.push("m.difficulty ");
+                select_query.push(
+                    "(SELECT MIN(v.difficulty) FROM maneuver.variation v WHERE v.maneuver_id = m.id) ",
+                );
             }
         }
         match sort.direction {
@@ -375,11 +393,11 @@ impl SqlxManeuverTransaction {
             tags_by_maneuver.entry(row.maneuver_id).or_default().insert(Tag::from(row));
         }
 
-        let default_variation_rows: Vec<VariationRow> = sqlx::query_as(
+        let all_variation_rows: Vec<VariationRow> = sqlx::query_as(
             r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
             FROM maneuver.variation
-            WHERE maneuver_id = ANY($1) AND is_default = TRUE
+            WHERE maneuver_id = ANY($1)
             "#,
         )
         .bind(&maneuver_ids)
@@ -388,10 +406,16 @@ impl SqlxManeuverTransaction {
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         let mut default_vars_by_maneuver: HashMap<Uuid, Variation> = HashMap::new();
-        for row in default_variation_rows {
+        let mut other_vars_by_maneuver: HashMap<Uuid, Vec<Variation>> = HashMap::new();
+        for row in all_variation_rows {
             let maneuver_id = row.maneuver_id;
+            let is_default = row.is_default;
             let variation = row.try_into_variation()?;
-            default_vars_by_maneuver.insert(maneuver_id, variation);
+            if is_default {
+                default_vars_by_maneuver.insert(maneuver_id, variation);
+            } else {
+                other_vars_by_maneuver.entry(maneuver_id).or_default().push(variation);
+            }
         }
 
         let maneuvers: Result<Vec<Maneuver>, TransactionError> = maneuver_rows
@@ -405,7 +429,8 @@ impl SqlxManeuverTransaction {
                         id
                     ))
                 })?;
-                row.try_into_maneuver(tags, default_variation, vec![])
+                let other_variations = other_vars_by_maneuver.remove(&id).unwrap_or_default();
+                row.try_into_maneuver(tags, default_variation, other_variations)
             })
             .collect();
 
@@ -419,7 +444,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
 
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
-            SELECT id, vehicle_type, name, description, difficulty
+            SELECT id, vehicle_type, name, description
             FROM maneuver.maneuver
             WHERE id = $1
             "#,
@@ -449,7 +474,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
 
         let variation_rows: Vec<VariationRow> = sqlx::query_as(
             r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
             FROM maneuver.variation
             WHERE maneuver_id = $1
             "#,
@@ -532,16 +557,16 @@ mod tests {
             description: description.to_string(),
             video_asset_name: asset_name.to_string(),
             is_default: true,
+            difficulty: 1,
         }
     }
 
-    fn make_maneuver_row(vehicle_type: &str, difficulty: i32) -> ManeuverRow {
+    fn make_maneuver_row(vehicle_type: &str) -> ManeuverRow {
         ManeuverRow {
             id: Uuid::new_v4(),
             vehicle_type: vehicle_type.to_string(),
             name: "Test Maneuver".to_string(),
             description: "A valid description".to_string(),
-            difficulty,
         }
     }
 
@@ -569,6 +594,7 @@ mod tests {
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
         use rc_log_domain::asset::name::AssetName;
+        use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
         rc_log_domain::maneuver::variation::Variation::new(
@@ -576,63 +602,62 @@ mod tests {
             "default".to_string(),
             MarkdownText::new("desc".to_string()).unwrap(),
             AssetName::new("asset".to_string()).unwrap(),
+            Difficulty::Level1,
         )
     }
 
     #[test]
     fn maneuver_row_helicopter_converts() {
-        let row = make_maneuver_row("Helicopter", 1);
+        let row = make_maneuver_row("Helicopter");
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn maneuver_row_plane_converts() {
-        let row = make_maneuver_row("Plane", 3);
+        let row = make_maneuver_row("Plane");
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn maneuver_row_drone_converts() {
-        let row = make_maneuver_row("Drone", 7);
+        let row = make_maneuver_row("Drone");
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn maneuver_row_all_difficulties_convert() {
-        for d in 1..=7i32 {
-            let row = make_maneuver_row("Helicopter", d);
-            let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
-            assert!(result.is_ok(), "difficulty {d} should convert");
-        }
+        let row = make_maneuver_row("Helicopter");
+        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
+        assert!(result.is_ok(), "maneuver row should convert");
     }
 
     #[test]
     fn maneuver_row_unknown_vehicle_type_fails() {
-        let row = make_maneuver_row("Submarine", 1);
+        let row = make_maneuver_row("Submarine");
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_err());
     }
 
     #[test]
-    fn maneuver_row_difficulty_zero_fails() {
-        let row = make_maneuver_row("Helicopter", 0);
-        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
-        assert!(result.is_err());
+    fn variation_row_difficulty_zero_fails() {
+        let mut row = make_variation_row("valid description", "asset");
+        row.difficulty = 0;
+        assert!(row.try_into_variation().is_err());
     }
 
     #[test]
-    fn maneuver_row_difficulty_eight_fails() {
-        let row = make_maneuver_row("Helicopter", 8);
-        let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
-        assert!(result.is_err());
+    fn variation_row_difficulty_eight_fails() {
+        let mut row = make_variation_row("valid description", "asset");
+        row.difficulty = 8;
+        assert!(row.try_into_variation().is_err());
     }
 
     #[test]
     fn maneuver_row_empty_description_fails() {
-        let mut row = make_maneuver_row("Helicopter", 1);
+        let mut row = make_maneuver_row("Helicopter");
         row.description = String::new();
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_err());
@@ -654,15 +679,15 @@ mod tests {
             "Stall Turn".to_string(),
             BTreeSet::new(),
             MarkdownText::new("A description".to_string()).unwrap(),
-            Difficulty::Level4,
             make_default_variation(),
             vec![],
         );
         let row = ManeuverRow::from_maneuver(&maneuver);
-        assert_eq!(row.id, id); // row.id is Uuid, id is Uuid — OK
+        assert_eq!(row.id, id);
         assert_eq!(row.vehicle_type, "Plane");
-        assert_eq!(row.difficulty, 4);
         assert_eq!(row.name, "Stall Turn");
         assert_eq!(row.description, "A description");
+        // difficulty is now on Variation, verify domain min equals variation difficulty
+        assert_eq!(maneuver.min_difficulty(), Difficulty::Level1);
     }
 }

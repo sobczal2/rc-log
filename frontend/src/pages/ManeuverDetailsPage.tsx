@@ -5,7 +5,7 @@ import { maneuversApi } from "@/lib/api/maneuvers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { getVehicleIcon, getDifficultyLevelName } from "@/models/shared";
+import { getVehicleIcon, getDifficultyRangeLabel, getDifficultyRangeColor } from "@/models/shared";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
 import { VariationCard } from "@/components/maneuvers/VariationCard";
@@ -96,10 +96,12 @@ export function ManeuverDetailsPage() {
                   </div>
                 </div>
                 <div className="font-bold flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono bg-background">
-                    {maneuver.difficulty.replace("level", "L")}
+                  <Badge
+                    variant="outline"
+                    className={`font-mono bg-background ${getDifficultyRangeColor(maneuver.minDifficulty, maneuver.maxDifficulty)}`}
+                  >
+                    {getDifficultyRangeLabel(maneuver.vehicleType, maneuver.minDifficulty, maneuver.maxDifficulty)}
                   </Badge>
-                  <span>{getDifficultyLevelName(maneuver.vehicleType, maneuver.difficulty)}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {maneuver.tags.map((tag) => (
@@ -130,9 +132,9 @@ export function ManeuverDetailsPage() {
                 Variations
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <VariationCard variation={maneuver.defaultVariation} isDefault />
+                <VariationCard variation={maneuver.defaultVariation} vehicleType={maneuver.vehicleType} isDefault />
                 {maneuver.variations.map((v) => (
-                  <VariationCard key={v.id} variation={v} />
+                  <VariationCard key={v.id} variation={v} vehicleType={maneuver.vehicleType} />
                 ))}
               </div>
             </div>
