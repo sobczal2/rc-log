@@ -258,7 +258,93 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     }
 }
 
-impl SqlxManeuverTransaction {
+
+impl ManeuverTransaction for SqlxManeuverTransaction {
+    async fn get_by_id(&mut self, id: ManeuverId) -> Result<Option<Maneuver>, TransactionError> {
+        let uuid = id.as_uuid();
+
+        let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
+            r#"
+            SELECT id, vehicle_type, name, description
+            FROM maneuver.maneuver
+            WHERE id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let maneuver_row = match maneuver_row {
+            None => return Ok(None),
+            Some(r) => r,
+        };
+
+        let tag_rows: Vec<TagRow> = sqlx::query_as(
+            r#"
+            SELECT t.id, t.name
+            FROM maneuver.tag t
+            INNER JOIN maneuver.maneuver_tag mt ON t.id = mt.tag_id
+            WHERE mt.maneuver_id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let variation_rows: Vec<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            FROM maneuver.variation
+            WHERE maneuver_id = $1
+            "#,
+        )
+        .bind(uuid)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
+
+        let mut default_variation: Option<Variation> = None;
+        let mut other_variations: Vec<Variation> = Vec::new();
+        for row in variation_rows {
+            let is_default = row.is_default;
+            let variation = row.try_into_variation()?;
+            if is_default {
+                default_variation = Some(variation);
+            } else {
+                other_variations.push(variation);
+            }
+        }
+
+        let default_variation = default_variation.ok_or_else(|| {
+            TransactionError::InvalidData(format!("Maneuver {} has no default variation", uuid))
+        })?;
+
+        Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
+    }
+
+    async fn get_variation_by_id(
+        &mut self,
+        id: VariationId,
+    ) -> Result<Option<Variation>, TransactionError> {
+        let variation_row: Option<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            FROM maneuver.variation
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        variation_row.map(VariationRow::try_into_variation).transpose()
+    }
+
     async fn list(
         &mut self,
         pagination: Pagination,
@@ -435,103 +521,6 @@ impl SqlxManeuverTransaction {
             .collect();
 
         Ok((maneuvers?, total as u64))
-    }
-}
-
-impl ManeuverTransaction for SqlxManeuverTransaction {
-    async fn get_by_id(&mut self, id: ManeuverId) -> Result<Option<Maneuver>, TransactionError> {
-        let uuid = id.as_uuid();
-
-        let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
-            r#"
-            SELECT id, vehicle_type, name, description
-            FROM maneuver.maneuver
-            WHERE id = $1
-            "#,
-        )
-        .bind(uuid)
-        .fetch_optional(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let maneuver_row = match maneuver_row {
-            None => return Ok(None),
-            Some(r) => r,
-        };
-
-        let tag_rows: Vec<TagRow> = sqlx::query_as(
-            r#"
-            SELECT t.id, t.name
-            FROM maneuver.tag t
-            INNER JOIN maneuver.maneuver_tag mt ON t.id = mt.tag_id
-            WHERE mt.maneuver_id = $1
-            "#,
-        )
-        .bind(uuid)
-        .fetch_all(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let variation_rows: Vec<VariationRow> = sqlx::query_as(
-            r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
-            FROM maneuver.variation
-            WHERE maneuver_id = $1
-            "#,
-        )
-        .bind(uuid)
-        .fetch_all(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        let tags: BTreeSet<Tag> = tag_rows.into_iter().map(Tag::from).collect();
-
-        let mut default_variation: Option<Variation> = None;
-        let mut other_variations: Vec<Variation> = Vec::new();
-        for row in variation_rows {
-            let is_default = row.is_default;
-            let variation = row.try_into_variation()?;
-            if is_default {
-                default_variation = Some(variation);
-            } else {
-                other_variations.push(variation);
-            }
-        }
-
-        let default_variation = default_variation.ok_or_else(|| {
-            TransactionError::InvalidData(format!("Maneuver {} has no default variation", uuid))
-        })?;
-
-        Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
-    }
-
-    async fn get_variation_by_id(
-        &mut self,
-        id: VariationId,
-    ) -> Result<Option<Variation>, TransactionError> {
-        let variation_row: Option<VariationRow> = sqlx::query_as(
-            r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
-            FROM maneuver.variation
-            WHERE id = $1
-            "#,
-        )
-        .bind(id.as_uuid())
-        .fetch_optional(&mut *self.tx)
-        .await
-        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
-
-        variation_row.map(VariationRow::try_into_variation).transpose()
-    }
-
-    async fn list(
-        &mut self,
-        pagination: Pagination,
-        filter: rc_log_domain::maneuver::transaction::ManeuverFilter,
-        sort: rc_log_domain::maneuver::transaction::ManeuverSort,
-    ) -> Result<(Vec<Maneuver>, u64), TransactionError> {
-        // Delegate to the standalone impl
-        <Self>::list(self, pagination, filter, sort).await
     }
 }
 
