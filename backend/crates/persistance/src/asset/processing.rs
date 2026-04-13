@@ -15,24 +15,23 @@ pub(crate) const LARGE_PX: u32 = 1_600;
 
 /// WebP-encoded bytes for all size tiers produced from a single upload.
 pub(crate) struct ProcessedPhoto {
-    /// Always produced; longest side ≤ [`SMALL_PX`].
+    /// Always produced; longest side = [`SMALL_PX`].
     pub small: Vec<u8>,
-    /// Present when source longest side > [`SMALL_PX`]; longest side ≤ [`MEDIUM_PX`].
+    /// Present when source longest side ≥ [`SMALL_PX`]; longest side = [`MEDIUM_PX`].
     pub medium: Option<Vec<u8>>,
-    /// Present when source longest side > [`MEDIUM_PX`]; longest side ≤ [`LARGE_PX`].
+    /// Present when source longest side ≥ [`MEDIUM_PX`]; longest side = [`LARGE_PX`].
     pub large: Option<Vec<u8>>,
 }
 
 /// Decode `data`, produce up to three WebP size tiers, and return them.
 ///
-/// |  Source longest side  | Tiers produced         |
-/// |-----------------------|------------------------|
-/// | ≤ 400 px              | small                  |
-/// | 401 – 800 px          | small + medium         |
-/// | > 800 px              | small + medium + large |
+/// |  Source longest side  | Tiers produced         | Each tier's longest side |
+/// |-----------------------|------------------------|-------------------------|
+/// | < 400 px              | small                  | 400 px (upscaled)        |
+/// | 400 – 799 px          | small + medium         | 400 px / 800 px          |
+/// | ≥ 800 px              | small + medium + large | 400 / 800 / 1600 px      |
 ///
-/// Images are never upscaled — if the source is already smaller than a tier's
-/// target, that tier receives the source at its natural dimensions.
+/// Every tier is always resized to exactly its target size (upscaling included).
 pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoStorageError> {
     let img = image::load_from_memory(data)
         .map_err(|e| PhotoStorageError::InvalidData(format!("Decode error: {e}")))?;
@@ -42,25 +41,22 @@ pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoStorageE
     let small = encode_webp(&resize_to(&img, SMALL_PX))?;
 
     let medium =
-        (longest > SMALL_PX).then(|| encode_webp(&resize_to(&img, MEDIUM_PX))).transpose()?;
+        (longest >= SMALL_PX).then(|| encode_webp(&resize_to(&img, MEDIUM_PX))).transpose()?;
 
     let large =
-        (longest > MEDIUM_PX).then(|| encode_webp(&resize_to(&img, LARGE_PX))).transpose()?;
+        (longest >= MEDIUM_PX).then(|| encode_webp(&resize_to(&img, LARGE_PX))).transpose()?;
 
     Ok(ProcessedPhoto { small, medium, large })
 }
 
-/// Resize `img` so its longest side is at most `max_px`, preserving aspect ratio.
-/// Returns a clone unchanged when the image already fits (no upscaling).
-fn resize_to(img: &DynamicImage, max_px: u32) -> DynamicImage {
+/// Resize `img` so its longest side equals `target_px`, preserving aspect ratio.
+/// Both downscaling and upscaling are performed as needed.
+fn resize_to(img: &DynamicImage, target_px: u32) -> DynamicImage {
     let longest = img.width().max(img.height());
-    if longest <= max_px {
-        return img.clone();
-    }
-    let scale = max_px as f64 / longest as f64;
+    let scale = target_px as f64 / longest as f64;
     let new_w = (img.width() as f64 * scale).round() as u32;
     let new_h = (img.height() as f64 * scale).round() as u32;
-    img.resize(new_w, new_h, FilterType::Lanczos3)
+    img.resize_exact(new_w, new_h, FilterType::Lanczos3)
 }
 
 /// Encode `img` to lossy WebP bytes.
@@ -94,7 +90,7 @@ mod tests {
     // ── Tier selection ────────────────────────────────────────────────────────
 
     #[test]
-    fn small_only_when_image_fits_in_400() {
+    fn small_only_when_image_below_400() {
         let result = process_image(&make_png(300, 200)).unwrap();
         assert!(result.medium.is_none());
         assert!(result.large.is_none());
@@ -108,8 +104,22 @@ mod tests {
     }
 
     #[test]
-    fn all_sizes_when_larger_than_800() {
+    fn all_sizes_when_800_or_larger() {
         let result = process_image(&make_png(1200, 900)).unwrap();
+        assert!(result.medium.is_some());
+        assert!(result.large.is_some());
+    }
+
+    #[test]
+    fn exactly_400px_produces_small_and_medium() {
+        let result = process_image(&make_png(400, 300)).unwrap();
+        assert!(result.medium.is_some());
+        assert!(result.large.is_none());
+    }
+
+    #[test]
+    fn exactly_800px_produces_all_three() {
+        let result = process_image(&make_png(800, 600)).unwrap();
         assert!(result.medium.is_some());
         assert!(result.large.is_some());
     }
@@ -117,8 +127,15 @@ mod tests {
     // ── Output dimensions ─────────────────────────────────────────────────────
 
     #[test]
-    fn small_longest_side_is_400() {
+    fn small_longest_side_is_400_when_downscaling() {
         let result = process_image(&make_png(800, 600)).unwrap();
+        let (w, h) = webp_dims(&result.small);
+        assert_eq!(w.max(h), SMALL_PX);
+    }
+
+    #[test]
+    fn small_longest_side_is_400_when_upscaling() {
+        let result = process_image(&make_png(200, 150)).unwrap();
         let (w, h) = webp_dims(&result.small);
         assert_eq!(w.max(h), SMALL_PX);
     }
@@ -135,14 +152,6 @@ mod tests {
         let result = process_image(&make_png(3200, 2400)).unwrap();
         let (w, h) = webp_dims(result.large.as_ref().unwrap());
         assert_eq!(w.max(h), LARGE_PX);
-    }
-
-    #[test]
-    fn small_image_is_not_upscaled() {
-        let result = process_image(&make_png(200, 150)).unwrap();
-        let (w, h) = webp_dims(&result.small);
-        // Source is below SMALL_PX — must not be upscaled.
-        assert_eq!((w, h), (200, 150));
     }
 
     // ── Aspect ratio ──────────────────────────────────────────────────────────
