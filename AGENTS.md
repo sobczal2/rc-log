@@ -138,6 +138,9 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/create/error.rs` | `CreateSessionError` (ValidationError, InvalidData, RepositoryError) |
 | `src/session/create/model.rs` | `CreateSessionInput { user_id, date, model_id, note }`, `SessionDto` |
 | `src/session/create/use_case.rs` | `CreateSessionUseCase<SessionUoW, ModelUoW>` — validates date/note, verifies optional `model_id` exists, creates session with empty performed variations, saves |
+| `src/session/list/error.rs` | `ListSessionsError` (InvalidData, RepositoryError) |
+| `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` |
+| `src/session/list/use_case.rs` | `ListSessionsUseCase<UoW>` — owner-scoped paginated list with filters (`model_ids`, `maneuver_ids`, `search_query`) and sort (`date`) |
 | `src/session/add_performed_variation/error.rs` | `AddPerformedVariationError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
 | `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
 | `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW>` — get session, ownership check, upsert performed variation by `variation_id`, save |
@@ -276,6 +279,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/remove_photo/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content (no `response.rs` needed) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/session/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/session/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/add_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/remove_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/router.rs` | Mounts session routes |
@@ -318,6 +322,7 @@ PUT    /api/models/{id}/photo   [JWT required]  → UpdatePhotoResponse  (multip
 DELETE /api/models/{id}/photo   [JWT required]  → 204 No Content
 
 POST /api/sessions              [JWT required]  → CreateSessionResponse  (201 Created)
+GET  /api/sessions              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
 POST /api/sessions/{id}/performed-variations                    [JWT required]  → AddPerformedVariationResponse
 DELETE /api/sessions/{id}/performed-variations/{variation_id}   [JWT required]  → RemovePerformedVariationResponse
 ```

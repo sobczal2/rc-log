@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rc_log_domain::maneuver::variation::VariationId;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::session::Session;
@@ -5,12 +7,15 @@ use rc_log_domain::session::date::Date;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
 use rc_log_domain::session::rating::{Comfort, Quality, Rating, Repeatability};
-use rc_log_domain::session::transaction::SessionTransaction;
+use rc_log_domain::session::transaction::{
+    SessionFilter, SessionSort, SessionSortField, SessionTransaction, SortDirection,
+};
 use rc_log_domain::shared::markdown_text::MarkdownText;
+use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::user::id::UserId;
-use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
+use sqlx::{PgPool, Postgres, QueryBuilder, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -24,6 +29,16 @@ struct SessionRow {
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct PerformedVariationRow {
+    variation_id: Uuid,
+    quality: i16,
+    comfort: i16,
+    repeatability: i16,
+    note: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct PerformedVariationRowWithSession {
+    session_id: Uuid,
     variation_id: Uuid,
     quality: i16,
     comfort: i16,
@@ -93,6 +108,27 @@ impl PerformedVariationRow {
             .transpose()?;
 
         Ok(PerformedVariation::new(VariationId::new(self.variation_id), rating, note))
+    }
+}
+
+impl PerformedVariationRowWithSession {
+    fn try_into_performed_variation(self) -> Result<(Uuid, PerformedVariation), TransactionError> {
+        let quality = Quality::from_i16(self.quality)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let comfort = Comfort::from_i16(self.comfort)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let repeatability = Repeatability::from_i16(self.repeatability)
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+
+        let rating = Rating::new(quality, comfort, repeatability);
+
+        let note = self
+            .note
+            .map(|n| MarkdownText::new(n).map_err(|e| TransactionError::InvalidData(e.to_string())))
+            .transpose()?;
+
+        let performed = PerformedVariation::new(VariationId::new(self.variation_id), rating, note);
+        Ok((self.session_id, performed))
     }
 }
 
@@ -205,6 +241,143 @@ impl SessionTransaction for SqlxSessionTransaction {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Some(row.try_into_session(performed_variations)?))
+    }
+
+    async fn list_by_owner(
+        &mut self,
+        owner_id: UserId,
+        pagination: Pagination,
+        filter: SessionFilter,
+        sort: SessionSort,
+    ) -> Result<(Vec<Session>, u64), TransactionError> {
+        let mut count_query =
+            QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM session.session s");
+        let mut select_query = QueryBuilder::<'_, Postgres>::new(
+            "SELECT s.id, s.user_id, s.date::text AS date, s.model_id, s.note FROM session.session s",
+        );
+
+        let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
+            let mut has_where = false;
+            let mut add_clause = |builder: &mut QueryBuilder<'_, Postgres>| {
+                if !has_where {
+                    builder.push(" WHERE ");
+                    has_where = true;
+                } else {
+                    builder.push(" AND ");
+                }
+            };
+
+            add_clause(q);
+            q.push("s.user_id = ");
+            q.push_bind(owner_id.as_uuid());
+
+            if !filter.model_ids.is_empty() {
+                add_clause(q);
+                let model_ids: Vec<Uuid> = filter.model_ids.iter().map(|id| id.as_uuid()).collect();
+                q.push("s.model_id = ANY(");
+                q.push_bind(model_ids);
+                q.push(")");
+            }
+
+            if !filter.maneuver_ids.is_empty() {
+                add_clause(q);
+                let maneuver_ids: Vec<Uuid> =
+                    filter.maneuver_ids.iter().map(|id| id.as_uuid()).collect();
+                q.push(
+                    "EXISTS (SELECT 1 FROM session.performed_variation pv JOIN maneuver.variation v ON v.id = pv.variation_id WHERE pv.session_id = s.id AND v.maneuver_id = ANY(",
+                );
+                q.push_bind(maneuver_ids);
+                q.push("))");
+            }
+
+            if let Some(search_query) = &filter.search_query {
+                add_clause(q);
+                q.push("(");
+                q.push("EXISTS (SELECT 1 FROM model.model m WHERE m.id = s.model_id AND m.name ILIKE '%' || ");
+                q.push_bind(search_query.clone());
+                q.push(" || '%')");
+                q.push(" OR ");
+                q.push(
+                    "EXISTS (SELECT 1 FROM session.performed_variation pv JOIN maneuver.variation v ON v.id = pv.variation_id JOIN maneuver.maneuver mn ON mn.id = v.maneuver_id WHERE pv.session_id = s.id AND (mn.name ILIKE '%' || ",
+                );
+                q.push_bind(search_query.clone());
+                q.push(" || '%' OR v.name ILIKE '%' || ");
+                q.push_bind(search_query.clone());
+                q.push(" || '%')");
+                q.push(")");
+                q.push(")");
+            }
+        };
+
+        apply_conditions(&mut count_query);
+        apply_conditions(&mut select_query);
+
+        let total: i64 = count_query
+            .build_query_scalar()
+            .fetch_one(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        select_query.push(" ORDER BY ");
+        match sort.field {
+            SessionSortField::Date => {
+                select_query.push("s.date ");
+            }
+        };
+        match sort.direction {
+            SortDirection::Asc => {
+                select_query.push("ASC");
+            }
+            SortDirection::Desc => {
+                select_query.push("DESC");
+            }
+        };
+        select_query.push(", s.id DESC");
+
+        select_query.push(" LIMIT ");
+        select_query.push_bind(pagination.limit() as i64);
+        select_query.push(" OFFSET ");
+        select_query.push_bind(pagination.offset() as i64);
+
+        let session_rows: Vec<SessionRow> = select_query
+            .build_query_as()
+            .fetch_all(&mut *self.tx)
+            .await
+            .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        if session_rows.is_empty() {
+            return Ok((vec![], total as u64));
+        }
+
+        let session_ids: Vec<Uuid> = session_rows.iter().map(|row| row.id).collect();
+
+        let performed_rows: Vec<PerformedVariationRowWithSession> = sqlx::query_as(
+            r#"
+            SELECT session_id, variation_id, quality, comfort, repeatability, note
+            FROM session.performed_variation
+            WHERE session_id = ANY($1)
+            "#,
+        )
+        .bind(&session_ids)
+        .fetch_all(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        let mut performed_by_session: HashMap<Uuid, Vec<PerformedVariation>> = HashMap::new();
+        for row in performed_rows {
+            let (session_id, performed) = row.try_into_performed_variation()?;
+            performed_by_session.entry(session_id).or_default().push(performed);
+        }
+
+        let sessions = session_rows
+            .into_iter()
+            .map(|row| {
+                let performed_variations = performed_by_session.remove(&row.id).unwrap_or_default();
+                row.try_into_session(performed_variations)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok((sessions, total as u64))
     }
 }
 

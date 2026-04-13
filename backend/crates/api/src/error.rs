@@ -16,6 +16,7 @@ use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::session::add_performed_variation::error::AddPerformedVariationError;
 use rc_log_application::session::create::error::CreateSessionError;
+use rc_log_application::session::list::error::ListSessionsError;
 use rc_log_application::session::remove_performed_variation::error::RemovePerformedVariationError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
@@ -305,6 +306,24 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::CreateSession(
                 CreateSessionError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // List sessions errors
+            ApiError::Application(ApplicationError::ListSessions(
+                ListSessionsError::InvalidData(ref msg),
+            )) => {
+                error!(details = %msg, "invalid data in session response");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "Internal server error" })),
+                )
+                    .into_response()
+            }
+            ApiError::Application(ApplicationError::ListSessions(
+                ListSessionsError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
