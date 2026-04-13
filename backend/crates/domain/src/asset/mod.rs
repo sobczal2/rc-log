@@ -7,6 +7,7 @@ pub mod photo_transaction;
 pub mod size;
 pub mod video;
 pub mod video_resolver;
+pub mod video_transaction;
 
 pub use name::{AssetName, AssetNameError};
 pub use path::{AssetPath, AssetPathError};
@@ -17,3 +18,4 @@ pub use photo_transaction::PhotoTransaction;
 pub use size::AssetSize;
 pub use video::{Video, VideoId};
 pub use video_resolver::VideoResolver;
+pub use video_transaction::VideoTransaction;
