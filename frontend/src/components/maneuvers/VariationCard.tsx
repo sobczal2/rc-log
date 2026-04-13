@@ -10,7 +10,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import type { GetByIdVariationDto } from "@/models/maneuver";
 import type { VehicleType } from "@/models/shared";
-import { getDifficultyLevelColor, getDifficultyLevelLabel } from "@/models/shared";
+import { DifficultyBadgeLong, DifficultyBadgeShort } from "@/components/ui/difficulty-badge";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
 
@@ -58,12 +58,10 @@ export function VariationCard({ variation, vehicleType, isDefault }: VariationCa
                   Default
                 </Badge>
               )}
-              <Badge
-                variant="outline"
-                className={`text-[10px] px-1.5 py-0 h-4 rounded-sm font-mono font-bold ${getDifficultyLevelColor(variation.difficulty)}`}
-              >
-                L{variation.difficulty.charAt(5)}
-              </Badge>
+              <DifficultyBadgeShort
+                difficulty={variation.difficulty}
+                className="text-[10px] px-1.5 py-0 h-4"
+              />
             </div>
           </CardContent>
         </Card>
@@ -96,12 +94,11 @@ export function VariationCard({ variation, vehicleType, isDefault }: VariationCa
                   Default
                 </Badge>
               )}
-              <Badge
-                variant="outline"
-                className={`text-[10px] px-1.5 py-0 h-4 rounded-sm font-mono font-bold ${getDifficultyLevelColor(variation.difficulty)}`}
-              >
-                {getDifficultyLevelLabel(vehicleType, variation.difficulty)}
-              </Badge>
+              <DifficultyBadgeLong
+                vehicleType={vehicleType}
+                difficulty={variation.difficulty}
+                className="text-[10px] px-1.5 py-0 h-4"
+              />
             </DialogTitle>
           </DialogHeader>
           <article className="prose prose-zinc dark:prose-invert prose-sm mt-1 w-full max-w-none">
