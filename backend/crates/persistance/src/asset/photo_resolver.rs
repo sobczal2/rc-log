@@ -6,6 +6,7 @@ use rc_log_domain::asset::photo_transaction::PhotoTransaction;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
+use crate::shared::cache_settings::CacheSettings;
 use sqlx::PgPool;
 
 use super::transaction::SqlxPhotoUnitOfWork;
@@ -17,8 +18,8 @@ pub struct SqlxPhotoResolver {
 }
 
 impl SqlxPhotoResolver {
-    pub fn new(pool: PgPool, capacity: u64) -> Self {
-        let cache = Cache::new(capacity);
+    pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
+        let cache = Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
         Self { photo_uow: SqlxPhotoUnitOfWork::new(pool), cache }
     }
 }
