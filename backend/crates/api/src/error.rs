@@ -258,7 +258,7 @@ impl IntoResponse for ApiError {
                 UpdateModelPhotoError::RepositoryError(_),
             ))
             | ApiError::Application(ApplicationError::UpdateModelPhoto(
-                UpdateModelPhotoError::PhotoStorageError(_),
+                UpdateModelPhotoError::PhotoServiceError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
@@ -282,7 +282,7 @@ impl IntoResponse for ApiError {
                 RemoveModelPhotoError::RepositoryError(_),
             ))
             | ApiError::Application(ApplicationError::RemoveModelPhoto(
-                RemoveModelPhotoError::PhotoStorageError(_),
+                RemoveModelPhotoError::PhotoServiceError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
@@ -325,7 +325,7 @@ impl IntoResponse for ApiError {
                 UpdateUserPhotoError::RepositoryError(_),
             ))
             | ApiError::Application(ApplicationError::UpdateUserPhoto(
-                UpdateUserPhotoError::PhotoStorageError(_),
+                UpdateUserPhotoError::PhotoServiceError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
@@ -344,7 +344,7 @@ impl IntoResponse for ApiError {
                 RemoveUserPhotoError::RepositoryError(_),
             ))
             | ApiError::Application(ApplicationError::RemoveUserPhoto(
-                RemoveUserPhotoError::PhotoStorageError(_),
+                RemoveUserPhotoError::PhotoServiceError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

@@ -15,7 +15,7 @@ pub async fn delete_model(
     id: DeleteRequest,
 ) -> Result<StatusCode, ApiError> {
     debug!("Handling delete_model request");
-    let mut use_case = DeleteModelUseCase::new(state.model_uow, state.photo_storage);
+    let mut use_case = DeleteModelUseCase::new(state.model_uow, state.photo_service);
     use_case.execute(DeleteModelInput { id: id.0, owner_id: auth.id }).await?;
     debug!("Model deleted");
     Ok(StatusCode::NO_CONTENT)

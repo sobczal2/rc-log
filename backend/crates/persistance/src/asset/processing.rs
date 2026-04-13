@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat};
-use rc_log_domain::asset::photo_storage::PhotoStorageError;
+use rc_log_domain::asset::photo_service::PhotoServiceError;
 
 // ─── Size constants ────────────────────────────────────────────────────────────
 
@@ -32,9 +32,9 @@ pub(crate) struct ProcessedPhoto {
 /// | ≥ 800 px              | small + medium + large | 400 / 800 / 1600 px      |
 ///
 /// Every tier is always resized to exactly its target size (upscaling included).
-pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoStorageError> {
+pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoServiceError> {
     let img = image::load_from_memory(data)
-        .map_err(|e| PhotoStorageError::InvalidData(format!("Decode error: {e}")))?;
+        .map_err(|e| PhotoServiceError::InvalidData(format!("Decode error: {e}")))?;
 
     let longest = img.width().max(img.height());
 
@@ -60,10 +60,10 @@ fn resize_to(img: &DynamicImage, target_px: u32) -> DynamicImage {
 }
 
 /// Encode `img` to lossy WebP bytes.
-fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoStorageError> {
+fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoServiceError> {
     let mut buf = Cursor::new(Vec::new());
     img.write_to(&mut buf, ImageFormat::WebP)
-        .map_err(|e| PhotoStorageError::InvalidData(format!("WebP encode error: {e}")))?;
+        .map_err(|e| PhotoServiceError::InvalidData(format!("WebP encode error: {e}")))?;
     Ok(buf.into_inner())
 }
 
@@ -171,6 +171,6 @@ mod tests {
     #[test]
     fn invalid_bytes_return_error() {
         let result = process_image(b"not an image");
-        assert!(matches!(result, Err(PhotoStorageError::InvalidData(_))));
+        assert!(matches!(result, Err(PhotoServiceError::InvalidData(_))));
     }
 }

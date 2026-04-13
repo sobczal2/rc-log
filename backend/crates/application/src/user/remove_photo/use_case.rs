@@ -1,4 +1,4 @@
-use rc_log_domain::asset::photo_storage::PhotoStorage;
+use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::user::User;
@@ -12,17 +12,17 @@ use crate::error::ApplicationError;
 
 pub struct RemoveUserPhotoUseCase<UoW, PS> {
     uow: UoW,
-    photo_storage: PS,
+    photo_service: PS,
 }
 
 impl<UoW, PS> RemoveUserPhotoUseCase<UoW, PS>
 where
     UoW: UnitOfWork<User>,
     UoW::Transaction: UserTransaction,
-    PS: PhotoStorage,
+    PS: PhotoService,
 {
-    pub fn new(uow: UoW, photo_storage: PS) -> Self {
-        Self { uow, photo_storage }
+    pub fn new(uow: UoW, photo_service: PS) -> Self {
+        Self { uow, photo_service }
     }
 
     #[instrument(skip(self, input), fields(user_id = %input.user_id))]
@@ -58,7 +58,7 @@ where
 
         if let Some(old_name) = old_photo_name {
             debug!("Deleting old photo (best effort)");
-            if let Err(e) = self.photo_storage.delete(&old_name).await {
+            if let Err(e) = self.photo_service.delete(&old_name).await {
                 warn!("Failed to delete old user photo: {}", e);
             }
         }

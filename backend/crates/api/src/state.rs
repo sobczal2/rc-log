@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use rc_log_persistance::asset::photo::SqlxPhotoResolver;
-use rc_log_persistance::asset::photo_storage::DiskDbPhotoStorage;
+use rc_log_persistance::asset::photo_service::DiskDbPhotoService;
 use rc_log_persistance::asset::video::SqlxVideoResolver;
 use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
@@ -15,7 +15,7 @@ pub struct AppState {
     pub user_uow: SqlxUserUnitOfWork,
     pub video_resolver: SqlxVideoResolver,
     pub photo_resolver: SqlxPhotoResolver,
-    pub photo_storage: DiskDbPhotoStorage,
+    pub photo_service: DiskDbPhotoService,
     pub jwt_secret: String,
 }
 
@@ -32,7 +32,7 @@ impl AppState {
             user_uow: SqlxUserUnitOfWork::new(pool.clone()),
             video_resolver: SqlxVideoResolver::new(pool.clone(), asset_cache_size),
             photo_resolver: SqlxPhotoResolver::new(pool.clone(), asset_cache_size),
-            photo_storage: DiskDbPhotoStorage::new(pool, asset_path),
+            photo_service: DiskDbPhotoService::new(pool, asset_path),
             jwt_secret,
         }
     }

@@ -1,4 +1,4 @@
-use rc_log_domain::asset::photo_storage::PhotoStorageError;
+use rc_log_domain::asset::photo_service::PhotoServiceError;
 use rc_log_domain::shared::transaction::TransactionError;
 
 #[derive(Debug, thiserror::Error)]
@@ -13,8 +13,8 @@ pub enum UpdateModelPhotoError {
     InvalidData(String),
     #[error("Repository error: {0}")]
     RepositoryError(String),
-    #[error("Photo storage error: {0}")]
-    PhotoStorageError(String),
+    #[error("Photo service error: {0}")]
+    PhotoServiceError(String),
 }
 
 impl From<TransactionError> for UpdateModelPhotoError {
@@ -26,12 +26,12 @@ impl From<TransactionError> for UpdateModelPhotoError {
     }
 }
 
-impl From<PhotoStorageError> for UpdateModelPhotoError {
-    fn from(err: PhotoStorageError) -> Self {
+impl From<PhotoServiceError> for UpdateModelPhotoError {
+    fn from(err: PhotoServiceError) -> Self {
         match err {
-            PhotoStorageError::InvalidData(msg) => UpdateModelPhotoError::InvalidPhotoContent(msg),
-            PhotoStorageError::IoError(msg) => UpdateModelPhotoError::PhotoStorageError(msg),
-            PhotoStorageError::DatabaseError(msg) => UpdateModelPhotoError::PhotoStorageError(msg),
+            PhotoServiceError::InvalidData(msg) => UpdateModelPhotoError::InvalidPhotoContent(msg),
+            PhotoServiceError::IoError(msg) => UpdateModelPhotoError::PhotoServiceError(msg),
+            PhotoServiceError::DatabaseError(msg) => UpdateModelPhotoError::PhotoServiceError(msg),
         }
     }
 }

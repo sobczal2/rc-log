@@ -5,7 +5,7 @@ use tokio::fs;
 // ─── Error ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum AssetStorageError {
+pub enum AssetStorageError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -17,18 +17,18 @@ pub(crate) enum AssetStorageError {
 /// All paths are relative to the configured `root` directory. The storage does
 /// not interact with the database — it only reads and writes files.
 #[derive(Clone)]
-pub(crate) struct AssetStorage {
+pub struct AssetStorage {
     root: PathBuf,
 }
 
 impl AssetStorage {
-    pub(crate) fn new(root: PathBuf) -> Self {
+    pub fn new(root: PathBuf) -> Self {
         Self { root }
     }
 
     /// Write `data` to `rel_path` (relative to the root), creating parent
     /// directories as needed.
-    pub(crate) async fn save(
+    pub async fn save(
         &self,
         rel_path: &str,
         data: &[u8],
@@ -45,7 +45,7 @@ impl AssetStorage {
     ///
     /// Returns `Ok(())` when the file does not exist — callers should treat a
     /// missing file as an already-completed delete.
-    pub(crate) async fn delete(&self, rel_path: &str) -> Result<(), AssetStorageError> {
+    pub async fn delete(&self, rel_path: &str) -> Result<(), AssetStorageError> {
         let abs = self.root.join(rel_path);
         match fs::remove_file(&abs).await {
             Ok(()) => Ok(()),

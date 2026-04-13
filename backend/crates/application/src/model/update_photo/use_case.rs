@@ -1,5 +1,5 @@
 use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::photo_storage::PhotoStorage;
+use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::transaction::ModelTransaction;
@@ -15,17 +15,17 @@ use crate::error::ApplicationError;
 
 pub struct UpdateModelPhotoUseCase<UoW, PS> {
     uow: UoW,
-    photo_storage: PS,
+    photo_service: PS,
 }
 
 impl<UoW, PS> UpdateModelPhotoUseCase<UoW, PS>
 where
     UoW: UnitOfWork<Model>,
     UoW::Transaction: ModelTransaction,
-    PS: PhotoStorage,
+    PS: PhotoService,
 {
-    pub fn new(uow: UoW, photo_storage: PS) -> Self {
-        Self { uow, photo_storage }
+    pub fn new(uow: UoW, photo_service: PS) -> Self {
+        Self { uow, photo_service }
     }
 
     #[instrument(skip(self, input), fields(model_id = %input.model_id, owner_id = %input.owner_id))]
@@ -59,10 +59,10 @@ where
 
         debug!("Storing new photo");
         let new_photo = self
-            .photo_storage
-            .store(&new_asset_name, &input.data)
+            .photo_service
+            .save(&new_asset_name, &input.data)
             .await
-            .map_err(|e| UpdateModelPhotoError::PhotoStorageError(e.to_string()))?;
+            .map_err(UpdateModelPhotoError::from)?;
 
         let updated = Model::new(
             model.id(),
@@ -80,7 +80,7 @@ where
 
         if let Some(old_name) = old_photo_name {
             debug!(name = %old_name.as_str(), "Deleting old photo (best-effort)");
-            if let Err(e) = self.photo_storage.delete(&old_name).await {
+            if let Err(e) = self.photo_service.delete(&old_name).await {
                 warn!(error = %e, name = %old_name.as_str(), "Failed to delete old photo");
             }
         }

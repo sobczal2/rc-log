@@ -1,4 +1,4 @@
-use rc_log_domain::asset::photo_storage::PhotoStorage;
+use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::transaction::ModelTransaction;
@@ -13,17 +13,17 @@ use crate::error::ApplicationError;
 
 pub struct DeleteModelUseCase<UoW, PS> {
     uow: UoW,
-    photo_storage: PS,
+    photo_service: PS,
 }
 
 impl<UoW, PS> DeleteModelUseCase<UoW, PS>
 where
     UoW: UnitOfWork<Model>,
     UoW::Transaction: ModelTransaction,
-    PS: PhotoStorage,
+    PS: PhotoService,
 {
-    pub fn new(uow: UoW, photo_storage: PS) -> Self {
-        Self { uow, photo_storage }
+    pub fn new(uow: UoW, photo_service: PS) -> Self {
+        Self { uow, photo_service }
     }
 
     #[instrument(skip(self), fields(model_id = %input.id, owner_id = %input.owner_id))]
@@ -57,7 +57,7 @@ where
 
         if let Some(name) = photo_name {
             debug!(name = %name.as_str(), "Deleting model photo (best-effort)");
-            if let Err(e) = self.photo_storage.delete(&name).await {
+            if let Err(e) = self.photo_service.delete(&name).await {
                 warn!(error = %e, name = %name.as_str(), "Failed to delete model photo");
             }
         }
