@@ -1,8 +1,10 @@
 pub mod difficulty;
 pub mod id;
+pub mod maneuver_resolver;
 pub mod tag;
 pub mod transaction;
 pub mod variation;
+pub mod variation_resolver;
 
 use std::collections::BTreeSet;
 

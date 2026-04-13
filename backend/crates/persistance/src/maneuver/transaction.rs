@@ -505,6 +505,25 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
         Ok(Some(maneuver_row.try_into_maneuver(tags, default_variation, other_variations)?))
     }
 
+    async fn get_variation_by_id(
+        &mut self,
+        id: VariationId,
+    ) -> Result<Option<Variation>, TransactionError> {
+        let variation_row: Option<VariationRow> = sqlx::query_as(
+            r#"
+            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            FROM maneuver.variation
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        variation_row.map(VariationRow::try_into_variation).transpose()
+    }
+
     async fn list(
         &mut self,
         pagination: Pagination,

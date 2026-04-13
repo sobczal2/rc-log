@@ -3,6 +3,7 @@ use std::future::Future;
 use crate::maneuver::Maneuver;
 use crate::maneuver::difficulty::Difficulty;
 use crate::maneuver::id::ManeuverId;
+use crate::maneuver::variation::{Variation, VariationId};
 use crate::shared::pagination::Pagination;
 use crate::shared::transaction::{Transaction, TransactionError};
 use crate::shared::vehicle_type::VehicleType;
@@ -13,6 +14,11 @@ pub trait ManeuverTransaction: Transaction<Maneuver> {
         &mut self,
         id: ManeuverId,
     ) -> impl Future<Output = Result<Option<Maneuver>, TransactionError>> + Send;
+
+    fn get_variation_by_id(
+        &mut self,
+        id: VariationId,
+    ) -> impl Future<Output = Result<Option<Variation>, TransactionError>> + Send;
 
     fn list(
         &mut self,
