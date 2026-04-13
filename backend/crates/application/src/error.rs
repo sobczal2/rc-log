@@ -12,6 +12,7 @@ use crate::session::add_performed_variation::error::AddPerformedVariationError;
 use crate::session::create::error::CreateSessionError;
 use crate::session::list::error::ListSessionsError;
 use crate::session::remove_performed_variation::error::RemovePerformedVariationError;
+use crate::session::update::error::UpdateSessionError;
 use crate::user::get_by_id::error::GetUserByIdError;
 use crate::user::get_by_username::error::GetUserByUsernameError;
 use crate::user::remove_photo::error::RemoveUserPhotoError;
@@ -49,6 +50,8 @@ pub enum ApplicationError {
     AddPerformedVariation(#[from] AddPerformedVariationError),
     #[error(transparent)]
     RemovePerformedVariation(#[from] RemovePerformedVariationError),
+    #[error(transparent)]
+    UpdateSession(#[from] UpdateSessionError),
     #[error(transparent)]
     GetUserById(#[from] GetUserByIdError),
     #[error(transparent)]

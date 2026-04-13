@@ -18,6 +18,7 @@ use rc_log_application::session::add_performed_variation::error::AddPerformedVar
 use rc_log_application::session::create::error::CreateSessionError;
 use rc_log_application::session::list::error::ListSessionsError;
 use rc_log_application::session::remove_performed_variation::error::RemovePerformedVariationError;
+use rc_log_application::session::update::error::UpdateSessionError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::remove_photo::error::RemoveUserPhotoError;
@@ -324,6 +325,35 @@ impl IntoResponse for ApiError {
             }
             ApiError::Application(ApplicationError::ListSessions(
                 ListSessionsError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Update session errors
+            ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::ModelNotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Model not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateSession(
+                UpdateSessionError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),
