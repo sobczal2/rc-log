@@ -43,8 +43,7 @@ export const modelsApi = {
     fd.append("photo", file);
     const { data } = await apiClient.put<GetByIdModelDto>(
       `/models/${encodeURIComponent(id)}/photo`,
-      fd,
-      { headers: { "Content-Type": undefined } },
+      fd
     );
     return data;
   },

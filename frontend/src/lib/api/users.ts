@@ -14,9 +14,7 @@ export const usersApi = {
   updatePhoto: async (file: File): Promise<User> => {
     const fd = new FormData();
     fd.append("photo", file);
-    const { data } = await apiClient.put<User>("/users/me/photo", fd, {
-      headers: { "Content-Type": undefined },
-    });
+    const { data } = await apiClient.put<User>("/users/me/photo", fd);
     return data;
   },
 

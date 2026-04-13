@@ -9,6 +9,7 @@ mod model;
 mod state;
 mod user;
 
+use axum::extract::DefaultBodyLimit;
 use axum::{Router, serve};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -56,6 +57,7 @@ async fn main() {
         .merge(auth_router())
         .merge(user_router())
         .merge(asset_paths_router())
+        .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
         .with_state(state)
         .nest_service("/api/assets", ServeDir::new(config.asset_path.clone()));
 
