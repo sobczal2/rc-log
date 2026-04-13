@@ -16,8 +16,11 @@ use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
+use rc_log_application::user::remove_photo::error::RemoveUserPhotoError;
 use rc_log_application::user::sign_in::error::SignInError;
 use rc_log_application::user::sign_up::error::SignUpError;
+use rc_log_application::user::update::error::UpdateUserError;
+use rc_log_application::user::update_photo::error::UpdateUserPhotoError;
 use rc_log_application::video::resolve::error::ResolveVideoError;
 use serde_json::json;
 use tracing::error;
@@ -280,6 +283,68 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::RemoveModelPhoto(
                 RemoveModelPhotoError::PhotoStorageError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Update user errors
+            ApiError::Application(ApplicationError::UpdateUser(UpdateUserError::NotFound)) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateUser(
+                UpdateUserError::UsernameTaken,
+            )) => (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
+                .into_response(),
+            ApiError::Application(ApplicationError::UpdateUser(
+                UpdateUserError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::UpdateUser(
+                UpdateUserError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateUser(
+                UpdateUserError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Update user photo errors
+            ApiError::Application(ApplicationError::UpdateUserPhoto(
+                UpdateUserPhotoError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdateUserPhoto(
+                UpdateUserPhotoError::InvalidPhotoContent(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::UpdateUserPhoto(
+                UpdateUserPhotoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateUserPhoto(
+                UpdateUserPhotoError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdateUserPhoto(
+                UpdateUserPhotoError::PhotoStorageError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Remove user photo errors
+            ApiError::Application(ApplicationError::RemoveUserPhoto(
+                RemoveUserPhotoError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::RemoveUserPhoto(
+                RemoveUserPhotoError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::RemoveUserPhoto(
+                RemoveUserPhotoError::RepositoryError(_),
+            ))
+            | ApiError::Application(ApplicationError::RemoveUserPhoto(
+                RemoveUserPhotoError::PhotoStorageError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

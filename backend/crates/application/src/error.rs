@@ -10,8 +10,11 @@ use crate::model::update_photo::error::UpdateModelPhotoError;
 use crate::photo::resolve::error::ResolvePhotoError;
 use crate::user::get_by_id::error::GetUserByIdError;
 use crate::user::get_by_username::error::GetUserByUsernameError;
+use crate::user::remove_photo::error::RemoveUserPhotoError;
 use crate::user::sign_in::error::SignInError;
 use crate::user::sign_up::error::SignUpError;
+use crate::user::update::error::UpdateUserError;
+use crate::user::update_photo::error::UpdateUserPhotoError;
 use crate::video::resolve::error::ResolveVideoError;
 
 #[derive(Debug, thiserror::Error)]
@@ -42,6 +45,12 @@ pub enum ApplicationError {
     SignIn(#[from] SignInError),
     #[error(transparent)]
     SignUp(#[from] SignUpError),
+    #[error(transparent)]
+    UpdateUser(#[from] UpdateUserError),
+    #[error(transparent)]
+    UpdateUserPhoto(#[from] UpdateUserPhotoError),
+    #[error(transparent)]
+    RemoveUserPhoto(#[from] RemoveUserPhotoError),
     #[error(transparent)]
     ResolveVideo(#[from] ResolveVideoError),
     #[error(transparent)]

@@ -1,24 +1,97 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2, User } from "lucide-react";
+import { useRef, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  User,
+  X,
+  Check,
+  Camera,
+  Trash2,
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ModelCard } from "@/components/models/ModelCard";
 import { CreateModelDialog } from "@/components/models/CreateModelDialog";
 import { modelsApi } from "@/lib/api/models";
+import { usersApi } from "@/lib/api/users";
 import { useAuth } from "@/hooks/useAuth";
+import { usePhotoPath } from "@/hooks/usePhotoPath";
+import { getPhotoUrl } from "@/models/asset/photo";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 const PAGE_SIZE = 20;
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+
+  // Username editing
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  // Photo file input ref
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ["models", { page }],
     queryFn: () => modelsApi.list({ page, pageSize: PAGE_SIZE }),
   });
+
+  const { data: photoPaths } = usePhotoPath(user?.photoAssetName ?? null);
+
+  const photoUrl = photoPaths?.smallPath ? getPhotoUrl(photoPaths.smallPath) : null;
+
+  const updateUsernameMutation = useMutation({
+    mutationFn: (newUsername: string) => usersApi.update({ newUsername }),
+    onSuccess: (updatedUser) => {
+      updateUser(updatedUser);
+      setEditingUsername(false);
+      setUsernameError(null);
+    },
+    onError: (err) => {
+      setUsernameError(getApiErrorMessage(err) ?? "Failed to update username");
+    },
+  });
+
+  const updatePhotoMutation = useMutation({
+    mutationFn: (file: File) => usersApi.updatePhoto(file),
+    onSuccess: (updatedUser) => {
+      updateUser(updatedUser);
+      queryClient.invalidateQueries({ queryKey: ["photo-path", user?.photoAssetName] });
+    },
+  });
+
+  const removePhotoMutation = useMutation({
+    mutationFn: () => usersApi.removePhoto(),
+    onSuccess: () => {
+      if (user) updateUser({ ...user, photoAssetName: null });
+    },
+  });
+
+  const handleStartEditUsername = () => {
+    setUsernameInput(user?.username ?? "");
+    setUsernameError(null);
+    setEditingUsername(true);
+  };
+
+  const handleSaveUsername = () => {
+    if (!usernameInput.trim()) return;
+    updateUsernameMutation.mutate(usernameInput.trim());
+  };
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    updatePhotoMutation.mutate(file);
+    e.target.value = "";
+  };
 
   const models = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
@@ -27,12 +100,99 @@ export function ProfilePage() {
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 h-full w-full max-w-5xl mx-auto">
       {/* Profile header */}
-      <div className="flex items-center gap-3">
-        <div className="size-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground/60 flex-shrink-0">
-          <User size={28} />
+      <div className="flex items-center gap-4">
+        {/* Avatar with photo upload controls */}
+        <div className="relative flex-shrink-0 group">
+          <div className="size-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground/60 overflow-hidden">
+            {photoUrl ? (
+              <img src={photoUrl} alt="Profile" className="size-full object-cover" />
+            ) : updatePhotoMutation.isPending ? (
+              <Loader2 className="animate-spin size-6" />
+            ) : (
+              <User size={28} />
+            )}
+          </div>
+          {/* Upload overlay */}
+          <button
+            className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={updatePhotoMutation.isPending || removePhotoMutation.isPending}
+            title="Change photo"
+          >
+            <Camera size={18} className="text-white" />
+          </button>
+          {/* Remove photo button */}
+          {user?.photoAssetName && (
+            <button
+              className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removePhotoMutation.mutate()}
+              disabled={removePhotoMutation.isPending}
+              title="Remove photo"
+            >
+              <Trash2 size={10} />
+            </button>
+          )}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handlePhotoFileChange}
+          />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{user?.username}</h1>
+
+        {/* Username + email */}
+        <div className="flex flex-col gap-1 min-w-0">
+          {editingUsername ? (
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-8 text-lg font-bold w-48"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveUsername();
+                  if (e.key === "Escape") setEditingUsername(false);
+                }}
+                autoFocus
+              />
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={handleSaveUsername}
+                disabled={updateUsernameMutation.isPending}
+              >
+                {updateUsernameMutation.isPending ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Check className="size-3" />
+                )}
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => setEditingUsername(false)}
+                disabled={updateUsernameMutation.isPending}
+              >
+                <X className="size-3" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight truncate">{user?.username}</h1>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={handleStartEditUsername}
+                className="text-muted-foreground"
+                title="Edit username"
+              >
+                <Pencil className="size-3" />
+              </Button>
+            </div>
+          )}
+          {usernameError && (
+            <p className="text-xs text-destructive">{usernameError}</p>
+          )}
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
       </div>

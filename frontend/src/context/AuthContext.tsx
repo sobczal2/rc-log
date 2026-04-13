@@ -43,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((newUser: User) => {
+    localStorage.setItem("user", JSON.stringify(newUser));
+    setUser(newUser);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -52,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        updateUser,
       }}
     >
       {children}

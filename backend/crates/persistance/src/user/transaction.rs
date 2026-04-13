@@ -1,3 +1,4 @@
+use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -12,6 +13,7 @@ struct UserRow {
     username: String,
     email: String,
     password_hash: String,
+    photo_asset_name: Option<String>,
 }
 
 impl UserRow {
@@ -22,7 +24,12 @@ impl UserRow {
             Email::new(self.email).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let password_hash = PasswordHash::new(self.password_hash)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(User::new(UserId::new(self.id), username, email, password_hash))
+        let photo_asset_name = self
+            .photo_asset_name
+            .map(AssetName::new)
+            .transpose()
+            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        Ok(User::new(UserId::new(self.id), username, email, password_hash, photo_asset_name))
     }
 
     fn from_user(user: &User) -> Self {
@@ -31,6 +38,7 @@ impl UserRow {
             username: user.username().as_str().to_string(),
             email: user.email().as_str().to_string(),
             password_hash: user.password_hash().as_str().to_string(),
+            photo_asset_name: user.photo_asset_name().map(|n| n.as_str().to_string()),
         }
     }
 }
@@ -45,18 +53,20 @@ impl Transaction<User> for SqlxUserTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO "user"."user" (id, username, email, password_hash)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO "user"."user" (id, username, email, password_hash, photo_asset_name)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 username = EXCLUDED.username,
                 email = EXCLUDED.email,
-                password_hash = EXCLUDED.password_hash
+                password_hash = EXCLUDED.password_hash,
+                photo_asset_name = EXCLUDED.photo_asset_name
             "#,
         )
         .bind(user_row.id)
         .bind(&user_row.username)
         .bind(&user_row.email)
         .bind(&user_row.password_hash)
+        .bind(&user_row.photo_asset_name)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| {
@@ -89,7 +99,7 @@ impl UserTransaction for SqlxUserTransaction {
     async fn get_by_id(&mut self, id: UserId) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash
+            SELECT id, username, email, password_hash, photo_asset_name
             FROM "user"."user"
             WHERE id = $1
             "#,
@@ -108,7 +118,7 @@ impl UserTransaction for SqlxUserTransaction {
     ) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash
+            SELECT id, username, email, password_hash, photo_asset_name
             FROM "user"."user"
             WHERE username = $1
             "#,
@@ -124,7 +134,7 @@ impl UserTransaction for SqlxUserTransaction {
     async fn get_by_email(&mut self, email: &Email) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash
+            SELECT id, username, email, password_hash, photo_asset_name
             FROM "user"."user"
             WHERE email = $1
             "#,
@@ -175,6 +185,7 @@ mod tests {
             username: username.to_string(),
             email: email.to_string(),
             password_hash: password_hash.to_string(),
+            photo_asset_name: None,
         }
     }
 
@@ -222,6 +233,7 @@ mod tests {
             Username::new("bob".to_string()).unwrap(),
             Email::new("bob@example.com".to_string()).unwrap(),
             PasswordHash::new("hash123".to_string()).unwrap(),
+            None,
         );
         let row = UserRow::from_user(&user);
         assert_eq!(row.id, id); // row.id is Uuid, id is Uuid — OK

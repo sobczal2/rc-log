@@ -60,7 +60,7 @@ where
         }
 
         debug!("Saving new user");
-        let user = User::new(UserId::new(Uuid::new_v4()), username, email, password_hash);
+        let user = User::new(UserId::new(Uuid::new_v4()), username, email, password_hash, None);
         tx.save(&user).await.map_err(SignUpError::from)?;
 
         debug!("Committing transaction");

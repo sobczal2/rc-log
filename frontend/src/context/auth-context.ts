@@ -9,6 +9,7 @@ export interface AuthContextValue {
   signIn: (req: SignInRequest) => Promise<void>;
   signUp: (req: SignUpRequest) => Promise<void>;
   signOut: () => void;
+  updateUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
