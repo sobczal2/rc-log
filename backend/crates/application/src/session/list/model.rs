@@ -176,6 +176,7 @@ pub struct SessionDto {
     pub model_id: Option<Uuid>,
     pub model_name: Option<String>,
     pub model_type: Option<VehicleTypeDto>,
+    pub model_photo_asset_name: Option<String>,
     pub performed_variations: Vec<PerformedVariationDto>,
 }
 

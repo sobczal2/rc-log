@@ -64,8 +64,8 @@ where
 
         let mut items = Vec::with_capacity(sessions.len());
         for session in sessions {
-            let (model_name, mut model_type) = match session.model_id() {
-                None => (None, None),
+            let (model_name, mut model_type, model_photo_asset_name) = match session.model_id() {
+                None => (None, None, None),
                 Some(model_id) => {
                     let model = self
                         .model_resolver
@@ -74,14 +74,18 @@ where
                         .map_err(ListSessionsError::from)?;
 
                     match model {
-                        None => (None, None),
+                        None => (None, None, None),
                         Some(model) => {
                             let model_type = match model.vehicle_type() {
                                 VehicleType::Helicopter => VehicleTypeDto::Helicopter,
                                 VehicleType::Plane => VehicleTypeDto::Plane,
                                 VehicleType::Drone => VehicleTypeDto::Drone,
                             };
-                            (Some(model.name().as_str().to_string()), Some(model_type))
+                            (
+                                Some(model.name().as_str().to_string()),
+                                Some(model_type),
+                                model.photo_asset_name().map(|n| n.as_str().to_string()),
+                            )
                         }
                     }
                 }
@@ -144,6 +148,7 @@ where
                 model_id: session.model_id().map(|id| id.as_uuid()),
                 model_name,
                 model_type,
+                model_photo_asset_name,
                 performed_variations,
             });
         }
