@@ -1,5 +1,5 @@
-use axum::{Router, routing::get};
 use axum::routing::{delete, put};
+use axum::{Router, routing::get};
 
 use crate::state::AppState;
 use crate::user::get_by_id::get_user_by_id;

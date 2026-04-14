@@ -9,7 +9,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { VehicleType, DifficultyLevel } from "@/models/shared";
+import { ALL_MODEL_TYPES, getModelTypeLabel } from "@/models/model/type";
+import type { Type } from "@/models/model/type";
+import { ALL_DIFFICULTY_LEVELS, getDifficultyLabel } from "@/models/shared/difficulty";
+import type { DifficultyLevel } from "@/models/shared/difficulty";
+import {
+  ALL_MANEUVER_SORT_FIELDS,
+  ALL_SORT_DIRECTIONS,
+  getManeuverSortFieldLabel,
+  getSortDirectionLabel,
+} from "@/models/maneuver/list";
+import type { ManeuverSortField, SortDirection } from "@/models/maneuver/list";
 import type { ManeuverFilters, ManeuverFiltersActions } from "@/hooks/useManeuverFilters";
 import { ActiveFilterBadge } from "./ActiveFilterBadge";
 
@@ -20,40 +30,14 @@ interface ManeuverFiltersProps {
   onToggle: () => void;
 }
 
-const VEHICLE_OPTIONS = [
-  { value: "Helicopter", label: "Helicopter" },
-  { value: "Plane", label: "Plane" },
-  { value: "Drone", label: "Drone" },
-];
-
-const DIFFICULTY_OPTIONS = [
-  { value: "level1", label: "Level 1 - Beginner" },
-  { value: "level2", label: "Level 2" },
-  { value: "level3", label: "Level 3" },
-  { value: "level4", label: "Level 4" },
-  { value: "level5", label: "Level 5" },
-  { value: "level6", label: "Level 6" },
-  { value: "level7", label: "Level 7 - Expert" },
-];
-
-const SORT_FIELD_OPTIONS = [
-  { value: "name", label: "Name" },
-  { value: "difficulty", label: "Difficulty" },
-];
-
-const SORT_DIRECTION_OPTIONS = [
-  { value: "asc", label: "Ascending" },
-  { value: "desc", label: "Descending" },
-];
-
 export function ManeuverFilters({ filters, actions, isOpen, onToggle }: ManeuverFiltersProps) {
   const [searchInput, setSearchInput] = useState("");
 
-  const hasActiveFilters = filters.searchQuery || filters.vehicleType || filters.difficulty;
+  const hasActiveFilters = filters.searchQuery || filters.model_type || filters.difficulty;
 
   const difficultyValue = filters.difficulty ? filters.difficulty : "all";
 
-  const activeFilterCount = [filters.searchQuery, filters.vehicleType, filters.difficulty].filter(
+  const activeFilterCount = [filters.searchQuery, filters.model_type, filters.difficulty].filter(
     Boolean,
   ).length;
 
@@ -106,15 +90,15 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
               }}
             />
           )}
-          {filters.vehicleType && (
+          {filters.model_type && (
             <ActiveFilterBadge
-              label={filters.vehicleType}
-              onRemove={() => actions.removeFilter("vehicleType")}
+              label={getModelTypeLabel(filters.model_type)}
+              onRemove={() => actions.removeFilter("model_type")}
             />
           )}
           {filters.difficulty && (
             <ActiveFilterBadge
-              label={filters.difficulty.replace("level", "Level ")}
+              label={getDifficultyLabel(filters.difficulty)}
               onRemove={() => actions.removeFilter("difficulty")}
             />
           )}
@@ -136,21 +120,21 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
       {isOpen && (
         <div className="flex flex-wrap items-center gap-3 rounded-none border bg-card p-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Vehicle</label>
+            <label className="text-xs text-muted-foreground">Model</label>
             <Select.Root
-              value={filters.vehicleType || "all"}
+              value={filters.model_type || "all"}
               onValueChange={(value) =>
-                actions.setVehicleType(!value || value === "all" ? null : (value as VehicleType))
+                actions.setType(!value || value === "all" ? null : (value as Type))
               }
             >
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All vehicles" />
+                <SelectValue placeholder="All models" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All vehicles</SelectItem>
-                {VEHICLE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                <SelectItem value="all">All models</SelectItem>
+                {ALL_MODEL_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {getModelTypeLabel(t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -170,9 +154,9 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All difficulties</SelectItem>
-                {DIFFICULTY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {ALL_DIFFICULTY_LEVELS.map((lvl) => (
+                  <SelectItem key={lvl} value={lvl}>
+                    {getDifficultyLabel(lvl)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -185,16 +169,16 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
               <Select.Root
                 value={filters.sortField}
                 onValueChange={(value) => {
-                  if (value) actions.setSortField(value as "name" | "difficulty");
+                  if (value) actions.setSortField(value as ManeuverSortField);
                 }}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SORT_FIELD_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {ALL_MANEUVER_SORT_FIELDS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {getManeuverSortFieldLabel(f)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -203,16 +187,16 @@ export function ManeuverFilters({ filters, actions, isOpen, onToggle }: Maneuver
               <Select.Root
                 value={filters.sortDirection}
                 onValueChange={(value) => {
-                  if (value) actions.setSortDirection(value as "asc" | "desc");
+                  if (value) actions.setSortDirection(value as SortDirection);
                 }}
               >
                 <SelectTrigger className="w-[110px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SORT_DIRECTION_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {ALL_SORT_DIRECTIONS.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {getSortDirectionLabel(d)}
                     </SelectItem>
                   ))}
                 </SelectContent>

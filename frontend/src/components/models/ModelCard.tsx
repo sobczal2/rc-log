@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import type { ListModelDto } from "@/models/model";
-import { getVehicleIcon } from "@/models/shared";
+import { getModelTypeIcon } from "@/models/model/type";
 import { usePhotoPath } from "@/hooks/usePhotoPath";
 import { getPhotoUrl } from "@/models/asset/photo";
 
@@ -21,7 +21,7 @@ export function ModelCard({ model }: { model: ListModelDto }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
-              {getVehicleIcon(model.vehicleType, 48)}
+              {getModelTypeIcon(model.type, 48)}
             </div>
           )}
         </div>
@@ -29,7 +29,7 @@ export function ModelCard({ model }: { model: ListModelDto }) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-bold text-[15px] leading-tight line-clamp-2">{model.name}</h3>
             <div className="flex-shrink-0 text-muted-foreground/70 mt-0.5">
-              {getVehicleIcon(model.vehicleType, 16)}
+              {getModelTypeIcon(model.type, 16)}
             </div>
           </div>
         </CardContent>

@@ -22,9 +22,9 @@ where
     type Rejection = ApiError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Json(body) = Json::<UpdateUserBody>::from_request(req, state).await.map_err(|e| {
-            ApiError::Validation(vec![ValidationError::new("body", e.to_string())])
-        })?;
+        let Json(body) = Json::<UpdateUserBody>::from_request(req, state)
+            .await
+            .map_err(|e| ApiError::Validation(vec![ValidationError::new("body", e.to_string())]))?;
 
         if body.new_username.trim().is_empty() {
             return Err(ApiError::Validation(vec![ValidationError::new(

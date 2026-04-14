@@ -25,10 +25,7 @@ where
             })?;
 
         if session_id.is_nil() {
-            return Err(ApiError::Validation(vec![ValidationError::new(
-                "id",
-                "must not be nil",
-            )]));
+            return Err(ApiError::Validation(vec![ValidationError::new("id", "must not be nil")]));
         }
 
         if performed_variation_id.is_nil() {

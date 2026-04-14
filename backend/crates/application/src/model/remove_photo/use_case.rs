@@ -54,7 +54,7 @@ where
             model.id(),
             UserId::new(input.owner_id),
             model.name().clone(),
-            model.vehicle_type(),
+            model.r#type(),
             None,
         );
 

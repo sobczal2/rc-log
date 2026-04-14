@@ -19,16 +19,14 @@ pub struct SqlxVariationResolver {
 
 impl SqlxVariationResolver {
     pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
-        let cache = Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
+        let cache =
+            Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
         Self { maneuver_uow: SqlxManeuverUnitOfWork::new(pool), cache }
     }
 }
 
 impl VariationResolver for SqlxVariationResolver {
-    async fn get(
-        &self,
-        variation_id: VariationId,
-    ) -> Result<Option<Variation>, TransactionError> {
+    async fn get(&self, variation_id: VariationId) -> Result<Option<Variation>, TransactionError> {
         if let Some(cached) = self.cache.get(&variation_id).await {
             return Ok(Some(cached));
         }

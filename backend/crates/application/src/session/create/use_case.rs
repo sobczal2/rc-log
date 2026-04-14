@@ -41,10 +41,7 @@ where
         if let Some(model_id) = model_id {
             debug!(model_id = %model_id.as_uuid(), "Checking if referenced model exists");
             let mut model_tx = self.model_uow.begin().await.map_err(CreateSessionError::from)?;
-            let model = model_tx
-                .get_by_id(model_id)
-                .await
-                .map_err(CreateSessionError::from)?;
+            let model = model_tx.get_by_id(model_id).await.map_err(CreateSessionError::from)?;
 
             if model.is_none() {
                 debug!(model_id = %model_id.as_uuid(), "Referenced model not found");
@@ -60,7 +57,9 @@ where
 
         let note = input
             .note
-            .map(|n| MarkdownText::new(n).map_err(|e| CreateSessionError::ValidationError(e.to_string())))
+            .map(|n| {
+                MarkdownText::new(n).map_err(|e| CreateSessionError::ValidationError(e.to_string()))
+            })
             .transpose()?;
 
         let session = Session::new(

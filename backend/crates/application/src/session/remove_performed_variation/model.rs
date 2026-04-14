@@ -6,4 +6,3 @@ pub struct RemovePerformedVariationInput {
     pub owner_id: Uuid,
     pub performed_variation_id: Uuid,
 }
-

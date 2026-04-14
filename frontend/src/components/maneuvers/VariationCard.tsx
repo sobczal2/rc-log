@@ -9,18 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import type { GetByIdVariationDto } from "@/models/maneuver";
-import type { VehicleType } from "@/models/shared";
+import type { Type } from "@/models/model/type";
 import { DifficultyBadgeLong, DifficultyBadgeShort } from "@/components/ui/difficulty-badge";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
 
 interface VariationCardProps {
   variation: GetByIdVariationDto;
-  vehicleType: VehicleType;
+  type: Type;
   isDefault?: boolean;
 }
 
-export function VariationCard({ variation, vehicleType, isDefault }: VariationCardProps) {
+export function VariationCard({ variation, type, isDefault }: VariationCardProps) {
   const { data: videoPathData } = useVideoPath(variation.videoAssetName);
   const smallSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   const largeSrc = videoPathData
@@ -95,7 +95,7 @@ export function VariationCard({ variation, vehicleType, isDefault }: VariationCa
                 </Badge>
               )}
               <DifficultyBadgeLong
-                vehicleType={vehicleType}
+                type={type}
                 difficulty={variation.difficulty}
                 className="text-[10px] px-1.5 py-0 h-4"
               />

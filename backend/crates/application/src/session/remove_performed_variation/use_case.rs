@@ -61,9 +61,7 @@ where
             performed_variations,
         );
 
-        tx.save(&updated)
-            .await
-            .map_err(RemovePerformedVariationError::from)?;
+        tx.save(&updated).await.map_err(RemovePerformedVariationError::from)?;
         tx.commit().await.map_err(RemovePerformedVariationError::from)?;
 
         Ok(())

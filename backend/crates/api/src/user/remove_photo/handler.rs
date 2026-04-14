@@ -1,5 +1,5 @@
-use axum::http::StatusCode;
 use axum::extract::State;
+use axum::http::StatusCode;
 use rc_log_application::user::remove_photo::RemoveUserPhotoUseCase;
 use rc_log_application::user::remove_photo::model::RemoveUserPhotoInput;
 use tracing::{debug, instrument};

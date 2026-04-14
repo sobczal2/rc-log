@@ -190,9 +190,7 @@ export function ProfilePage() {
               </Button>
             </div>
           )}
-          {usernameError && (
-            <p className="text-xs text-destructive">{usernameError}</p>
-          )}
+          {usernameError && <p className="text-xs text-destructive">{usernameError}</p>}
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
       </div>

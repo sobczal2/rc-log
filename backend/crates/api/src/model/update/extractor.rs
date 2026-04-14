@@ -2,8 +2,8 @@ use axum::{
     Json,
     extract::{FromRequest, FromRequestParts, Path, Request},
 };
+use rc_log_application::shared::TypeDto;
 use rc_log_application::shared::validator::ValidationError;
-use rc_log_application::shared::vehicle_type::VehicleTypeDto;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -13,13 +13,13 @@ use crate::error::ApiError;
 #[serde(rename_all = "camelCase")]
 struct UpdateModelBody {
     name: String,
-    vehicle_type: String,
+    r#type: String,
 }
 
 pub struct UpdateRequest {
     pub id: Uuid,
     pub name: String,
-    pub vehicle_type: VehicleTypeDto,
+    pub r#type: TypeDto,
 }
 
 impl<S> FromRequest<S> for UpdateRequest
@@ -57,18 +57,18 @@ where
             )]));
         }
 
-        let vehicle_type = match body.vehicle_type.as_str() {
-            "Helicopter" => VehicleTypeDto::Helicopter,
-            "Plane" => VehicleTypeDto::Plane,
-            "Drone" => VehicleTypeDto::Drone,
+        let r#type = match body.r#type.as_str() {
+            "Helicopter" => TypeDto::Helicopter,
+            "Plane" => TypeDto::Plane,
+            "Drone" => TypeDto::Drone,
             _ => {
                 return Err(ApiError::Validation(vec![ValidationError::new(
-                    "vehicleType",
+                    "type",
                     "must be one of: Helicopter, Plane, Drone",
                 )]));
             }
         };
 
-        Ok(Self { id, name: body.name, vehicle_type })
+        Ok(Self { id, name: body.name, r#type })
     }
 }

@@ -1,4 +1,4 @@
-export interface User {
+export interface GetByIdUserDto {
   id: string;
   username: string;
   email: string;

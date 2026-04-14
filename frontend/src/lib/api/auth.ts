@@ -1,4 +1,5 @@
-import type { User } from "@/models/user";
+import type { SignInUserDto } from "@/models/user/sign-in";
+import type { SignUpUserDto } from "@/models/user/sign-up";
 import { apiClient } from "../apiClient";
 
 export interface SignInRequest {
@@ -12,19 +13,24 @@ export interface SignUpRequest {
   password: string;
 }
 
-export interface AuthResponse {
+export interface SignInResponse {
   token: string;
-  user: User;
+  user: SignInUserDto;
+}
+
+export interface SignUpResponse {
+  token: string;
+  user: SignUpUserDto;
 }
 
 export const authApi = {
-  signIn: async (req: SignInRequest): Promise<AuthResponse> => {
-    const { data } = await apiClient.post<AuthResponse>("/auth/sign-in", req);
+  signIn: async (req: SignInRequest): Promise<SignInResponse> => {
+    const { data } = await apiClient.post<SignInResponse>("/auth/sign-in", req);
     return data;
   },
 
-  signUp: async (req: SignUpRequest): Promise<AuthResponse> => {
-    const { data } = await apiClient.post<AuthResponse>("/auth/sign-up", req);
+  signUp: async (req: SignUpRequest): Promise<SignUpResponse> => {
+    const { data } = await apiClient.post<SignUpResponse>("/auth/sign-up", req);
     return data;
   },
 };

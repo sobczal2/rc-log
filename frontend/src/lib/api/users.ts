@@ -1,20 +1,17 @@
 import { apiClient } from "../apiClient";
-import type { User } from "@/models/user";
-
-export interface UpdateUserRequest {
-  newUsername: string;
-}
+import type { UpdateUserRequest, UpdateUserDto } from "@/models/user/update";
+import type { UpdateUserPhotoDto } from "@/models/user/update-photo";
 
 export const usersApi = {
-  update: async (req: UpdateUserRequest): Promise<User> => {
-    const { data } = await apiClient.put<User>("/users/me", req);
+  update: async (req: UpdateUserRequest): Promise<UpdateUserDto> => {
+    const { data } = await apiClient.put<UpdateUserDto>("/users/me", req);
     return data;
   },
 
-  updatePhoto: async (file: File): Promise<User> => {
+  updatePhoto: async (file: File): Promise<UpdateUserPhotoDto> => {
     const fd = new FormData();
     fd.append("photo", file);
-    const { data } = await apiClient.put<User>("/users/me/photo", fd);
+    const { data } = await apiClient.put<UpdateUserPhotoDto>("/users/me/photo", fd);
     return data;
   },
 

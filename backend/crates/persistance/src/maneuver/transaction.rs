@@ -8,18 +8,18 @@ use rc_log_domain::maneuver::tag::{Tag, TagId};
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
 use rc_log_domain::maneuver::transaction::{ManeuverSortField, SortDirection};
 use rc_log_domain::maneuver::variation::{Variation, VariationId};
+use rc_log_domain::model::Type;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::vehicle_type::VehicleType;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction as SqlxTransaction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct ManeuverRow {
     id: Uuid,
-    vehicle_type: String,
+    model_type: String,
     name: String,
     description: String,
 }
@@ -99,15 +99,12 @@ impl ManeuverRow {
         default_variation: Variation,
         other_variations: Vec<Variation>,
     ) -> Result<Maneuver, TransactionError> {
-        let vehicle_type = match self.vehicle_type.as_str() {
-            "Helicopter" => VehicleType::Helicopter,
-            "Plane" => VehicleType::Plane,
-            "Drone" => VehicleType::Drone,
+        let model_type = match self.model_type.as_str() {
+            "Helicopter" => Type::Helicopter,
+            "Plane" => Type::Plane,
+            "Drone" => Type::Drone,
             other => {
-                return Err(TransactionError::InvalidData(format!(
-                    "Unknown vehicle_type: {}",
-                    other
-                )));
+                return Err(TransactionError::InvalidData(format!("Unknown model_type: {}", other)));
             }
         };
 
@@ -116,7 +113,7 @@ impl ManeuverRow {
 
         Ok(Maneuver::new(
             ManeuverId::new(self.id),
-            vehicle_type,
+            model_type,
             self.name,
             tags,
             description,
@@ -126,15 +123,15 @@ impl ManeuverRow {
     }
 
     fn from_maneuver(maneuver: &Maneuver) -> Self {
-        let vehicle_type = match maneuver.vehicle_type() {
-            VehicleType::Helicopter => "Helicopter".to_string(),
-            VehicleType::Plane => "Plane".to_string(),
-            VehicleType::Drone => "Drone".to_string(),
+        let model_type = match maneuver.model_type() {
+            Type::Helicopter => "Helicopter".to_string(),
+            Type::Plane => "Plane".to_string(),
+            Type::Drone => "Drone".to_string(),
         };
 
         Self {
             id: Uuid::from(maneuver.id()),
-            vehicle_type,
+            model_type,
             name: maneuver.name().to_string(),
             description: maneuver.description().as_str().to_string(),
         }
@@ -151,16 +148,16 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO maneuver.maneuver (id, vehicle_type, name, description)
+            INSERT INTO maneuver.maneuver (id, model_type, name, description)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) DO UPDATE SET
-                vehicle_type = EXCLUDED.vehicle_type,
+                model_type = EXCLUDED.model_type,
                 name = EXCLUDED.name,
                 description = EXCLUDED.description
             "#,
         )
         .bind(maneuver_row.id)
-        .bind(&maneuver_row.vehicle_type)
+        .bind(&maneuver_row.model_type)
         .bind(&maneuver_row.name)
         .bind(&maneuver_row.description)
         .execute(&mut *self.tx)
@@ -259,14 +256,13 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
     }
 }
 
-
 impl ManeuverTransaction for SqlxManeuverTransaction {
     async fn get_by_id(&mut self, id: ManeuverId) -> Result<Option<Maneuver>, TransactionError> {
         let uuid = id.as_uuid();
 
         let maneuver_row: Option<ManeuverRow> = sqlx::query_as(
             r#"
-            SELECT id, vehicle_type, name, description
+            SELECT id, model_type, name, description
             FROM maneuver.maneuver
             WHERE id = $1
             "#,
@@ -355,7 +351,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
         let mut count_query =
             QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM maneuver.maneuver m");
         let mut select_query = QueryBuilder::<'_, Postgres>::new(
-            "SELECT m.id, m.vehicle_type, m.name, m.description FROM maneuver.maneuver m",
+            "SELECT m.id, m.model_type, m.name, m.description FROM maneuver.maneuver m",
         );
 
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
@@ -369,14 +365,14 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
                 }
             };
 
-            if let Some(vt) = &filter.vehicle_type {
+            if let Some(vt) = &filter.model_type {
                 add_clause(q);
                 let vt_str = match vt {
-                    VehicleType::Helicopter => "Helicopter",
-                    VehicleType::Plane => "Plane",
-                    VehicleType::Drone => "Drone",
+                    Type::Helicopter => "Helicopter",
+                    Type::Plane => "Plane",
+                    Type::Drone => "Drone",
                 };
-                q.push("m.vehicle_type = ");
+                q.push("m.model_type = ");
                 q.push_bind(vt_str);
             }
 
@@ -570,10 +566,10 @@ mod tests {
         }
     }
 
-    fn make_maneuver_row(vehicle_type: &str) -> ManeuverRow {
+    fn make_maneuver_row(model_type: &str) -> ManeuverRow {
         ManeuverRow {
             id: Uuid::new_v4(),
-            vehicle_type: vehicle_type.to_string(),
+            model_type: model_type.to_string(),
             name: "Test Maneuver".to_string(),
             description: "A valid description".to_string(),
         }
@@ -645,7 +641,7 @@ mod tests {
     }
 
     #[test]
-    fn maneuver_row_unknown_vehicle_type_fails() {
+    fn maneuver_row_unknown_type_fails() {
         let row = make_maneuver_row("Submarine");
         let result = row.try_into_maneuver(BTreeSet::new(), make_default_variation(), vec![]);
         assert!(result.is_err());
@@ -678,14 +674,14 @@ mod tests {
         use rc_log_domain::maneuver::Maneuver;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::id::ManeuverId;
+        use rc_log_domain::model::Type;
         use rc_log_domain::shared::markdown_text::MarkdownText;
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         use std::collections::BTreeSet;
 
         let id = Uuid::new_v4();
         let maneuver = Maneuver::new(
             ManeuverId::new(id),
-            VehicleType::Plane,
+            Type::Plane,
             "Stall Turn".to_string(),
             BTreeSet::new(),
             MarkdownText::new("A description".to_string()).unwrap(),
@@ -694,7 +690,7 @@ mod tests {
         );
         let row = ManeuverRow::from_maneuver(&maneuver);
         assert_eq!(row.id, id);
-        assert_eq!(row.vehicle_type, "Plane");
+        assert_eq!(row.model_type, "Plane");
         assert_eq!(row.name, "Stall Turn");
         assert_eq!(row.description, "A description");
         // difficulty is now on Variation, verify domain min equals variation difficulty

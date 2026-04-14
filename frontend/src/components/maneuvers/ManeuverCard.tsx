@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { getVehicleIcon } from "@/models/shared";
+import { getModelTypeIcon } from "@/models/model/type";
 import { DifficultyRangeBadgeShort } from "@/components/ui/difficulty-badge";
 import type { ListManeuverDto } from "@/models/maneuver";
 import { useVideoPath } from "@/hooks/useVideoPath";
@@ -25,7 +25,7 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 transition-transform duration-700 ease-out">
-              {getVehicleIcon(maneuver.vehicleType, 48)}
+              {getModelTypeIcon(maneuver.type, 48)}
             </div>
           )}
         </div>
@@ -33,7 +33,7 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-bold text-[15px] leading-tight line-clamp-2">{maneuver.name}</h3>
             <div className="flex-shrink-0 text-muted-foreground/70 mt-0.5">
-              {getVehicleIcon(maneuver.vehicleType, 16)}
+              {getModelTypeIcon(maneuver.type, 16)}
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-1 pr-10">

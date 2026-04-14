@@ -41,4 +41,3 @@ pub struct UpdatePerformedVariationInput {
     pub repeatability: RepeatabilityDto,
     pub note: Option<String>,
 }
-

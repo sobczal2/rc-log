@@ -15,13 +15,14 @@ use crate::{
         tag::{Tag, TagId},
         variation::Variation,
     },
-    shared::{markdown_text::MarkdownText, vehicle_type::VehicleType},
+    model::Type,
+    shared::markdown_text::MarkdownText,
 };
 
 #[derive(Debug, Clone)]
 pub struct Maneuver {
     id: ManeuverId,
-    vehicle_type: VehicleType,
+    model_type: Type,
     name: String,
     tags: BTreeSet<Tag>,
     description: MarkdownText,
@@ -32,30 +33,22 @@ pub struct Maneuver {
 impl Maneuver {
     pub fn new(
         id: ManeuverId,
-        vehicle_type: VehicleType,
+        model_type: Type,
         name: String,
         tags: BTreeSet<Tag>,
         description: MarkdownText,
         default_variation: Variation,
         other_variations: Vec<Variation>,
     ) -> Self {
-        Self {
-            id,
-            vehicle_type,
-            name,
-            tags,
-            description,
-            default_variation,
-            other_variations,
-        }
+        Self { id, model_type, name, tags, description, default_variation, other_variations }
     }
 
     pub fn id(&self) -> ManeuverId {
         self.id
     }
 
-    pub fn vehicle_type(&self) -> &VehicleType {
-        &self.vehicle_type
+    pub fn model_type(&self) -> &Type {
+        &self.model_type
     }
 
     pub fn name(&self) -> &str {
@@ -117,8 +110,8 @@ mod tests {
     use crate::maneuver::id::ManeuverId;
     use crate::maneuver::tag::{Tag, TagId};
     use crate::maneuver::variation::{Variation, VariationId};
+    use crate::model::Type;
     use crate::shared::markdown_text::MarkdownText;
-    use crate::shared::vehicle_type::VehicleType;
 
     use super::Maneuver;
 
@@ -136,7 +129,7 @@ mod tests {
     fn make_maneuver() -> Maneuver {
         Maneuver::new(
             ManeuverId::new(Uuid::new_v4()),
-            VehicleType::Helicopter,
+            Type::Helicopter,
             "test maneuver".to_string(),
             BTreeSet::new(),
             MarkdownText::new("some description".to_string()).unwrap(),
@@ -209,7 +202,7 @@ mod tests {
     fn min_max_difficulty_multiple_variations() {
         let m = Maneuver::new(
             ManeuverId::new(Uuid::new_v4()),
-            VehicleType::Helicopter,
+            Type::Helicopter,
             "test".to_string(),
             BTreeSet::new(),
             MarkdownText::new("desc".to_string()).unwrap(),
@@ -220,4 +213,3 @@ mod tests {
         assert_eq!(m.max_difficulty(), Difficulty::Level4);
     }
 }
-

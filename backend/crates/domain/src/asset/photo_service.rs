@@ -1,6 +1,6 @@
-use std::future::Future;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::future::Future;
 
 use super::name::AssetName;
 use super::photo::Photo;

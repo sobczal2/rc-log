@@ -16,10 +16,7 @@ pub fn session_router() -> Router<AppState> {
     Router::new()
         .route("/api/sessions", get(list_sessions).post(create_session))
         .route("/api/sessions/{id}", put(update_session).delete(delete_session))
-        .route(
-            "/api/sessions/{id}/performed-variations",
-            post(add_performed_variation),
-        )
+        .route("/api/sessions/{id}/performed-variations", post(add_performed_variation))
         .route(
             "/api/sessions/{id}/performed-variations/{performed_variation_id}",
             put(update_performed_variation).delete(remove_performed_variation),

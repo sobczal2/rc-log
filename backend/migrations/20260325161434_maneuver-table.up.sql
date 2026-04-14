@@ -10,7 +10,7 @@ CREATE TABLE maneuver.tag (
 -- Create maneuver table
 CREATE TABLE maneuver.maneuver (
     id UUID PRIMARY KEY,
-    vehicle_type VARCHAR(50) NOT NULL,
+    model_type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     difficulty INTEGER NOT NULL CHECK (difficulty >= 1 AND difficulty <= 7),
@@ -25,5 +25,5 @@ CREATE TABLE maneuver.maneuver_tag (
 );
 
 -- Create indexes
-CREATE INDEX idx_maneuver_vehicle_type ON maneuver.maneuver(vehicle_type);
+CREATE INDEX idx_maneuver_model_type ON maneuver.maneuver(model_type);
 CREATE INDEX idx_maneuver_difficulty ON maneuver.maneuver(difficulty);

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ListSessionDto } from "@/models/session";
-import { getVehicleIcon, getVehicleLabel } from "@/models/shared";
+import { getModelTypeIcon, getModelTypeLabel } from "@/models/model/type";
 import { ratingToNumber } from "@/models/session";
 import { usePhotoPath } from "@/hooks/usePhotoPath";
 import { getPhotoUrl } from "@/models/asset/photo";
@@ -53,9 +53,7 @@ export function SessionCard({ session }: { session: ListSessionDto }) {
                 {session.performedVariations.length === 1 ? "" : "s"} logged
               </p>
             </div>
-            {avgRating !== null && (
-              <Badge variant="secondary">Avg {avgRating.toFixed(1)}/5</Badge>
-            )}
+            {avgRating !== null && <Badge variant="secondary">Avg {avgRating.toFixed(1)}/5</Badge>}
           </div>
         </CardHeader>
 
@@ -69,7 +67,9 @@ export function SessionCard({ session }: { session: ListSessionDto }) {
                   className="w-full h-full object-cover"
                 />
               ) : session.modelType ? (
-                <div className="text-muted-foreground/70">{getVehicleIcon(session.modelType, 20)}</div>
+                <div className="text-muted-foreground/70">
+                  {getModelTypeIcon(session.modelType, 20)}
+                </div>
               ) : (
                 <div className="text-muted-foreground/40 text-xs">No model</div>
               )}
@@ -81,8 +81,8 @@ export function SessionCard({ session }: { session: ListSessionDto }) {
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 {session.modelType ? (
                   <>
-                    {getVehicleIcon(session.modelType, 12)}
-                    <span>{getVehicleLabel(session.modelType)}</span>
+                    {getModelTypeIcon(session.modelType, 12)}
+                    <span>{getModelTypeLabel(session.modelType)}</span>
                   </>
                 ) : (
                   <span>Model type inferred from maneuvers</span>

@@ -2,11 +2,13 @@ pub mod id;
 pub mod model_resolver;
 pub mod name;
 pub mod transaction;
+pub mod r#type;
+
+pub use r#type::Type;
 
 use crate::asset::name::AssetName;
 use crate::model::id::ModelId;
 use crate::model::name::Name;
-use crate::shared::vehicle_type::VehicleType;
 use crate::user::id::UserId;
 
 #[derive(Debug, Clone)]
@@ -14,7 +16,7 @@ pub struct Model {
     id: ModelId,
     owner_id: UserId,
     name: Name,
-    vehicle_type: VehicleType,
+    r#type: Type,
     photo_asset_name: Option<AssetName>,
 }
 
@@ -23,10 +25,10 @@ impl Model {
         id: ModelId,
         owner_id: UserId,
         name: Name,
-        vehicle_type: VehicleType,
+        r#type: Type,
         photo_asset_name: Option<AssetName>,
     ) -> Self {
-        Self { id, owner_id, name, vehicle_type, photo_asset_name }
+        Self { id, owner_id, name, r#type, photo_asset_name }
     }
 
     pub fn id(&self) -> ModelId {
@@ -41,8 +43,8 @@ impl Model {
         &self.name
     }
 
-    pub fn vehicle_type(&self) -> VehicleType {
-        self.vehicle_type
+    pub fn r#type(&self) -> Type {
+        self.r#type
     }
 
     pub fn photo_asset_name(&self) -> Option<&AssetName> {

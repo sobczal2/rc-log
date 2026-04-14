@@ -5,7 +5,7 @@ import { maneuversApi } from "@/lib/api/maneuvers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { getVehicleIcon } from "@/models/shared";
+import { getModelTypeIcon } from "@/models/model/type";
 import { DifficultyRangeBadgeLong } from "@/components/ui/difficulty-badge";
 import { useVideoPath } from "@/hooks/useVideoPath";
 import { getVideoUrl } from "@/models/asset/video";
@@ -81,7 +81,7 @@ export function ManeuverDetailsPage() {
                 />
               ) : (
                 <div className="w-full aspect-video flex items-center justify-center text-muted-foreground/20">
-                  {getVehicleIcon(maneuver.vehicleType, 64)}
+                  {getModelTypeIcon(maneuver.type, 64)}
                 </div>
               )}
             </div>
@@ -90,15 +90,13 @@ export function ManeuverDetailsPage() {
               <div className="w-full md:w-1/3 self-start flex flex-col gap-3 p-5 bg-card/50 shadow-sm border border-border/50 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <span className="text-muted-foreground">
-                      {getVehicleIcon(maneuver.vehicleType)}
-                    </span>
-                    <span>{maneuver.vehicleType}</span>
+                    <span className="text-muted-foreground">{getModelTypeIcon(maneuver.type)}</span>
+                    <span>{maneuver.type}</span>
                   </div>
                 </div>
                 <div className="font-bold flex items-center gap-2">
                   <DifficultyRangeBadgeLong
-                    vehicleType={maneuver.vehicleType}
+                    type={maneuver.type}
                     minDifficulty={maneuver.minDifficulty}
                     maxDifficulty={maneuver.maxDifficulty}
                     className="bg-background"
@@ -133,9 +131,13 @@ export function ManeuverDetailsPage() {
                 Variations
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <VariationCard variation={maneuver.defaultVariation} vehicleType={maneuver.vehicleType} isDefault />
+                <VariationCard
+                  variation={maneuver.defaultVariation}
+                  type={maneuver.type}
+                  isDefault
+                />
                 {maneuver.variations.map((v) => (
-                  <VariationCard key={v.id} variation={v} vehicleType={maneuver.vehicleType} />
+                  <VariationCard key={v.id} variation={v} type={maneuver.type} />
                 ))}
               </div>
             </div>

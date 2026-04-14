@@ -20,7 +20,8 @@ pub struct SqlxManeuverResolver {
 
 impl SqlxManeuverResolver {
     pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
-        let cache = Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
+        let cache =
+            Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
         Self { maneuver_uow: SqlxManeuverUnitOfWork::new(pool), cache }
     }
 }

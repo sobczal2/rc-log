@@ -158,9 +158,6 @@ mod tests {
     fn invalid_numeric_rating_is_rejected() {
         assert_eq!(Quality::from_i16(0), Err(RatingError::InvalidQuality(0)));
         assert_eq!(Comfort::from_i16(6), Err(RatingError::InvalidComfort(6)));
-        assert_eq!(
-            Repeatability::from_i16(9),
-            Err(RatingError::InvalidRepeatability(9))
-        );
+        assert_eq!(Repeatability::from_i16(9), Err(RatingError::InvalidRepeatability(9)));
     }
 }

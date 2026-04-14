@@ -40,11 +40,9 @@ where
 
         let (session_id, performed_variation_id) = {
             let Path((session_id, performed_variation_id)) =
-                Path::<(Uuid, Uuid)>::from_request_parts(&mut parts.0, state)
-                    .await
-                    .map_err(|e| {
-                        ApiError::Validation(vec![ValidationError::new("path", e.to_string())])
-                    })?;
+                Path::<(Uuid, Uuid)>::from_request_parts(&mut parts.0, state).await.map_err(
+                    |e| ApiError::Validation(vec![ValidationError::new("path", e.to_string())]),
+                )?;
 
             if session_id.is_nil() {
                 return Err(ApiError::Validation(vec![ValidationError::new(

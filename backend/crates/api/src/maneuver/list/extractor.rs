@@ -5,9 +5,9 @@ use axum::{
 use rc_log_application::maneuver::list::model::{
     DifficultyDto, ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
 };
+use rc_log_application::shared::TypeDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::shared::validator::{Validate, ValidationError};
-use rc_log_application::shared::vehicle_type::VehicleTypeDto;
 use serde::Deserialize;
 
 use crate::error::ApiError;
@@ -20,7 +20,7 @@ struct RawListQuery {
     #[serde(default)]
     tags: String,
     #[serde(default)]
-    vehicle_type: String,
+    model_type: String,
     #[serde(default)]
     difficulty: String,
     #[serde(default)]
@@ -49,15 +49,15 @@ where
         let tags =
             raw.tags.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect();
 
-        let vehicle_type = match raw.vehicle_type.as_str() {
-            "Helicopter" => Some(VehicleTypeDto::Helicopter),
-            "Plane" => Some(VehicleTypeDto::Plane),
-            "Drone" => Some(VehicleTypeDto::Drone),
+        let model_type = match raw.model_type.as_str() {
+            "Helicopter" => Some(TypeDto::Helicopter),
+            "Plane" => Some(TypeDto::Plane),
+            "Drone" => Some(TypeDto::Drone),
             "" => None,
             _ => {
                 return Err(ApiError::Validation(vec![ValidationError::new(
-                    "vehicle_type",
-                    "invalid vehicle type",
+                    "modelType",
+                    "invalid model type",
                 )]));
             }
         };
@@ -83,7 +83,7 @@ where
 
         let input = ListManeuversInput {
             pagination: PaginationDto { page: raw.page, page_size: raw.page_size },
-            filter: ManeuverFilterDto { tags, vehicle_type, difficulty, search_query },
+            filter: ManeuverFilterDto { tags, model_type, difficulty, search_query },
             sort: ManeuverSortDto { field: raw.sort_field, direction: raw.sort_direction },
         };
 

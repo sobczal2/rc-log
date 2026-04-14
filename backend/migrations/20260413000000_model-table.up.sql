@@ -4,7 +4,7 @@ CREATE TABLE model.model (
     id UUID PRIMARY KEY,
     owner_id UUID NOT NULL REFERENCES "user"."user"(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    vehicle_type VARCHAR(50) NOT NULL,
+    type VARCHAR(50) NOT NULL,
     photo_asset_name VARCHAR(255)
 );
 

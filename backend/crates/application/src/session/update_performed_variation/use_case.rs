@@ -10,9 +10,7 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use super::error::UpdatePerformedVariationError;
-use super::model::{
-    ComfortDto, QualityDto, RepeatabilityDto, UpdatePerformedVariationInput,
-};
+use super::model::{ComfortDto, QualityDto, RepeatabilityDto, UpdatePerformedVariationInput};
 use crate::error::ApplicationError;
 
 pub struct UpdatePerformedVariationUseCase<UoW> {
@@ -114,9 +112,7 @@ where
             performed_variations,
         );
 
-        tx.save(&updated)
-            .await
-            .map_err(UpdatePerformedVariationError::from)?;
+        tx.save(&updated).await.map_err(UpdatePerformedVariationError::from)?;
         tx.commit().await.map_err(UpdatePerformedVariationError::from)?;
 
         Ok(())

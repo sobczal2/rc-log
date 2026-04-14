@@ -17,7 +17,7 @@ export function ManeuversPage() {
       {
         page: filters.page,
         searchQuery: filters.searchQuery,
-        vehicleType: filters.vehicleType,
+        type: filters.model_type,
         difficulty: filters.difficulty,
         sortField: filters.sortField,
         sortDirection: filters.sortDirection,
@@ -29,7 +29,7 @@ export function ManeuversPage() {
         pageSize: 20,
         filter: {
           searchQuery: filters.searchQuery || undefined,
-          vehicleType: filters.vehicleType || undefined,
+          model_type: filters.model_type || undefined,
           difficulty: filters.difficulty || undefined,
         },
         sort: {
@@ -43,7 +43,7 @@ export function ManeuversPage() {
   const totalPages = data?.totalPages || 1;
   const totalItems = data?.total || 0;
 
-  const hasActiveFilters = filters.searchQuery || filters.vehicleType || filters.difficulty;
+  const hasActiveFilters = filters.searchQuery || filters.model_type || filters.difficulty;
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 h-full w-full">
@@ -51,7 +51,7 @@ export function ManeuversPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Maneuvers Catalog</h1>
           <p className="text-muted-foreground max-w-2xl text-sm">
-            Browse and learn different maneuvers for your RC vehicles.
+            Browse and learn different maneuvers for your RC models.
           </p>
         </div>
       </div>

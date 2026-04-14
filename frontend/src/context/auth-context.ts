@@ -1,6 +1,12 @@
 import { createContext } from "react";
-import type { User } from "@/models/user";
 import type { SignInRequest, SignUpRequest } from "@/lib/api/auth";
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  photoAssetName?: string | null;
+}
 
 export interface AuthContextValue {
   user: User | null;

@@ -38,8 +38,8 @@ export const maneuversApi = {
       if (req.filter.tags && req.filter.tags.length > 0) {
         params.append("tags", req.filter.tags.join(","));
       }
-      if (req.filter.vehicleType) {
-        params.append("vehicleType", req.filter.vehicleType);
+      if (req.filter.model_type) {
+        params.append("modelType", req.filter.model_type);
       }
       if (req.filter.difficulty) {
         params.append("difficulty", req.filter.difficulty);

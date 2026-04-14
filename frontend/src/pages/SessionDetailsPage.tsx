@@ -5,7 +5,13 @@ import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { sessionsApi } from "@/lib/api/sessions";
 import { modelsApi } from "@/lib/api/models";
 import { maneuversApi } from "@/lib/api/maneuvers";
@@ -14,10 +20,12 @@ import type {
   AddPerformedVariationQualityDto,
   AddPerformedVariationRepeatabilityDto,
   ListSessionDto,
+  RatingLevel,
   UpdatePerformedVariationComfortDto,
   UpdatePerformedVariationQualityDto,
   UpdatePerformedVariationRepeatabilityDto,
 } from "@/models/session";
+import { ALL_RATING_LEVELS, getRatingLabel } from "@/models/session";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getApiErrorMessage } from "@/lib/api/errors";
 
@@ -31,23 +39,11 @@ interface EditablePerformedVariation {
   variationId: string;
   maneuverName: string | null;
   variationName: string | null;
-  quality: RatingChoice;
-  comfort: RatingChoice;
-  repeatability: RatingChoice;
+  quality: RatingLevel;
+  comfort: RatingLevel;
+  repeatability: RatingLevel;
   note?: string | null;
 }
-
-type RatingChoice = "one" | "two" | "three" | "four" | "five";
-
-const RATING_LEVELS: RatingChoice[] = ["one", "two", "three", "four", "five"];
-
-const RATING_LABEL: Record<RatingChoice, string> = {
-  one: "1",
-  two: "2",
-  three: "3",
-  four: "4",
-  five: "5",
-};
 
 export function SessionDetailsPage() {
   const navigate = useNavigate();
@@ -60,9 +56,7 @@ export function SessionDetailsPage() {
   const sessionId = id ?? session?.id ?? null;
   const fallbackDate = useMemo(() => {
     const now = new Date();
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 10);
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   }, []);
 
   const [date, setDate] = useState(session?.date ?? fallbackDate);
@@ -75,9 +69,9 @@ export function SessionDetailsPage() {
 
   const [selectedManeuverId, setSelectedManeuverId] = useState<string>("");
   const [selectedVariationId, setSelectedVariationId] = useState<string>("");
-  const [addQuality, setAddQuality] = useState<RatingChoice>("three");
-  const [addComfort, setAddComfort] = useState<RatingChoice>("three");
-  const [addRepeatability, setAddRepeatability] = useState<RatingChoice>("three");
+  const [addQuality, setAddQuality] = useState<RatingLevel>("three");
+  const [addComfort, setAddComfort] = useState<RatingLevel>("three");
+  const [addRepeatability, setAddRepeatability] = useState<RatingLevel>("three");
   const [addNote, setAddNote] = useState("");
 
   const debouncedNote = useDebounce(note, 500);
@@ -141,8 +135,8 @@ export function SessionDetailsPage() {
 
   const renderRatingValue = (value: unknown) => {
     if (typeof value !== "string") return null;
-    if (!Object.prototype.hasOwnProperty.call(RATING_LABEL, value)) return value;
-    return RATING_LABEL[value as RatingChoice];
+    if (!ALL_RATING_LEVELS.includes(value as RatingLevel)) return value;
+    return getRatingLabel(value as RatingLevel);
   };
 
   const updateSessionMutation = useMutation({
@@ -236,8 +230,8 @@ export function SessionDetailsPage() {
           </Button>
         </Link>
         <p className="text-sm text-muted-foreground">
-          Session editor needs session state from navigation. Open a session from the list or create a
-          new one from the Sessions page.
+          Session editor needs session state from navigation. Open a session from the list or create
+          a new one from the Sessions page.
         </p>
       </div>
     );
@@ -281,7 +275,9 @@ export function SessionDetailsPage() {
 
   const updateExistingVariation = (
     performedVariationId: string,
-    patch: Partial<Pick<EditablePerformedVariation, "quality" | "comfort" | "repeatability" | "note">>,
+    patch: Partial<
+      Pick<EditablePerformedVariation, "quality" | "comfort" | "repeatability" | "note">
+    >,
   ) => {
     const current = performedVariations.find(
       (v) => v.performedVariationId === performedVariationId,
@@ -449,7 +445,9 @@ export function SessionDetailsPage() {
           </div>
 
           <div className="md:col-span-2">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Variation note</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+              Variation note
+            </p>
             <Input
               value={addNote}
               onChange={(e) => setAddNote(e.target.value)}
@@ -459,14 +457,14 @@ export function SessionDetailsPage() {
 
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Quality</p>
-            <Select.Root value={addQuality} onValueChange={(v) => setAddQuality(v as RatingChoice)}>
+            <Select.Root value={addQuality} onValueChange={(v) => setAddQuality(v as RatingLevel)}>
               <SelectTrigger>
                 <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {RATING_LEVELS.map((lvl) => (
+                {ALL_RATING_LEVELS.map((lvl) => (
                   <SelectItem key={lvl} value={lvl}>
-                    {RATING_LABEL[lvl]}
+                    {getRatingLabel(lvl)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -475,14 +473,14 @@ export function SessionDetailsPage() {
 
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Comfort</p>
-            <Select.Root value={addComfort} onValueChange={(v) => setAddComfort(v as RatingChoice)}>
+            <Select.Root value={addComfort} onValueChange={(v) => setAddComfort(v as RatingLevel)}>
               <SelectTrigger>
                 <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {RATING_LEVELS.map((lvl) => (
+                {ALL_RATING_LEVELS.map((lvl) => (
                   <SelectItem key={lvl} value={lvl}>
-                    {RATING_LABEL[lvl]}
+                    {getRatingLabel(lvl)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -490,18 +488,20 @@ export function SessionDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Repeatability</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+              Repeatability
+            </p>
             <Select.Root
               value={addRepeatability}
-              onValueChange={(v) => setAddRepeatability(v as RatingChoice)}
+              onValueChange={(v) => setAddRepeatability(v as RatingLevel)}
             >
               <SelectTrigger>
                 <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {RATING_LEVELS.map((lvl) => (
+                {ALL_RATING_LEVELS.map((lvl) => (
                   <SelectItem key={lvl} value={lvl}>
-                    {RATING_LABEL[lvl]}
+                    {getRatingLabel(lvl)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -536,11 +536,18 @@ export function SessionDetailsPage() {
             <p className="text-sm text-muted-foreground">No performed maneuvers yet.</p>
           ) : (
             performedVariations.map((item) => (
-              <div key={item.performedVariationId} className="border border-border/60 p-3 flex flex-col gap-3">
+              <div
+                key={item.performedVariationId}
+                className="border border-border/60 p-3 flex flex-col gap-3"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold">{item.variationName ?? "Unknown variation"}</p>
-                    <p className="text-xs text-muted-foreground">{item.maneuverName ?? "Unknown maneuver"}</p>
+                    <p className="text-sm font-semibold">
+                      {item.variationName ?? "Unknown variation"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.maneuverName ?? "Unknown maneuver"}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -555,12 +562,14 @@ export function SessionDetailsPage() {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Quality</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                      Quality
+                    </p>
                     <Select.Root
                       value={item.quality}
                       onValueChange={(v) =>
                         updateExistingVariation(item.performedVariationId, {
-                          quality: v as RatingChoice,
+                          quality: v as RatingLevel,
                         })
                       }
                     >
@@ -568,9 +577,9 @@ export function SessionDetailsPage() {
                         <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {RATING_LEVELS.map((lvl) => (
+                        {ALL_RATING_LEVELS.map((lvl) => (
                           <SelectItem key={lvl} value={lvl}>
-                            {RATING_LABEL[lvl]}
+                            {getRatingLabel(lvl)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -578,12 +587,14 @@ export function SessionDetailsPage() {
                   </div>
 
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Comfort</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                      Comfort
+                    </p>
                     <Select.Root
                       value={item.comfort}
                       onValueChange={(v) =>
                         updateExistingVariation(item.performedVariationId, {
-                          comfort: v as RatingChoice,
+                          comfort: v as RatingLevel,
                         })
                       }
                     >
@@ -591,9 +602,9 @@ export function SessionDetailsPage() {
                         <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {RATING_LEVELS.map((lvl) => (
+                        {ALL_RATING_LEVELS.map((lvl) => (
                           <SelectItem key={lvl} value={lvl}>
-                            {RATING_LABEL[lvl]}
+                            {getRatingLabel(lvl)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -608,7 +619,7 @@ export function SessionDetailsPage() {
                       value={item.repeatability}
                       onValueChange={(v) =>
                         updateExistingVariation(item.performedVariationId, {
-                          repeatability: v as RatingChoice,
+                          repeatability: v as RatingLevel,
                         })
                       }
                     >
@@ -616,16 +627,15 @@ export function SessionDetailsPage() {
                         <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {RATING_LEVELS.map((lvl) => (
+                        {ALL_RATING_LEVELS.map((lvl) => (
                           <SelectItem key={lvl} value={lvl}>
-                            {RATING_LABEL[lvl]}
+                            {getRatingLabel(lvl)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select.Root>
                   </div>
                 </div>
-
               </div>
             ))
           )}

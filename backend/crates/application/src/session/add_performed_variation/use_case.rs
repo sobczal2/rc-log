@@ -1,6 +1,7 @@
+use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
 use rc_log_domain::maneuver::variation::VariationId;
 use rc_log_domain::maneuver::variation_resolver::VariationResolver;
-use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
+use rc_log_domain::model::Type;
 use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::session::Session;
 use rc_log_domain::session::id::SessionId;
@@ -11,7 +12,6 @@ use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::vehicle_type::VehicleType;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
@@ -36,7 +36,12 @@ where
     ManR: ManeuverResolver,
     VarR: VariationResolver,
 {
-    pub fn new(uow: UoW, model_resolver: MR, maneuver_resolver: ManR, variation_resolver: VarR) -> Self {
+    pub fn new(
+        uow: UoW,
+        model_resolver: MR,
+        maneuver_resolver: ManR,
+        variation_resolver: VarR,
+    ) -> Self {
         Self { uow, model_resolver, maneuver_resolver, variation_resolver }
     }
 
@@ -107,9 +112,7 @@ where
             .await
             .map_err(AddPerformedVariationError::from)?
             .ok_or_else(|| {
-                AddPerformedVariationError::ValidationError(
-                    "variation not found".to_string(),
-                )
+                AddPerformedVariationError::ValidationError("variation not found".to_string())
             })?;
 
         let variation_maneuver = self
@@ -122,7 +125,7 @@ where
                     "maneuver for variation not found".to_string(),
                 )
             })?;
-        let added_vehicle_type = *variation_maneuver.vehicle_type();
+        let added_model_type = *variation_maneuver.model_type();
 
         if let Some(model_id) = existing.model_id() {
             let model = self
@@ -136,7 +139,7 @@ where
                     )
                 })?;
 
-            if model.vehicle_type() != added_vehicle_type {
+            if model.r#type() != added_model_type {
                 tx.rollback().await.map_err(AddPerformedVariationError::from)?;
                 return Err(AddPerformedVariationError::ValidationError(
                     "variation maneuver type must match session model type".to_string(),
@@ -166,12 +169,13 @@ where
                     )
                 })?;
 
-            let first_vehicle_type: VehicleType = *first_maneuver.vehicle_type();
+            let first_model_type: Type = *first_maneuver.model_type();
 
-            if first_vehicle_type != added_vehicle_type {
+            if first_model_type != added_model_type {
                 tx.rollback().await.map_err(AddPerformedVariationError::from)?;
                 return Err(AddPerformedVariationError::ValidationError(
-                    "variation maneuver type must match existing performed variations type".to_string(),
+                    "variation maneuver type must match existing performed variations type"
+                        .to_string(),
                 )
                 .into());
             }

@@ -45,9 +45,7 @@ where
         }
 
         debug!("Deleting session");
-        tx.delete_by_id(SessionId::new(input.id))
-            .await
-            .map_err(DeleteSessionError::from)?;
+        tx.delete_by_id(SessionId::new(input.id)).await.map_err(DeleteSessionError::from)?;
 
         debug!("Committing transaction");
         tx.commit().await.map_err(DeleteSessionError::from)?;

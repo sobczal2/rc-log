@@ -6,9 +6,9 @@ use rc_log_domain::session::transaction::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::shared::TypeDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
-use crate::shared::vehicle_type::VehicleTypeDto;
 
 #[derive(Debug, Clone)]
 pub struct ListSessionsInput {
@@ -37,19 +37,13 @@ impl Validate for SessionFilterDto {
 
         for (idx, id) in self.maneuver_ids.iter().enumerate() {
             if id.is_nil() {
-                errors.push(ValidationError::new(
-                    format!("maneuverIds[{idx}]"),
-                    "must not be nil",
-                ));
+                errors.push(ValidationError::new(format!("maneuverIds[{idx}]"), "must not be nil"));
             }
         }
 
         if let Some(search_query) = &self.search_query {
             if search_query.len() > 200 {
-                errors.push(ValidationError::new(
-                    "searchQuery",
-                    "must not exceed 200 characters",
-                ));
+                errors.push(ValidationError::new("searchQuery", "must not exceed 200 characters"));
             }
         }
 
@@ -176,7 +170,7 @@ pub struct SessionDto {
     pub date: String,
     pub model_id: Option<Uuid>,
     pub model_name: Option<String>,
-    pub model_type: Option<VehicleTypeDto>,
+    pub model_type: Option<TypeDto>,
     pub model_photo_asset_name: Option<String>,
     pub performed_variations: Vec<PerformedVariationDto>,
 }

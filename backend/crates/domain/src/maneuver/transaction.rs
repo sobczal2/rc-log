@@ -4,9 +4,9 @@ use crate::maneuver::Maneuver;
 use crate::maneuver::difficulty::Difficulty;
 use crate::maneuver::id::ManeuverId;
 use crate::maneuver::variation::{Variation, VariationId};
+use crate::model::Type;
 use crate::shared::pagination::Pagination;
 use crate::shared::transaction::{Transaction, TransactionError};
-use crate::shared::vehicle_type::VehicleType;
 
 /// Transaction trait extended with Maneuver-specific operations
 pub trait ManeuverTransaction: Transaction<Maneuver> {
@@ -31,7 +31,7 @@ pub trait ManeuverTransaction: Transaction<Maneuver> {
 #[derive(Debug, Clone, Default)]
 pub struct ManeuverFilter {
     pub tags: Vec<String>,
-    pub vehicle_type: Option<VehicleType>,
+    pub model_type: Option<Type>,
     pub difficulty: Option<Difficulty>,
     pub search_query: Option<String>,
 }

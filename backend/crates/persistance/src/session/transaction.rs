@@ -193,7 +193,6 @@ impl Transaction<Session> for SqlxSessionTransaction {
         performed_rows.sort_by_key(|row| row.id);
 
         for performed_row in performed_rows {
-
             sqlx::query(
                 r#"
                 INSERT INTO session.performed_variation

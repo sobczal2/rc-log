@@ -31,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CONTENT_DIR = REPO_ROOT / "content" / "maneuver"
 TAGS_FILE = CONTENT_DIR / "tags.json"
 
-REQUIRED_MANEUVER_FIELDS = {"id", "vehicleType", "name", "tags", "description"}
+REQUIRED_MANEUVER_FIELDS = {"id", "model_type", "name", "tags", "description"}
 REQUIRED_VARIATION_FIELDS = {"id", "videoAssetName", "videoAssetId", "name", "description", "difficulty"}
 
 
@@ -152,15 +152,15 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
     lines.append("-- 2. Maneuvers")
     for m in maneuvers:
         lines.append(
-            f"INSERT INTO maneuver.maneuver (id, vehicle_type, name, description)"
+            f"INSERT INTO maneuver.maneuver (id, model_type, name, description)"
             f" VALUES ("
             f"'{m['id']}', "
-            f"{sql_str(m['vehicleType'])}, "
+            f"{sql_str(m['model_type'])}, "
             f"{sql_str(m['name'])}, "
             f"{sql_str(m['description'])}"
             f")"
             f" ON CONFLICT (id) DO UPDATE SET"
-            f"  vehicle_type = EXCLUDED.vehicle_type,"
+            f"  model_type = EXCLUDED.model_type,"
             f"  name = EXCLUDED.name,"
             f"  description = EXCLUDED.description;"
         )

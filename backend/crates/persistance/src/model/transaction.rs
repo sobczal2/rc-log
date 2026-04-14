@@ -1,12 +1,12 @@
 use rc_log_domain::asset::name::AssetName;
 use rc_log_domain::model::Model;
+use rc_log_domain::model::Type;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::name::Name;
 use rc_log_domain::model::transaction::ModelTransaction;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::vehicle_type::VehicleType;
 use rc_log_domain::user::id::UserId;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
 use uuid::Uuid;
@@ -16,7 +16,7 @@ struct ModelRow {
     id: Uuid,
     owner_id: Uuid,
     name: String,
-    vehicle_type: String,
+    r#type: String,
     photo_asset_name: Option<String>,
 }
 
@@ -24,12 +24,14 @@ impl ModelRow {
     fn try_into_model(self) -> Result<Model, TransactionError> {
         let name =
             Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let vehicle_type = match self.vehicle_type.as_str() {
-            "Helicopter" => VehicleType::Helicopter,
-            "Plane" => VehicleType::Plane,
-            "Drone" => VehicleType::Drone,
+        let r#type = match self.r#type.as_str() {
+            "Helicopter" => Type::Helicopter,
+            "Plane" => Type::Plane,
+            "Drone" => Type::Drone,
             other => {
-                return Err(TransactionError::InvalidData(format!("unknown vehicle type: {other}")));
+                return Err(TransactionError::InvalidData(format!(
+                    "unknown model type: {other}"
+                )));
             }
         };
         let photo_asset_name = self
@@ -40,22 +42,22 @@ impl ModelRow {
             ModelId::new(self.id),
             UserId::new(self.owner_id),
             name,
-            vehicle_type,
+            r#type,
             photo_asset_name,
         ))
     }
 
     fn from_model(model: &Model) -> Self {
-        let vehicle_type = match model.vehicle_type() {
-            VehicleType::Helicopter => "Helicopter".to_string(),
-            VehicleType::Plane => "Plane".to_string(),
-            VehicleType::Drone => "Drone".to_string(),
+        let r#type = match model.r#type() {
+            Type::Helicopter => "Helicopter".to_string(),
+            Type::Plane => "Plane".to_string(),
+            Type::Drone => "Drone".to_string(),
         };
         Self {
             id: Uuid::from(model.id()),
             owner_id: Uuid::from(model.owner_id()),
             name: model.name().as_str().to_string(),
-            vehicle_type,
+            r#type,
             photo_asset_name: model.photo_asset_name().map(|n| n.as_str().to_string()),
         }
     }
@@ -71,18 +73,18 @@ impl Transaction<Model> for SqlxModelTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO model.model (id, owner_id, name, vehicle_type, photo_asset_name)
+            INSERT INTO model.model (id, owner_id, name, type, photo_asset_name)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
-                vehicle_type = EXCLUDED.vehicle_type,
+                type = EXCLUDED.type,
                 photo_asset_name = EXCLUDED.photo_asset_name
             "#,
         )
         .bind(row.id)
         .bind(row.owner_id)
         .bind(&row.name)
-        .bind(&row.vehicle_type)
+        .bind(&row.r#type)
         .bind(&row.photo_asset_name)
         .execute(&mut *self.tx)
         .await
@@ -104,7 +106,7 @@ impl ModelTransaction for SqlxModelTransaction {
     async fn get_by_id(&mut self, id: ModelId) -> Result<Option<Model>, TransactionError> {
         let row: Option<ModelRow> = sqlx::query_as(
             r#"
-            SELECT id, owner_id, name, vehicle_type, photo_asset_name
+            SELECT id, owner_id, name, type, photo_asset_name
             FROM model.model
             WHERE id = $1
             "#,
@@ -136,7 +138,7 @@ impl ModelTransaction for SqlxModelTransaction {
 
         let rows: Vec<ModelRow> = sqlx::query_as(
             r#"
-            SELECT id, owner_id, name, vehicle_type, photo_asset_name
+            SELECT id, owner_id, name, type, photo_asset_name
             FROM model.model
             WHERE owner_id = $1
             ORDER BY name ASC
@@ -203,12 +205,12 @@ mod tests {
 
     use super::ModelRow;
 
-    fn make_model_row(name: &str, vehicle_type: &str) -> ModelRow {
+    fn make_model_row(name: &str, r#type: &str) -> ModelRow {
         ModelRow {
             id: Uuid::new_v4(),
             owner_id: Uuid::new_v4(),
             name: name.to_string(),
-            vehicle_type: vehicle_type.to_string(),
+            r#type: r#type.to_string(),
             photo_asset_name: None,
         }
     }
@@ -232,13 +234,13 @@ mod tests {
     }
 
     #[test]
-    fn unknown_vehicle_type_fails() {
+    fn unknown_type_fails() {
         let row = make_model_row("My Model", "Submarine");
         assert!(row.try_into_model().is_err());
     }
 
     #[test]
-    fn all_vehicle_types_convert() {
+    fn all_types_convert() {
         for vt in ["Helicopter", "Plane", "Drone"] {
             let row = make_model_row("My Model", vt);
             assert!(row.try_into_model().is_ok(), "failed for {vt}");
@@ -268,9 +270,9 @@ mod tests {
     #[test]
     fn from_model_round_trip() {
         use rc_log_domain::model::Model;
+        use rc_log_domain::model::Type;
         use rc_log_domain::model::id::ModelId;
         use rc_log_domain::model::name::Name;
-        use rc_log_domain::shared::vehicle_type::VehicleType;
         use rc_log_domain::user::id::UserId;
 
         let id = Uuid::new_v4();
@@ -279,14 +281,14 @@ mod tests {
             ModelId::new(id),
             UserId::new(owner_id),
             Name::new("My Trex 700".to_string()).unwrap(),
-            VehicleType::Helicopter,
+            Type::Helicopter,
             None,
         );
         let row = ModelRow::from_model(&model);
         assert_eq!(row.id, id);
         assert_eq!(row.owner_id, owner_id);
         assert_eq!(row.name, "My Trex 700");
-        assert_eq!(row.vehicle_type, "Helicopter");
+        assert_eq!(row.r#type, "Helicopter");
         assert_eq!(row.photo_asset_name, None);
     }
 }

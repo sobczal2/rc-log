@@ -1,4 +1,4 @@
-import type { VehicleType } from "@/models/shared/vehicle-type";
+import type { Type } from "@/models/model/type";
 import type { DifficultyLevel } from "@/models/shared/difficulty";
 
 export interface TagDto {
@@ -17,7 +17,7 @@ export interface VariationDto {
 export interface ManeuverDto {
   id: string;
   name: string;
-  vehicleType: VehicleType;
+  type: Type;
   minDifficulty: DifficultyLevel;
   maxDifficulty: DifficultyLevel;
   tags: TagDto[];

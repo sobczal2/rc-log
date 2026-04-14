@@ -22,7 +22,7 @@ pub async fn update_model(
             id: input.id,
             owner_id: auth.id,
             name: input.name,
-            vehicle_type: input.vehicle_type,
+            r#type: input.r#type,
         })
         .await?;
     debug!("Model updated, returning response");

@@ -31,7 +31,12 @@ where
     ManR: ManeuverResolver,
     VarR: VariationResolver,
 {
-    pub fn new(uow: UoW, model_resolver: MR, maneuver_resolver: ManR, variation_resolver: VarR) -> Self {
+    pub fn new(
+        uow: UoW,
+        model_resolver: MR,
+        maneuver_resolver: ManR,
+        variation_resolver: VarR,
+    ) -> Self {
         Self { uow, model_resolver, maneuver_resolver, variation_resolver }
     }
 
@@ -45,7 +50,9 @@ where
 
         let note = input
             .note
-            .map(|n| MarkdownText::new(n).map_err(|e| UpdateSessionError::ValidationError(e.to_string())))
+            .map(|n| {
+                MarkdownText::new(n).map_err(|e| UpdateSessionError::ValidationError(e.to_string()))
+            })
             .transpose()?;
 
         debug!("Beginning transaction");
@@ -71,7 +78,7 @@ where
                 .map_err(UpdateSessionError::from)?
                 .ok_or(UpdateSessionError::ModelNotFound)?;
 
-            let model_vehicle_type = model.vehicle_type();
+            let model_type = model.r#type();
             for performed in existing.performed_variations() {
                 let variation = self
                     .variation_resolver
@@ -95,7 +102,7 @@ where
                         )
                     })?;
 
-                if *maneuver.vehicle_type() != model_vehicle_type {
+                if *maneuver.model_type() != model_type {
                     tx.rollback().await.map_err(UpdateSessionError::from)?;
                     return Err(UpdateSessionError::ValidationError(
                         "session model type must match performed variations maneuver type"

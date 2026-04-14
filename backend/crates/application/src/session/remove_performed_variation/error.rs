@@ -17,9 +17,7 @@ pub enum RemovePerformedVariationError {
 impl From<TransactionError> for RemovePerformedVariationError {
     fn from(err: TransactionError) -> Self {
         match err {
-            TransactionError::InvalidData(msg) => {
-                RemovePerformedVariationError::InvalidData(msg)
-            }
+            TransactionError::InvalidData(msg) => RemovePerformedVariationError::InvalidData(msg),
             TransactionError::TransactionError(msg) => {
                 RemovePerformedVariationError::RepositoryError(msg)
             }

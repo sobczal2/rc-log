@@ -1,8 +1,8 @@
-import type { VehicleType } from "@/models/shared";
+import type { Type } from "@/models/model/type";
 
 export interface ListModelDto {
   id: string;
   name: string;
-  vehicleType: VehicleType;
+  type: Type;
   photoAssetName: string | null;
 }

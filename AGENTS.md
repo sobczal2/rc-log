@@ -34,16 +34,16 @@ Pure domain model. No framework dependencies. Owns:
 
 | Path | Contents |
 |---|---|
-| `src/maneuver/mod.rs` | `Maneuver` aggregate (id, vehicle_type, name, tags, description, difficulty, default_variation, other_variations) |
+| `src/maneuver/mod.rs` | `Maneuver` aggregate (id, type, name, tags, description, difficulty, default_variation, other_variations) |
 | `src/maneuver/difficulty.rs` | `Difficulty` enum (Level1–Level7) |
 | `src/maneuver/tag.rs` | `Tag` value object (id, name) |
 | `src/maneuver/variation.rs` | `Variation` entity (id, maneuver_id, name, description: MarkdownText, video_asset_name: AssetName) |
-| `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash) |
-| `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_username()` |
-| `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: ModelName, vehicle_type: VehicleType, photo_asset_name: Option<AssetName>) |
+| `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash, photo_asset_name: Option<AssetName>) |
+| `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_id()`, `get_by_username()`, `get_by_email()` |
+| `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: Name, type: Type, photo_asset_name: Option<AssetName>) |
 | `src/model/id.rs` | `ModelId(Uuid)` newtype (Copy, wraps Uuid via `::new()`, `::as_uuid()`, `From<ModelId> for Uuid`) |
 | `src/model/model_resolver.rs` | `ModelResolver` trait — `get_by_id(&self, &ModelId) -> Option<Model>` |
-| `src/model/name.rs` | `ModelName` validated newtype (non-empty, trimmed, ≤100 chars) + `ModelNameError` |
+| `src/model/name.rs` | `Name` validated newtype (non-empty, ≤255 chars) + `NameError` |
 | `src/model/transaction.rs` | `ModelTransaction` trait extending `Transaction<Model>` with `get_by_id()`, `list_by_owner()`, `delete_by_id()` |
 | `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
 | `src/session/date.rs` | `Date` value object (`YYYY-MM-DD`) + `DateError` |
@@ -52,10 +52,12 @@ Pure domain model. No framework dependencies. Owns:
 | `src/session/performed_variation_id.rs` | `PerformedVariationId(Uuid)` newtype |
 | `src/session/rating.rs` | `Rating` value object (`quality`, `comfort`, `repeatability`) + typed scales |
 | `src/session/transaction.rs` | `SessionTransaction` trait extending `Transaction<Session>` with `get_by_id()` |
-| `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
+| `src/shared/transaction.rs` | `TransactionError`, `Transaction<T>` trait |
+| `src/shared/unit_of_work.rs` | `UnitOfWork<T>` trait |
+| `src/shared/email.rs` | `Email` validated newtype (non-empty, trimmed, ≤255 chars, contains @) + `EmailError` |
 | `src/shared/pagination.rs` | `Pagination` value object (page, page_size) with `offset()`/`limit()` helpers |
 | `src/shared/password_hash.rs` | `PasswordHash` newtype |
-| `src/shared/vehicle_type.rs` | `VehicleType` enum (Helicopter, Plane, Drone) |
+| `src/shared/type.rs` | `Type` enum (Helicopter, Plane, Drone) |
 | `src/shared/markdown_text.rs` | `MarkdownText` newtype |
 | `src/asset/mod.rs` | Re-exports all asset types and traits |
 | `src/asset/name.rs` | `AssetName` newtype (non-empty, trimmed, ≤255 chars) + `AssetNameError` |
@@ -65,7 +67,9 @@ Pure domain model. No framework dependencies. Owns:
 | `src/asset/photo.rs` | `Photo` aggregate (identical structure to `Video`) |
 | `src/asset/video_resolver.rs` | `VideoResolver` trait — `get(&self, &AssetName) -> Option<Video>` |
 | `src/asset/photo_resolver.rs` | `PhotoResolver` trait — `get(&self, &AssetName) -> Option<Photo>` |
-| `src/asset/photo_storage.rs` | `PhotoStorage` trait — `store(&self, &AssetName, &[u8]) -> Photo` and `delete(&self, &AssetName) -> ()` + `PhotoStorageError` |
+| `src/asset/photo_service.rs` | `PhotoService` trait — `save(&self, &AssetName, &[u8]) -> Photo` and `delete(&self, &AssetName) -> ()` + `PhotoServiceError` |
+| `src/asset/photo_transaction.rs` | `PhotoTransaction` trait extending `Transaction<Photo>` with `get_by_name()`, `delete_by_name()` |
+| `src/asset/video_transaction.rs` | `VideoTransaction` trait extending `Transaction<Video>` with `get_by_name()`, `delete_by_name()` |
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
@@ -78,7 +82,7 @@ fn rollback(self) -> impl Future<Output = Result<(), TransactionError>>;
 
 **`UnitOfWork<T>` trait**:
 ```rust
-fn begin(&mut self) -> impl Future<Output = Result<Self::Transaction, RepositoryError>>;
+fn begin(&mut self) -> impl Future<Output = Result<Self::Transaction, TransactionError>>;
 ```
 
 ---
@@ -96,9 +100,6 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/maneuver/list/error.rs` | `ListManeuversError` |
 | `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto`; `ManeuverDto` includes `default_variation_video_asset_name: String` (from the default variation only) |
 | `src/maneuver/list/use_case.rs` | `ListManeuversUseCase<UoW>` — returns `PaginatedResult<ManeuverDto>` |
-| `src/user/create/error.rs` | `CreateUserError` (ValidationError, UsernameTaken, EmailTaken, RepositoryError) |
-| `src/user/create/model.rs` | `CreateUserInput`, `UserDto` |
-| `src/user/create/use_case.rs` | `CreateUserUseCase<UoW>` — creates user with hashed password |
 | `src/user/get_by_id/error.rs` | `GetUserByIdError` (NotFound, InvalidData, RepositoryError) |
 | `src/user/get_by_id/model.rs` | `GetUserByIdInput`, `UserDto` |
 | `src/user/get_by_id/use_case.rs` | `GetUserByIdUseCase<UoW>` — returns `UserDto` |
@@ -111,6 +112,15 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/user/sign_up/error.rs` | `SignUpError` (ValidationError, UsernameTaken, EmailTaken, HashingError, RepositoryError) |
 | `src/user/sign_up/model.rs` | `SignUpInput`, `UserDto` |
 | `src/user/sign_up/use_case.rs` | `SignUpUseCase<UoW>` — hashes password with argon2, saves user, returns `UserDto` |
+| `src/user/update/error.rs` | `UpdateUserError` (NotFound, ValidationError, UsernameTaken, InvalidData, RepositoryError) |
+| `src/user/update/model.rs` | `UpdateUserInput`, `UserDto` |
+| `src/user/update/use_case.rs` | `UpdateUserUseCase<UoW>` — checks username availability, updates user, returns `UserDto` |
+| `src/user/update_photo/error.rs` | `UpdateUserPhotoError` (NotFound, InvalidPhotoContent, InvalidData, RepositoryError, PhotoServiceError) |
+| `src/user/update_photo/model.rs` | `UpdateUserPhotoInput { user_id, data: Vec<u8> }`, `UserDto` |
+| `src/user/update_photo/use_case.rs` | `UpdateUserPhotoUseCase<UoW, PS>` — generates `user-photo-{uuid}`, saves photo, updates user, best-effort delete old photo |
+| `src/user/remove_photo/error.rs` | `RemoveUserPhotoError` (NotFound, InvalidData, RepositoryError, PhotoServiceError) |
+| `src/user/remove_photo/model.rs` | `RemoveUserPhotoInput { user_id }` — no output struct |
+| `src/user/remove_photo/use_case.rs` | `RemoveUserPhotoUseCase<UoW, PS>` — sets `photo_asset_name: None`, save, commit, best-effort delete old photo |
 | `src/video/resolve/error.rs` | `ResolveVideoError` (NotFound, InvalidName, InvalidData, ResolverError) |
 | `src/video/resolve/model.rs` | `ResolveVideoInput`, `VideoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
 | `src/video/resolve/use_case.rs` | `ResolveVideoUseCase<R: VideoResolver>` — looks up video by name, returns `VideoPathsDto` |
@@ -123,23 +133,26 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/list/error.rs` | `ListModelsError` (InvalidData, RepositoryError) |
 | `src/model/list/model.rs` | `ListModelsInput { owner_id, pagination }`, `ModelDto` |
 | `src/model/list/use_case.rs` | `ListModelsUseCase<UoW>` — returns `PaginatedResult<ModelDto>` scoped to owner |
-| `src/model/create/model.rs` | `CreateModelInput { owner_id, name, vehicle_type }`, `ModelDto` |
+| `src/model/create/model.rs` | `CreateModelInput { owner_id, name, type }`, `ModelDto` |
 | `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name, creates model with `photo_asset_name: None`, saves |
 | `src/model/update/error.rs` | `UpdateModelError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
-| `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, vehicle_type }`, `ModelDto` |
+| `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, type }`, `ModelDto` |
 | `src/model/update/use_case.rs` | `UpdateModelUseCase<UoW>` — get, ownership check, preserve existing photo, save |
 | `src/model/delete/error.rs` | `DeleteModelError` (NotFound, Forbidden, RepositoryError) |
 | `src/model/delete/model.rs` | `DeleteModelInput { id, owner_id }` — no output struct |
-| `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW, PS>` — get, ownership check, delete_by_id, commit, then best-effort `photo_storage.delete` |
-| `src/model/update_photo/error.rs` | `UpdateModelPhotoError` (NotFound, Forbidden, InvalidPhotoContent, InvalidData, RepositoryError, PhotoStorageError) |
+| `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW, PS>` — get, ownership check, delete_by_id, commit, then best-effort `photo_service.delete` |
+| `src/model/update_photo/error.rs` | `UpdateModelPhotoError` (NotFound, Forbidden, InvalidPhotoContent, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/model/update_photo/model.rs` | `UpdateModelPhotoInput { model_id, owner_id, data: Vec<u8> }`, `ModelDto` |
 | `src/model/update_photo/use_case.rs` | `UpdateModelPhotoUseCase<UoW, PS>` — get, ownership check, store new photo (name = `model-photo-{uuid}`), save, commit, best-effort delete old photo |
-| `src/model/remove_photo/error.rs` | `RemoveModelPhotoError` (NotFound, Forbidden, InvalidData, RepositoryError, PhotoStorageError) |
+| `src/model/remove_photo/error.rs` | `RemoveModelPhotoError` (NotFound, Forbidden, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/model/remove_photo/model.rs` | `RemoveModelPhotoInput { model_id, owner_id }` — no output struct |
 | `src/model/remove_photo/use_case.rs` | `RemoveModelPhotoUseCase<UoW, PS>` — get, ownership check, set `photo_asset_name: None`, save, commit, best-effort delete old photo |
-| `src/session/create/error.rs` | `CreateSessionError` (ValidationError, InvalidData, RepositoryError) |
+| `src/session/create/error.rs` | `CreateSessionError` (ValidationError, ModelNotFound, InvalidData, RepositoryError) |
 | `src/session/create/model.rs` | `CreateSessionInput { user_id, date, model_id, note }`, `SessionDto` |
 | `src/session/create/use_case.rs` | `CreateSessionUseCase<SessionUoW, ModelUoW>` — validates date/note, verifies optional `model_id` exists, creates session with empty performed variations, saves |
+| `src/session/delete/error.rs` | `DeleteSessionError` (NotFound, Forbidden, RepositoryError) |
+| `src/session/delete/model.rs` | `DeleteSessionInput { id, owner_id }` — no output struct |
+| `src/session/delete/use_case.rs` | `DeleteSessionUseCase<UoW>` — get session, ownership check, delete_by_id, commit |
 | `src/session/list/error.rs` | `ListSessionsError` (InvalidData, RepositoryError) |
 | `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` (list-view shape with `model_name`, `model_type`, and per-item `maneuver_name`/`variation_name`; no notes) |
 | `src/session/list/use_case.rs` | `ListSessionsUseCase<UoW, MR, ManR, VarR>` — owner-scoped paginated list with filters (`model_ids`, `maneuver_ids`, `search_query`) and sort (`date`); enriches list DTO using resolvers and infers `model_type` from first performed variation when session model is absent |
@@ -207,11 +220,11 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
 | `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
 | `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
-| `src/asset/photo_storage.rs` | `DiskDbPhotoStorage` — implements `PhotoStorage`; resizes images adaptively to WebP, writes to disk, upserts `asset.photo` row |
+| `src/asset/photo_service.rs` | `DiskDbPhotoService` — implements `PhotoService`; resizes images adaptively to WebP, writes to disk, upserts `asset.photo` row |
 
 **Conventions:**
 - Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`, `ModelId`, `UserId`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
-- Primitive `Uuid` types cross the application/API boundary (in DTO input/output structs). Domain value objects (`ModelId`, `UserId`, `ModelName`, etc.) are only used *inside* the application layer and below. Never expose domain value object types to the API layer.
+- Primitive `Uuid` types cross the application/API boundary (in DTO input/output structs). Domain value objects (`ModelId`, `UserId`, `Name`, etc.) are only used *inside* the application layer and below. Never expose domain value object types to the API layer.
 
 **Key implementation details:**
 - `SqlxManeuverUnitOfWork` holds a `PgPool` (Arc-backed, `Clone`-derived).
@@ -236,10 +249,10 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
 - Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
 
-**Photo storage** (`src/asset/photo_storage.rs`):
-- `DiskDbPhotoStorage { pool: PgPool, asset_path: PathBuf }` — `Clone`-derived; implements the `PhotoStorage` domain trait.
+**Photo service** (`src/asset/photo_service.rs`):
+- `DiskDbPhotoService { pool: PgPool, asset_path: PathBuf }` — `Clone`-derived; implements the `PhotoService` domain trait.
 - `::new(pool, asset_path: PathBuf)` — wired in `AppState::new`.
-- `store(&self, name, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
+- `save(&self, name, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
 - `delete(&self, name)`: fetch paths from DB → delete DB row → remove files (ignore `NotFound`). Always returns `Ok(())`; file errors are logged as warnings.
 - **Adaptive sizing** (longest side = max(width, height)): ≤400px → `small` only; ≤800px → `small` + `medium`; >800px → `small` + `medium` + `large`. Target pixel sizes: small=400, medium=800, large=1600. Images smaller than a tier's target are never upscaled.
 - **Stored paths** are relative to `asset_path`, e.g. `photos/{name}_small.webp`.
@@ -253,7 +266,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `user.user` — user entity table with unique constraints on username and email
 - `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
 - `asset.photo` — identical structure to `asset.video`
-- `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(100) NOT NULL`, `vehicle_type TEXT NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
+- `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(255) NOT NULL`, `type VARCHAR(50) NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
 - `session.session` — `id UUID PK`, `user_id UUID FK → user.user`, `date DATE NOT NULL`, `model_id UUID FK → model.model`, `note TEXT`
 - `session.performed_variation` — `id UUID PK`, `session_id UUID FK`, `variation_id UUID FK`, rating columns (`quality`, `comfort`, `repeatability`) + optional note; duplicate `variation_id` entries are allowed per session
 
@@ -278,6 +291,9 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/auth/sign_up/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/auth/router.rs` | Mounts auth routes |
 | `src/user/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` extractor |
+| `src/user/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/user/update_photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field |
+| `src/user/remove_photo/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/user/router.rs` | Mounts user routes |
 | `src/model/get_by_id/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
@@ -288,6 +304,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/remove_photo/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content (no `response.rs` needed) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/session/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/session/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/session/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/add_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
@@ -307,7 +324,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `RepositoryError` / `ResolverError` | 500 (internal details not leaked) |
 | `UsernameTaken` / `EmailTaken` | 409 |
 | `InvalidPhotoContent` (bad image data) | 400 |
-| `PhotoStorageError` | 500 |
+| `PhotoServiceError` | 500 |
 | `InvalidCredentials` (sign-in) | 401 |
 | `Unauthorized` (missing/invalid JWT) | 401 |
 
@@ -320,6 +337,9 @@ POST /api/auth/sign-up                    → SignUpResponse  { token, user }
 POST /api/auth/sign-in                    → SignInResponse  { token, user }
 
 GET  /api/users/{id}          [JWT required]  → GetByIdResponse
+PUT  /api/users/me             [JWT required]  → UpdateResponse
+PUT  /api/users/me/photo       [JWT required]  → UpdatePhotoResponse  (multipart form-data, field: photo)
+DELETE /api/users/me/photo     [JWT required]  → 204 No Content
 
 GET  /api/asset-paths/video/{name}        → ResolveVideoResponse  { name, smallPath, mediumPath?, largePath? }
 GET  /api/asset-paths/photo/{name}        → ResolvePhotoResponse  { name, smallPath, mediumPath?, largePath? }
@@ -335,6 +355,7 @@ DELETE /api/models/{id}/photo   [JWT required]  → 204 No Content
 POST /api/sessions              [JWT required]  → CreateSessionResponse  (201 Created)
 GET  /api/sessions              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
 PUT  /api/sessions/{id}         [JWT required]  → UpdateSessionResponse
+DELETE /api/sessions/{id}       [JWT required]  → 204 No Content
 POST /api/sessions/{id}/performed-variations                                           [JWT required]  → AddPerformedVariationResponse
 PUT  /api/sessions/{id}/performed-variations/{performed_variation_id}                  [JWT required]  → UpdatePerformedVariationResponse
 DELETE /api/sessions/{id}/performed-variations/{performed_variation_id}                [JWT required]  → RemovePerformedVariationResponse
@@ -345,7 +366,7 @@ Also adds `RemoveModelPhoto` error to `ApiError` mapping: `NotFound` → 404, `F
 `PaginationQuery` validates `page >= 1` and `1 <= page_size <= 100`; defaults are page=1, page_size=20. Returns 400 JSON on invalid params.
 
 **JWT / authentication conventions:**
-- Tokens are HS256-signed JWTs with a 24 h expiry. The secret is read from `JWT_SECRET` env var.
+- Tokens are HS256-signed JWTs with a 24 h expiry. The secret is read from `RC_LOG_JWT_SECRET` env var.
 - `JwtClaims` carries `sub` (user UUID) and `username`.
 - Routes that require authentication add `AuthenticatedUser` as a handler parameter — axum resolves it via `FromRequestParts` which validates the `Authorization: Bearer <token>` header. No JWT middleware layer is used; protection is per-handler.
 - Password hashing is done in the `sign_up` use case via **argon2** (`Argon2::default()`, random salt). Verification is in the `sign_in` use case.
@@ -402,16 +423,28 @@ frontend/src/
 │   │   ├── get-by-id.ts    # GetByIdModelDto
 │   │   ├── create.ts       # CreateModelRequest, CreateModelDto
 │   │   ├── update.ts       # UpdateModelRequest, UpdateModelDto
+│   │   ├── update-photo.ts # UpdateModelPhotoDto
 │   │   └── index.ts        # Barrel export
 │   ├── user/            # User aggregate
-│   │   ├── get-by-id.ts    # User interface (id, username, email)
+│   │   ├── get-by-id.ts    # GetByIdUserDto
+│   │   ├── sign-in.ts      # SignInUserDto
+│   │   ├── sign-up.ts      # SignUpUserDto
+│   │   ├── update.ts       # UpdateUserRequest, UpdateUserDto
+│   │   ├── update-photo.ts # UpdateUserPhotoDto
+│   │   └── index.ts        # Barrel export
+│   ├── session/         # Session aggregate
+│   │   ├── list.ts         # ListSessionDto, PerformedVariationDto, SessionFilter, SessionSort, rating types
+│   │   ├── create.ts       # CreateSessionRequest, CreateSessionDto
+│   │   ├── update.ts       # UpdateSessionRequest, UpdateSessionDto
+│   │   ├── add-performed-variation.ts  # AddPerformedVariationRequest, AddPerformedVariationDto, rating types
+│   │   ├── update-performed-variation.ts # UpdatePerformedVariationRequest, rating types
 │   │   └── index.ts        # Barrel export
 │   ├── asset/           # Asset types
 │   │   ├── photo.ts        # PhotoPathsDto + getPhotoUrl()
 │   │   ├── video.ts        # VideoPathsDto + getVideoUrl()
 │   │   └── index.ts
 │   └── shared/          # Shared domain types
-│       ├── vehicle-type.tsx # VehicleType type + getVehicleIcon(), getVehicleLabel()
+│       ├── type.tsx # Type type + getVehicleIcon(), getVehicleLabel()
 │       ├── difficulty.ts   # DifficultyLevel type + formatting functions
 │       ├── pagination.ts   # PaginatedResult, PaginationOptions
 │       └── index.ts        # Barrel export
@@ -420,6 +453,7 @@ frontend/src/
 │   ├── auth.ts          # authApi (signIn, signUp) — returns { token, user }
 │   ├── maneuvers.ts     # maneuversApi (list, getById)
 │   ├── models.ts        # modelsApi (list, getById, create, update, delete, updatePhoto, removePhoto)
+│   ├── sessions.ts      # sessionsApi (list, create, update, delete, addPerformedVariation, updatePerformedVariation, removePerformedVariation)
 │   └── assets.ts        # assetsApi (getPhotoPath, getVideoPath)
 ├── hooks/               # Custom React hooks
 │   ├── useManeuverFilters.ts  # URL-synced filter state
@@ -431,6 +465,7 @@ frontend/src/
 │   │   └── ProtectedRoute.tsx  # Redirects to /sign-in when not authenticated
 │   ├── maneuvers/       # Maneuver-specific components
 │   ├── models/          # Model-specific components (ModelCard, CreateModelDialog)
+│   ├── sessions/        # Session-specific components (SessionCard)
 │   ├── layout/          # Layout components
 │   └── ui/              # shadcn/ui components
 └── pages/               # Page components
@@ -447,10 +482,12 @@ frontend/src/
 
 **Principles:**
 - Types directly reflect backend DTOs (camelCase field names)
-- Use **interfaces** for DTO shapes; `type` aliases for union types (e.g. `VehicleType`, `DifficultyLevel`)
+- Use **interfaces** for DTO shapes; `type` aliases for union types (e.g. `Type`, `DifficultyLevel`)
 - Formatting logic lives in domain functions, not components
 - No mappers needed — domain types match API response exactly
-- Files use **kebab-case** naming (e.g. `get-by-id.ts`, `vehicle-type.tsx`)
+- Files use **kebab-case** naming (e.g. `get-by-id.ts`, `type.tsx`)
+- **Per-operation DTOs**: Each API operation gets its own DTO type in its own file, matching the backend pattern. Even if two operations return the same shape, they must have separate types (e.g. `CreateModelDto` and `UpdateModelDto`). This prevents coupling — if one endpoint's response changes, others aren't affected.
+- **Cross-cutting `User` type**: The auth context defines its own `User` interface in `context/auth-context.ts` for application state storage. This is separate from per-operation user DTOs in `models/user/`.
 
 **Example — difficulty formatting:**
 ```typescript
@@ -459,16 +496,16 @@ export type DifficultyLevel = "level1" | "level2" | ... | "level7";
 
 export function getDifficultyColor(difficulty: DifficultyLevel): string { ... }
 
-export function getDifficultyLevelName(vehicleType: VehicleType, difficulty: DifficultyLevel): string {
+export function getDifficultyLevelName(type: Type, difficulty: DifficultyLevel): string {
   // Returns "Beginner", "Basic 3D", etc.
 }
 ```
 
 **Example — vehicle icons:**
 ```typescript
-// models/shared/vehicle-type.tsx (JSX file for React component return)
-export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
-  switch (vehicleType) {
+// models/shared/type.tsx (JSX file for React component return)
+export function getVehicleIcon(type: Type, size = 18): ReactNode {
+  switch (type) {
     case "Plane": return <Plane size={size} />;
     case "Helicopter": return <Helicopter size={size} />;
     case "Drone": return <Drone size={size} />;
@@ -480,12 +517,15 @@ export function getVehicleIcon(vehicleType: VehicleType, size = 18): ReactNode {
 
 **`AuthProvider`** wraps the whole app (in `App.tsx`). It persists `token` and `user` to `localStorage` and exposes them via `useAuth()`.
 
+**`User` type** (`context/auth-context.ts`): defines a `User` interface for auth state storage (id, username, email, photoAssetName). This is separate from per-operation DTOs in `models/user/` — the auth context is a cross-cutting application concern.
+
 **`useAuth()` returns:**
 - `user: User | null` — deserialized from localStorage on init
 - `token: string | null` — JWT string
 - `isAuthenticated: boolean`
 - `signIn(req)` / `signUp(req)` — call the API and store the returned token + user
 - `signOut()` — clears localStorage and resets state
+- `updateUser(user)` — updates the stored user (called after profile/photo updates)
 
 **Axios interceptors (`lib/apiClient.ts`):**
 - **Request**: attaches `Authorization: Bearer <token>` if a token is present in `localStorage`.
@@ -531,7 +571,7 @@ export const maneuversApi = {
 ### Backend Serialization
 
 Backend DTOs use `#[serde(rename_all = "camelCase")]` to serialize fields as camelCase:
-- `vehicle_type` → `vehicleType`
+- `type` → `type`
 - `page_size` → `pageSize`
 - `defaultVariationVideoAssetName` (in list response)
 - `defaultVariation` / `variations` (in get-by-id response)
@@ -581,16 +621,16 @@ This is a critical architectural rule. The wrong type at the wrong layer creates
 
 | Layer | Type to Use | Reason |
 |---|---|---|
-| **Domain** | Domain value objects (`ModelId`, `UserId`, `ModelName`, `AssetName`, `VehicleType`, etc.) | Value objects carry validation guarantees; domain logic is expressed in domain types |
+| **Domain** | Domain value objects (`ModelId`, `UserId`, `Name`, `AssetName`, `Type`, etc.) | Value objects carry validation guarantees; domain logic is expressed in domain types |
 | **Application (use case inputs)** | Primitive types (`Uuid`, `String`, `u32`) | Inputs come from the API — no domain objects cross the application/API boundary |
 | **Application (use case internals)** | Domain value objects | Conversion from primitive → value object happens inside the use case (validation point) |
-| **Application (DTOs / outputs)** | Primitive types + application enums (`VehicleTypeDto`) | Outputs are stable contracts for the API; no domain types escape the use case |
+| **Application (DTOs / outputs)** | Primitive types + application enums (`TypeDto`) | Outputs are stable contracts for the API; no domain types escape the use case |
 | **Persistence** | Domain value objects as function parameters | Repository trait methods accept domain types (e.g. `ModelId`, `UserId`) — never raw `&Uuid` |
 | **API** | Primitive types only | API layer never sees domain crate types; use application DTOs and primitive Uuid/String |
 
 **Key rule**: Primitive `Uuid` is used in application input/output DTOs (crossing the app/API boundary). Domain value objects (`ModelId`, `UserId`, etc.) are only instantiated *inside* the application use case after validation, and passed into persistence.
 
-**VehicleType bridging**: `VehicleType` (domain enum) ↔ `VehicleTypeDto` (application enum, serializable). Conversion happens in use case internals (`match input.vehicle_type { VehicleTypeDto::Helicopter => VehicleType::Helicopter, ... }`). API layer uses `VehicleTypeDto` (re-exported from application). Never use domain `VehicleType` in API.
+**Type bridging**: `Type` (domain enum) ↔ `TypeDto` (application enum, serializable). Conversion happens in use case internals (`match input.type { TypeDto::Helicopter => Type::Helicopter, ... }`). API layer uses `TypeDto` (re-exported from application). Never use domain `Type` in API.
 
 ---
 

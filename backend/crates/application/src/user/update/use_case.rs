@@ -47,9 +47,9 @@ where
             .await
             .map_err(UpdateUserError::from)?
             .ok_or_else(|| {
-                debug!("User not found");
-                UpdateUserError::NotFound
-            })?;
+            debug!("User not found");
+            UpdateUserError::NotFound
+        })?;
 
         let updated = User::new(
             user.id(),

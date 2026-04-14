@@ -1,38 +1,30 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { VehicleType, DifficultyLevel } from "@/models/shared";
-
-const VALID_VEHICLE_TYPES = ["Helicopter", "Plane", "Drone"] as const;
-const VALID_DIFFICULTIES = [
-  "level1",
-  "level2",
-  "level3",
-  "level4",
-  "level5",
-  "level6",
-  "level7",
-] as const;
-const VALID_SORT_FIELDS = ["name", "difficulty"] as const;
-const VALID_SORT_DIRECTIONS = ["asc", "desc"] as const;
+import { ALL_MODEL_TYPES } from "@/models/model/type";
+import type { Type } from "@/models/model/type";
+import { ALL_DIFFICULTY_LEVELS } from "@/models/shared/difficulty";
+import type { DifficultyLevel } from "@/models/shared/difficulty";
+import { ALL_MANEUVER_SORT_FIELDS, ALL_SORT_DIRECTIONS } from "@/models/maneuver/list";
+import type { ManeuverSortField, SortDirection } from "@/models/maneuver/list";
 
 export interface ManeuverFilters {
   searchQuery: string;
-  vehicleType: VehicleType | null;
+  model_type: Type | null;
   difficulty: DifficultyLevel | null;
-  sortField: "name" | "difficulty";
-  sortDirection: "asc" | "desc";
+  sortField: ManeuverSortField;
+  sortDirection: SortDirection;
   page: number;
 }
 
 export interface ManeuverFiltersActions {
   setSearchQuery: (query: string) => void;
-  setVehicleType: (vehicleType: VehicleType | null) => void;
+  setType: (type: Type | null) => void;
   setDifficulty: (difficulty: DifficultyLevel | null) => void;
-  setSortField: (field: "name" | "difficulty") => void;
-  setSortDirection: (direction: "asc" | "desc") => void;
+  setSortField: (field: ManeuverSortField) => void;
+  setSortDirection: (direction: SortDirection) => void;
   setPage: (page: number) => void;
   clearAll: () => void;
-  removeFilter: (filterType: "searchQuery" | "vehicleType" | "difficulty") => void;
+  removeFilter: (filterType: "searchQuery" | "model_type" | "difficulty") => void;
 }
 
 export function useManeuverFilters(): [ManeuverFilters, ManeuverFiltersActions] {
@@ -42,33 +34,30 @@ export function useManeuverFilters(): [ManeuverFilters, ManeuverFiltersActions] 
     const page = searchParams.get("page");
     const parsedPage = page ? parseInt(page, 10) : 1;
 
-    const vehicleType = searchParams.get("vehicleType");
-    const parsedVehicleType =
-      vehicleType && VALID_VEHICLE_TYPES.includes(vehicleType as VehicleType)
-        ? (vehicleType as VehicleType)
-        : null;
+    const type = searchParams.get("type");
+    const parsedType = type && ALL_MODEL_TYPES.includes(type as Type) ? (type as Type) : null;
 
     const difficulty = searchParams.get("difficulty");
     const parsedDifficulty =
-      difficulty && VALID_DIFFICULTIES.includes(difficulty as DifficultyLevel)
+      difficulty && ALL_DIFFICULTY_LEVELS.includes(difficulty as DifficultyLevel)
         ? (difficulty as DifficultyLevel)
         : null;
 
     const sortField = searchParams.get("sortField");
     const parsedSortField =
-      sortField && VALID_SORT_FIELDS.includes(sortField as "name" | "difficulty")
-        ? (sortField as "name" | "difficulty")
+      sortField && ALL_MANEUVER_SORT_FIELDS.includes(sortField as ManeuverSortField)
+        ? (sortField as ManeuverSortField)
         : "name";
 
     const sortDirection = searchParams.get("sortDirection");
     const parsedSortDirection =
-      sortDirection && VALID_SORT_DIRECTIONS.includes(sortDirection as "asc" | "desc")
-        ? (sortDirection as "asc" | "desc")
+      sortDirection && ALL_SORT_DIRECTIONS.includes(sortDirection as SortDirection)
+        ? (sortDirection as SortDirection)
         : "asc";
 
     return {
       searchQuery: searchParams.get("searchQuery") || "",
-      vehicleType: parsedVehicleType,
+      model_type: parsedType,
       difficulty: parsedDifficulty,
       sortField: parsedSortField,
       sortDirection: parsedSortDirection,
@@ -104,7 +93,7 @@ export function useManeuverFilters(): [ManeuverFilters, ManeuverFiltersActions] 
   const actions = useMemo<ManeuverFiltersActions>(
     () => ({
       setSearchQuery: (query) => updateParams({ searchQuery: query }, true),
-      setVehicleType: (vehicleType) => updateParams({ vehicleType }, true),
+      setType: (type) => updateParams({ model_type: type }, true),
       setDifficulty: (difficulty) => updateParams({ difficulty }, true),
       setSortField: (field) => updateParams({ sortField: field }, true),
       setSortDirection: (direction) => updateParams({ sortDirection: direction }),

@@ -1,12 +1,13 @@
 import type {
   AddPerformedVariationRequest,
+  AddPerformedVariationDto,
   CreateSessionRequest,
+  CreateSessionDto,
   ListSessionDto,
   ListSessionFilter,
   ListSessionSort,
-  SessionPerformedVariationDto,
-  SessionMutationDto,
   UpdateSessionRequest,
+  UpdateSessionDto,
   UpdatePerformedVariationRequest,
 } from "@/models/session";
 import type { PaginationOptions, PaginatedResult } from "@/models/shared";
@@ -64,13 +65,13 @@ export const sessionsApi = {
     return data;
   },
 
-  create: async (payload: CreateSessionRequest): Promise<SessionMutationDto> => {
-    const { data } = await apiClient.post<SessionMutationDto>("/sessions", payload);
+  create: async (payload: CreateSessionRequest): Promise<CreateSessionDto> => {
+    const { data } = await apiClient.post<CreateSessionDto>("/sessions", payload);
     return data;
   },
 
-  update: async (sessionId: string, payload: UpdateSessionRequest): Promise<SessionMutationDto> => {
-    const { data } = await apiClient.put<SessionMutationDto>(
+  update: async (sessionId: string, payload: UpdateSessionRequest): Promise<UpdateSessionDto> => {
+    const { data } = await apiClient.put<UpdateSessionDto>(
       `/sessions/${encodeURIComponent(sessionId)}`,
       payload,
     );
@@ -83,17 +84,15 @@ export const sessionsApi = {
 
   addPerformedVariation: async (
     params: AddPerformedVariationParams,
-  ): Promise<SessionPerformedVariationDto> => {
-    const { data } = await apiClient.post<SessionPerformedVariationDto>(
+  ): Promise<AddPerformedVariationDto> => {
+    const { data } = await apiClient.post<AddPerformedVariationDto>(
       `/sessions/${encodeURIComponent(params.sessionId)}/performed-variations`,
       params.payload,
     );
     return data;
   },
 
-  updatePerformedVariation: async (
-    params: UpdatePerformedVariationParams,
-  ): Promise<void> => {
+  updatePerformedVariation: async (params: UpdatePerformedVariationParams): Promise<void> => {
     await apiClient.put(
       `/sessions/${encodeURIComponent(params.sessionId)}/performed-variations/${encodeURIComponent(params.performedVariationId)}`,
       params.payload,

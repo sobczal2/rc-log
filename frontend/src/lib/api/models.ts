@@ -3,6 +3,7 @@ import type { ListModelDto } from "@/models/model/list";
 import type { CreateModelRequest, CreateModelDto } from "@/models/model/create";
 import type { GetByIdModelDto } from "@/models/model/get-by-id";
 import type { UpdateModelRequest, UpdateModelDto } from "@/models/model/update";
+import type { UpdateModelPhotoDto } from "@/models/model/update-photo";
 import type { PaginatedResult } from "@/models/shared/pagination";
 
 export interface ListModelsRequest {
@@ -38,12 +39,12 @@ export const modelsApi = {
     await apiClient.delete(`/models/${encodeURIComponent(id)}`);
   },
 
-  updatePhoto: async (id: string, file: File): Promise<GetByIdModelDto> => {
+  updatePhoto: async (id: string, file: File): Promise<UpdateModelPhotoDto> => {
     const fd = new FormData();
     fd.append("photo", file);
-    const { data } = await apiClient.put<GetByIdModelDto>(
+    const { data } = await apiClient.put<UpdateModelPhotoDto>(
       `/models/${encodeURIComponent(id)}/photo`,
-      fd
+      fd,
     );
     return data;
   },

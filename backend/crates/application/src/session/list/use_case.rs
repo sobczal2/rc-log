@@ -1,12 +1,12 @@
 use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
 use rc_log_domain::maneuver::variation_resolver::VariationResolver;
+use rc_log_domain::model::Type;
 use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::session::Session;
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
-use rc_log_domain::shared::vehicle_type::VehicleType;
 use rc_log_domain::user::id::UserId;
 use tracing::{debug, instrument};
 
@@ -16,8 +16,8 @@ use super::model::{
     repeatability_to_dto,
 };
 use crate::error::ApplicationError;
+use crate::shared::TypeDto;
 use crate::shared::pagination::PaginatedResult;
-use crate::shared::vehicle_type::VehicleTypeDto;
 
 pub struct ListSessionsUseCase<UoW, MR, ManR, VarR> {
     uow: UoW,
@@ -34,7 +34,12 @@ where
     ManR: ManeuverResolver,
     VarR: VariationResolver,
 {
-    pub fn new(uow: UoW, model_resolver: MR, maneuver_resolver: ManR, variation_resolver: VarR) -> Self {
+    pub fn new(
+        uow: UoW,
+        model_resolver: MR,
+        maneuver_resolver: ManR,
+        variation_resolver: VarR,
+    ) -> Self {
         Self { uow, model_resolver, maneuver_resolver, variation_resolver }
     }
 
@@ -76,10 +81,10 @@ where
                     match model {
                         None => (None, None, None),
                         Some(model) => {
-                            let model_type = match model.vehicle_type() {
-                                VehicleType::Helicopter => VehicleTypeDto::Helicopter,
-                                VehicleType::Plane => VehicleTypeDto::Plane,
-                                VehicleType::Drone => VehicleTypeDto::Drone,
+                            let model_type = match model.r#type() {
+                                Type::Helicopter => TypeDto::Helicopter,
+                                Type::Plane => TypeDto::Plane,
+                                Type::Drone => TypeDto::Drone,
                             };
                             (
                                 Some(model.name().as_str().to_string()),
@@ -113,10 +118,10 @@ where
 
                         if inferred_model_type_from_variations.is_none() {
                             if let Some(ref m) = maneuver {
-                                inferred_model_type_from_variations = Some(match *m.vehicle_type() {
-                                    VehicleType::Helicopter => VehicleTypeDto::Helicopter,
-                                    VehicleType::Plane => VehicleTypeDto::Plane,
-                                    VehicleType::Drone => VehicleTypeDto::Drone,
+                                inferred_model_type_from_variations = Some(match *m.model_type() {
+                                    Type::Helicopter => TypeDto::Helicopter,
+                                    Type::Plane => TypeDto::Plane,
+                                    Type::Drone => TypeDto::Drone,
                                 });
                             }
                         }

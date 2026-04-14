@@ -317,9 +317,8 @@ impl IntoResponse for ApiError {
             // Delete session errors
             ApiError::Application(ApplicationError::DeleteSession(
                 DeleteSessionError::NotFound,
-            )) => {
-                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
-            }
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" })))
+                .into_response(),
             ApiError::Application(ApplicationError::DeleteSession(
                 DeleteSessionError::Forbidden,
             )) => {
@@ -353,9 +352,8 @@ impl IntoResponse for ApiError {
             // Update session errors
             ApiError::Application(ApplicationError::UpdateSession(
                 UpdateSessionError::NotFound,
-            )) => {
-                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
-            }
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" })))
+                .into_response(),
             ApiError::Application(ApplicationError::UpdateSession(
                 UpdateSessionError::Forbidden,
             )) => {
@@ -382,9 +380,8 @@ impl IntoResponse for ApiError {
             // Add performed variation errors
             ApiError::Application(ApplicationError::AddPerformedVariation(
                 AddPerformedVariationError::NotFound,
-            )) => {
-                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
-            }
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" })))
+                .into_response(),
             ApiError::Application(ApplicationError::AddPerformedVariation(
                 AddPerformedVariationError::Forbidden,
             )) => {
@@ -406,16 +403,14 @@ impl IntoResponse for ApiError {
             // Remove performed variation errors
             ApiError::Application(ApplicationError::RemovePerformedVariation(
                 RemovePerformedVariationError::NotFound,
-            )) => {
-                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
-            }
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" })))
+                .into_response(),
             ApiError::Application(ApplicationError::RemovePerformedVariation(
                 RemovePerformedVariationError::PerformedVariationNotFound,
-            )) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "Performed variation not found" })),
-            )
-                .into_response(),
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Performed variation not found" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::RemovePerformedVariation(
                 RemovePerformedVariationError::Forbidden,
             )) => {
@@ -434,16 +429,14 @@ impl IntoResponse for ApiError {
             // Update performed variation errors
             ApiError::Application(ApplicationError::UpdatePerformedVariation(
                 UpdatePerformedVariationError::NotFound,
-            )) => {
-                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
-            }
+            )) => (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" })))
+                .into_response(),
             ApiError::Application(ApplicationError::UpdatePerformedVariation(
                 UpdatePerformedVariationError::PerformedVariationNotFound,
-            )) => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": "Performed variation not found" })),
-            )
-                .into_response(),
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Performed variation not found" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::UpdatePerformedVariation(
                 UpdatePerformedVariationError::Forbidden,
             )) => {
@@ -466,16 +459,16 @@ impl IntoResponse for ApiError {
             ApiError::Application(ApplicationError::UpdateUser(UpdateUserError::NotFound)) => {
                 (StatusCode::NOT_FOUND, Json(json!({ "error": "User not found" }))).into_response()
             }
-            ApiError::Application(ApplicationError::UpdateUser(
-                UpdateUserError::UsernameTaken,
-            )) => (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
-                .into_response(),
+            ApiError::Application(ApplicationError::UpdateUser(UpdateUserError::UsernameTaken)) => {
+                (StatusCode::CONFLICT, Json(json!({ "error": "Username already exists" })))
+                    .into_response()
+            }
             ApiError::Application(ApplicationError::UpdateUser(
                 UpdateUserError::ValidationError(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
-            ApiError::Application(ApplicationError::UpdateUser(
-                UpdateUserError::InvalidData(_),
-            ))
+            ApiError::Application(ApplicationError::UpdateUser(UpdateUserError::InvalidData(
+                _,
+            )))
             | ApiError::Application(ApplicationError::UpdateUser(
                 UpdateUserError::RepositoryError(_),
             )) => (

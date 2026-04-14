@@ -21,10 +21,8 @@ import {
 import { modelsApi } from "@/lib/api/models";
 import { usePhotoPath } from "@/hooks/usePhotoPath";
 import { getPhotoUrl } from "@/models/asset/photo";
-import { getVehicleIcon, getVehicleLabel } from "@/models/shared";
-import type { VehicleType } from "@/models/shared";
-
-const VEHICLE_TYPES: VehicleType[] = ["Helicopter", "Plane", "Drone"];
+import { getModelTypeIcon, getModelTypeLabel, ALL_MODEL_TYPES } from "@/models/model/type";
+import type { Type } from "@/models/model/type";
 
 export function ModelDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +32,7 @@ export function ModelDetailsPage() {
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
-  const [editVehicleType, setEditVehicleType] = useState<VehicleType>("Plane");
+  const [editType, setEditType] = useState<Type>("Plane");
 
   // Delete confirmation dialog
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -60,8 +58,7 @@ export function ModelDetailsPage() {
 
   // Update name/type
   const updateMutation = useMutation({
-    mutationFn: () =>
-      modelsApi.update(id!, { name: editName.trim(), vehicleType: editVehicleType }),
+    mutationFn: () => modelsApi.update(id!, { name: editName.trim(), type: editType }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["models", id], updated);
       queryClient.invalidateQueries({ queryKey: ["models"] });
@@ -107,7 +104,7 @@ export function ModelDetailsPage() {
   const startEditing = () => {
     if (!model) return;
     setEditName(model.name);
-    setEditVehicleType(model.vehicleType);
+    setEditType(model.type);
     setIsEditing(true);
   };
 
@@ -192,7 +189,7 @@ export function ModelDetailsPage() {
             disabled={isPhotoBusy}
             className="flex flex-col items-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors py-4 w-full h-full justify-center"
           >
-            <div className="text-muted-foreground/20">{getVehicleIcon(model.vehicleType, 64)}</div>
+            <div className="text-muted-foreground/20">{getModelTypeIcon(model.type, 64)}</div>
             <span className="flex items-center gap-1 text-xs">
               <Camera size={12} />
               Upload Photo
@@ -226,17 +223,14 @@ export function ModelDetailsPage() {
           className="flex flex-col gap-3"
         >
           <Input value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
-          <Select.Root
-            value={editVehicleType}
-            onValueChange={(v) => setEditVehicleType(v as VehicleType)}
-          >
+          <Select.Root value={editType} onValueChange={(v) => setEditType(v as Type)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {VEHICLE_TYPES.map((type) => (
+              {ALL_MODEL_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {getVehicleLabel(type)}
+                  {getModelTypeLabel(type)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -272,8 +266,8 @@ export function ModelDetailsPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {getVehicleIcon(model.vehicleType, 16)}
-            <span>{getVehicleLabel(model.vehicleType)}</span>
+            {getModelTypeIcon(model.type, 16)}
+            <span>{getModelTypeLabel(model.type)}</span>
           </div>
         </div>
       )}

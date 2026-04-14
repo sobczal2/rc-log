@@ -19,15 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { modelsApi } from "@/lib/api/models";
-import type { VehicleType } from "@/models/shared";
-import { getVehicleIcon, getVehicleLabel } from "@/models/shared";
-
-const VEHICLE_TYPES: VehicleType[] = ["Helicopter", "Plane", "Drone"];
+import { ALL_MODEL_TYPES, getModelTypeIcon, getModelTypeLabel } from "@/models/model/type";
+import type { Type } from "@/models/model/type";
 
 export function CreateModelDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [vehicleType, setVehicleType] = useState<VehicleType>("Plane");
+  const [type, setType] = useState<Type>("Plane");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +34,7 @@ export function CreateModelDialog() {
 
   const reset = () => {
     setName("");
-    setVehicleType("Plane");
+    setType("Plane");
     setPhotoFile(null);
     setPhotoPreview(null);
   };
@@ -58,7 +56,7 @@ export function CreateModelDialog() {
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: async () => {
-      const model = await modelsApi.create({ name: name.trim(), vehicleType });
+      const model = await modelsApi.create({ name: name.trim(), type });
       if (photoFile) {
         await modelsApi.updatePhoto(model.id, photoFile);
       }
@@ -114,7 +112,7 @@ export function CreateModelDialog() {
                   onClick={() => fileInputRef.current?.click()}
                   className="flex flex-col items-center gap-2 text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors py-4"
                 >
-                  <div className="text-muted-foreground/20">{getVehicleIcon(vehicleType, 48)}</div>
+                  <div className="text-muted-foreground/20">{getModelTypeIcon(type, 48)}</div>
                   <span className="flex items-center gap-1 text-xs">
                     <Camera size={12} />
                     Add photo
@@ -141,18 +139,15 @@ export function CreateModelDialog() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-muted-foreground">Vehicle Type</label>
-            <Select.Root
-              value={vehicleType}
-              onValueChange={(value) => setVehicleType(value as VehicleType)}
-            >
+            <label className="text-xs text-muted-foreground">Model Type</label>
+            <Select.Root value={type} onValueChange={(value) => setType(value as Type)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {VEHICLE_TYPES.map((type) => (
+                {ALL_MODEL_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {getVehicleLabel(type)}
+                    {getModelTypeLabel(type)}
                   </SelectItem>
                 ))}
               </SelectContent>

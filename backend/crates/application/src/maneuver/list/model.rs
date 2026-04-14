@@ -3,13 +3,13 @@ use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::transaction::{
     ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
 };
-use rc_log_domain::shared::vehicle_type::VehicleType;
+use rc_log_domain::model::Type;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::shared::TypeDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
-use crate::shared::vehicle_type::VehicleTypeDto;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +34,7 @@ pub struct TagDto {
 #[serde(rename_all = "camelCase")]
 pub struct ManeuverDto {
     pub id: Uuid,
-    pub vehicle_type: VehicleTypeDto,
+    pub model_type: TypeDto,
     pub name: String,
     pub tags: Vec<TagDto>,
     pub description: String,
@@ -45,10 +45,10 @@ pub struct ManeuverDto {
 
 impl From<Maneuver> for ManeuverDto {
     fn from(m: Maneuver) -> Self {
-        let vehicle_type = match m.vehicle_type() {
-            VehicleType::Helicopter => VehicleTypeDto::Helicopter,
-            VehicleType::Plane => VehicleTypeDto::Plane,
-            VehicleType::Drone => VehicleTypeDto::Drone,
+        let model_type = match m.model_type() {
+            Type::Helicopter => TypeDto::Helicopter,
+            Type::Plane => TypeDto::Plane,
+            Type::Drone => TypeDto::Drone,
         };
 
         let min_difficulty = match m.min_difficulty() {
@@ -79,7 +79,7 @@ impl From<Maneuver> for ManeuverDto {
 
         Self {
             id: Uuid::from(m.id()),
-            vehicle_type,
+            model_type,
             name: m.name().to_string(),
             tags,
             description: m.description().as_str().to_string(),
@@ -97,7 +97,7 @@ impl From<Maneuver> for ManeuverDto {
 #[derive(Debug, Clone)]
 pub struct ManeuverFilterDto {
     pub tags: Vec<String>,
-    pub vehicle_type: Option<VehicleTypeDto>,
+    pub model_type: Option<TypeDto>,
     pub difficulty: Option<DifficultyDto>,
     pub search_query: Option<String>,
 }
@@ -124,10 +124,10 @@ impl Validate for ManeuverFilterDto {
 
 impl From<ManeuverFilterDto> for ManeuverFilter {
     fn from(dto: ManeuverFilterDto) -> Self {
-        let vehicle_type = match dto.vehicle_type {
-            Some(VehicleTypeDto::Helicopter) => Some(VehicleType::Helicopter),
-            Some(VehicleTypeDto::Plane) => Some(VehicleType::Plane),
-            Some(VehicleTypeDto::Drone) => Some(VehicleType::Drone),
+        let model_type = match dto.model_type {
+            Some(TypeDto::Helicopter) => Some(Type::Helicopter),
+            Some(TypeDto::Plane) => Some(Type::Plane),
+            Some(TypeDto::Drone) => Some(Type::Drone),
             None => None,
         };
 
@@ -142,7 +142,7 @@ impl From<ManeuverFilterDto> for ManeuverFilter {
             None => None,
         };
 
-        Self { tags: dto.tags, vehicle_type, difficulty, search_query: dto.search_query }
+        Self { tags: dto.tags, model_type, difficulty, search_query: dto.search_query }
     }
 }
 
@@ -214,7 +214,7 @@ mod tests {
     use super::{ListManeuversInput, ManeuverFilterDto, ManeuverSortDto};
 
     fn valid_filter() -> ManeuverFilterDto {
-        ManeuverFilterDto { tags: vec![], vehicle_type: None, difficulty: None, search_query: None }
+        ManeuverFilterDto { tags: vec![], model_type: None, difficulty: None, search_query: None }
     }
 
     fn valid_sort() -> ManeuverSortDto {

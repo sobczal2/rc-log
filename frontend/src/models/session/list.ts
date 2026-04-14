@@ -1,10 +1,29 @@
-import type { VehicleType } from "@/models/shared/vehicle-type";
+import type { Type } from "@/models/model/type";
 
 export type SessionSortField = "date";
 export type SortDirection = "asc" | "desc";
-export type QualityDto = "one" | "two" | "three" | "four" | "five";
-export type ComfortDto = "one" | "two" | "three" | "four" | "five";
-export type RepeatabilityDto = "one" | "two" | "three" | "four" | "five";
+
+export type RatingLevel = "one" | "two" | "three" | "four" | "five";
+export type QualityDto = RatingLevel;
+export type ComfortDto = RatingLevel;
+export type RepeatabilityDto = RatingLevel;
+
+export const ALL_RATING_LEVELS: readonly RatingLevel[] = ["one", "two", "three", "four", "five"];
+
+export function getRatingLabel(level: RatingLevel): string {
+  switch (level) {
+    case "one":
+      return "1";
+    case "two":
+      return "2";
+    case "three":
+      return "3";
+    case "four":
+      return "4";
+    case "five":
+      return "5";
+  }
+}
 
 export interface SessionFilter {
   modelIds?: string[];
@@ -33,7 +52,7 @@ export interface SessionDto {
   date: string;
   modelId: string | null;
   modelName: string | null;
-  modelType: VehicleType | null;
+  modelType: Type | null;
   modelPhotoAssetName: string | null;
   performedVariations: PerformedVariationDto[];
 }

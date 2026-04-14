@@ -28,11 +28,7 @@ impl AssetStorage {
 
     /// Write `data` to `rel_path` (relative to the root), creating parent
     /// directories as needed.
-    pub async fn save(
-        &self,
-        rel_path: &str,
-        data: &[u8],
-    ) -> Result<(), AssetStorageError> {
+    pub async fn save(&self, rel_path: &str, data: &[u8]) -> Result<(), AssetStorageError> {
         let abs = self.root.join(rel_path);
         if let Some(parent) = abs.parent() {
             fs::create_dir_all(parent).await?;

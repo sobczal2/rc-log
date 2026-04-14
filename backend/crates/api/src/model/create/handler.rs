@@ -18,11 +18,7 @@ pub async fn create_model(
     debug!("Handling create_model request");
     let mut use_case = CreateModelUseCase::new(state.model_uow);
     let dto = use_case
-        .execute(CreateModelInput {
-            owner_id: auth.id,
-            name: input.name,
-            vehicle_type: input.vehicle_type,
-        })
+        .execute(CreateModelInput { owner_id: auth.id, name: input.name, r#type: input.r#type })
         .await?;
     debug!(model_id = %dto.id, "Model created, returning response");
     Ok((StatusCode::CREATED, Json(CreateResponse::from(dto))))

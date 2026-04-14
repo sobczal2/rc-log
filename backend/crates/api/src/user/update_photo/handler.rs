@@ -18,9 +18,7 @@ pub async fn update_user_photo(
 ) -> Result<Json<UpdateUserPhotoResponse>, ApiError> {
     debug!("Handling update_user_photo request");
     let mut use_case = UpdateUserPhotoUseCase::new(state.user_uow, state.photo_service);
-    let dto = use_case
-        .execute(UpdateUserPhotoInput { user_id: auth.id, data: input.data })
-        .await?;
+    let dto = use_case.execute(UpdateUserPhotoInput { user_id: auth.id, data: input.data }).await?;
     debug!("User photo updated");
     Ok(Json(UpdateUserPhotoResponse::from(dto)))
 }

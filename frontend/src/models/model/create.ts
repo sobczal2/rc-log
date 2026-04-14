@@ -1,13 +1,13 @@
-import type { VehicleType } from "@/models/shared";
+import type { Type } from "@/models/model/type";
 
 export interface CreateModelRequest {
   name: string;
-  vehicleType: VehicleType;
+  type: Type;
 }
 
 export interface CreateModelDto {
   id: string;
   name: string;
-  vehicleType: VehicleType;
+  type: Type;
   photoAssetName: string | null;
 }

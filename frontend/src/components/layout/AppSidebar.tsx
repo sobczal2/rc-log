@@ -63,7 +63,10 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     render={<Link to="/sessions" />}
-                    isActive={location.pathname === "/sessions" || location.pathname.startsWith("/sessions/")}
+                    isActive={
+                      location.pathname === "/sessions" ||
+                      location.pathname.startsWith("/sessions/")
+                    }
                     tooltip="Sessions"
                   >
                     <CalendarRange size={20} />

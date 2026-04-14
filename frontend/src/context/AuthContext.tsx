@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
-import type { User } from "@/models/user";
+import type { User } from "./auth-context";
 import type { SignInRequest, SignUpRequest } from "@/lib/api/auth";
 import { authApi } from "@/lib/api/auth";
 import { AuthContext } from "./auth-context";

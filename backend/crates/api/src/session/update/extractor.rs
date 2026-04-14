@@ -33,9 +33,10 @@ where
         let mut parts = req.into_parts();
 
         let id = {
-            let Path(id) = Path::<Uuid>::from_request_parts(&mut parts.0, state)
-                .await
-                .map_err(|e| ApiError::Validation(vec![ValidationError::new("id", e.to_string())]))?;
+            let Path(id) =
+                Path::<Uuid>::from_request_parts(&mut parts.0, state).await.map_err(|e| {
+                    ApiError::Validation(vec![ValidationError::new("id", e.to_string())])
+                })?;
 
             if id.is_nil() {
                 return Err(ApiError::Validation(vec![ValidationError::new(

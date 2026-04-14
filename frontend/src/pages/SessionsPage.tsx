@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -143,7 +149,10 @@ export function SessionsPage() {
       <div>
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-3xl font-bold tracking-tight mb-2">Flight Sessions</h1>
-          <Button onClick={() => createSessionMutation.mutate()} disabled={createSessionMutation.isPending}>
+          <Button
+            onClick={() => createSessionMutation.mutate()}
+            disabled={createSessionMutation.isPending}
+          >
             {createSessionMutation.isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -220,7 +229,9 @@ export function SessionsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Filter by model</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                Filter by model
+              </p>
               {modelsQuery.isLoading ? (
                 <div className="h-14 flex items-center text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 mr-2 animate-spin" />
@@ -248,7 +259,9 @@ export function SessionsPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Filter by maneuver</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                Filter by maneuver
+              </p>
               <Input
                 value={maneuverOptionQuery}
                 onChange={(e) => setManeuverOptionQuery(e.target.value)}

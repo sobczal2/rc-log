@@ -30,7 +30,7 @@ content/maneuver/
 ```json
 {
   "id": "a56b9ef1-41fd-432d-aeba-380214f1f669",
-  "vehicleType": "Helicopter",
+  "model_type": "Helicopter",
   "name": "Hover",
   "difficulty": 1,
   "tags": ["Basic", "Fundamentals"],
@@ -39,7 +39,7 @@ content/maneuver/
 ```
 
 - **`id`**: A UUID v4 uniquely identifying this maneuver.
-- **`vehicleType`**: Must be exactly `"Helicopter"`, `"Plane"`, or `"Drone"`.
+- **`model_type`**: Must be exactly `"Helicopter"`, `"Plane"`, or `"Drone"`.
 - **`name`**: The display name of the maneuver (e.g., `"Hover"`, `"4-Point Hover"`).
 - **`difficulty`**: An integer from `1` (Beginner) to `7` (Extreme/Advanced).
 - **`tags`**: An array of string tag names. Tags must match names from `content/maneuver/tags.json`.
