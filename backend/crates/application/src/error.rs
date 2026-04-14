@@ -10,6 +10,7 @@ use crate::model::update_photo::error::UpdateModelPhotoError;
 use crate::photo::resolve::error::ResolvePhotoError;
 use crate::session::add_performed_variation::error::AddPerformedVariationError;
 use crate::session::create::error::CreateSessionError;
+use crate::session::delete::error::DeleteSessionError;
 use crate::session::list::error::ListSessionsError;
 use crate::session::remove_performed_variation::error::RemovePerformedVariationError;
 use crate::session::update::error::UpdateSessionError;
@@ -45,6 +46,8 @@ pub enum ApplicationError {
     RemoveModelPhoto(#[from] RemoveModelPhotoError),
     #[error(transparent)]
     CreateSession(#[from] CreateSessionError),
+    #[error(transparent)]
+    DeleteSession(#[from] DeleteSessionError),
     #[error(transparent)]
     ListSessions(#[from] ListSessionsError),
     #[error(transparent)]

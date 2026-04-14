@@ -16,6 +16,7 @@ use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use rc_log_application::photo::resolve::error::ResolvePhotoError;
 use rc_log_application::session::add_performed_variation::error::AddPerformedVariationError;
 use rc_log_application::session::create::error::CreateSessionError;
+use rc_log_application::session::delete::error::DeleteSessionError;
 use rc_log_application::session::list::error::ListSessionsError;
 use rc_log_application::session::remove_performed_variation::error::RemovePerformedVariationError;
 use rc_log_application::session::update::error::UpdateSessionError;
@@ -308,6 +309,24 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::CreateSession(
                 CreateSessionError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Delete session errors
+            ApiError::Application(ApplicationError::DeleteSession(
+                DeleteSessionError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::DeleteSession(
+                DeleteSessionError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::DeleteSession(
+                DeleteSessionError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

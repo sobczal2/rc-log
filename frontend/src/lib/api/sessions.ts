@@ -77,6 +77,10 @@ export const sessionsApi = {
     return data;
   },
 
+  delete: async (sessionId: string): Promise<void> => {
+    await apiClient.delete(`/sessions/${encodeURIComponent(sessionId)}`);
+  },
+
   addPerformedVariation: async (
     params: AddPerformedVariationParams,
   ): Promise<SessionPerformedVariationDto> => {

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use rc_log_domain::maneuver::variation::VariationId;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::session::Session;
@@ -23,7 +24,7 @@ use uuid::Uuid;
 struct SessionRow {
     id: Uuid,
     user_id: Uuid,
-    date: String,
+    date: NaiveDate,
     model_id: Option<Uuid>,
     note: Option<String>,
 }
@@ -54,7 +55,7 @@ impl SessionRow {
         Self {
             id: Uuid::from(session.id()),
             user_id: Uuid::from(session.user_id()),
-            date: session.date().as_naive_date().format("%Y-%m-%d").to_string(),
+            date: session.date().as_naive_date(),
             model_id: session.model_id().map(Uuid::from),
             note: session.note().map(|n| n.as_str().to_string()),
         }
@@ -64,8 +65,7 @@ impl SessionRow {
         self,
         performed_variations: Vec<PerformedVariation>,
     ) -> Result<Session, TransactionError> {
-        let date =
-            Date::parse(&self.date).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let date = Date::new(self.date);
 
         let note = self
             .note
@@ -229,7 +229,7 @@ impl SessionTransaction for SqlxSessionTransaction {
     async fn get_by_id(&mut self, id: SessionId) -> Result<Option<Session>, TransactionError> {
         let row: Option<SessionRow> = sqlx::query_as(
             r#"
-            SELECT id, user_id, date::text AS date, model_id, note
+            SELECT id, user_id, date, model_id, note
             FROM session.session
             WHERE id = $1
             "#,
@@ -275,7 +275,7 @@ impl SessionTransaction for SqlxSessionTransaction {
         let mut count_query =
             QueryBuilder::<'_, Postgres>::new("SELECT COUNT(*) FROM session.session s");
         let mut select_query = QueryBuilder::<'_, Postgres>::new(
-            "SELECT s.id, s.user_id, s.date::text AS date, s.model_id, s.note FROM session.session s",
+            "SELECT s.id, s.user_id, s.date, s.model_id, s.note FROM session.session s",
         );
 
         let apply_conditions = |q: &mut QueryBuilder<'_, Postgres>| {
@@ -401,6 +401,21 @@ impl SessionTransaction for SqlxSessionTransaction {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok((sessions, total as u64))
+    }
+
+    async fn delete_by_id(&mut self, id: SessionId) -> Result<(), TransactionError> {
+        sqlx::query(
+            r#"
+            DELETE FROM session.session
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .execute(&mut *self.tx)
+        .await
+        .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
+
+        Ok(())
     }
 }
 

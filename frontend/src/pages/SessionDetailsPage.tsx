@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sessionsApi } from "@/lib/api/sessions";
 import { modelsApi } from "@/lib/api/models";
@@ -51,6 +50,7 @@ const RATING_LABEL: Record<RatingChoice, string> = {
 };
 
 export function SessionDetailsPage() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -115,6 +115,36 @@ export function SessionDetailsPage() {
     }));
   }, [selectedManeuverQuery.data]);
 
+  const maneuverNameById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    for (const maneuver of maneuversQuery.data?.items ?? []) {
+      lookup.set(maneuver.id, maneuver.name);
+    }
+    return lookup;
+  }, [maneuversQuery.data?.items]);
+
+  const variationNameById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    for (const variation of variationOptions) {
+      lookup.set(variation.id, variation.name);
+    }
+    return lookup;
+  }, [variationOptions]);
+
+  const modelNameById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    for (const modelOption of modelsQuery.data?.items ?? []) {
+      lookup.set(modelOption.id, modelOption.name);
+    }
+    return lookup;
+  }, [modelsQuery.data?.items]);
+
+  const renderRatingValue = (value: unknown) => {
+    if (typeof value !== "string") return null;
+    if (!Object.prototype.hasOwnProperty.call(RATING_LABEL, value)) return value;
+    return RATING_LABEL[value as RatingChoice];
+  };
+
   const updateSessionMutation = useMutation({
     mutationFn: (payload: { date: string; modelId: string | null; note: string | null }) =>
       sessionsApi.update(sessionId!, payload),
@@ -174,6 +204,14 @@ export function SessionDetailsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: () => sessionsApi.delete(sessionId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      navigate("/sessions");
     },
   });
 
@@ -267,15 +305,41 @@ export function SessionDetailsPage() {
             Back to Sessions
           </Button>
         </Link>
-        {(updateSessionMutation.isPending ||
-          upsertPerformedMutation.isPending ||
-          updatePerformedMutation.isPending) && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Loader2 className="size-3 animate-spin" />
-            Saving...
-          </span>
-        )}
+
+        <div className="flex items-center gap-3">
+          {(updateSessionMutation.isPending ||
+            upsertPerformedMutation.isPending ||
+            updatePerformedMutation.isPending) && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="size-3 animate-spin" />
+              Saving...
+            </span>
+          )}
+
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={deleteSessionMutation.isPending}
+            onClick={() => {
+              if (!sessionId) return;
+              const confirmed = window.confirm(
+                "Delete this session? This will also remove all logged performed variations.",
+              );
+              if (!confirmed) return;
+              deleteSessionMutation.mutate();
+            }}
+          >
+            <Trash2 data-icon="inline-start" size={14} />
+            {deleteSessionMutation.isPending ? "Deleting..." : "Delete Session"}
+          </Button>
+        </div>
       </div>
+
+      {deleteSessionMutation.isError && (
+        <p className="text-xs text-destructive">
+          {getApiErrorMessage(deleteSessionMutation.error) ?? "Failed to delete session"}
+        </p>
+      )}
 
       <Card>
         <CardHeader>
@@ -291,7 +355,13 @@ export function SessionDetailsPage() {
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Model</p>
             <Select.Root value={modelId ?? "none"} onValueChange={handleModelChange}>
               <SelectTrigger>
-                <SelectValue placeholder="No model" />
+                <SelectValue placeholder="No model">
+                  {(value) => {
+                    if (value === "none") return "No model";
+                    if (typeof value !== "string") return null;
+                    return modelNameById.get(value) ?? value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No model</SelectItem>
@@ -337,7 +407,12 @@ export function SessionDetailsPage() {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose maneuver" />
+                <SelectValue placeholder="Choose maneuver">
+                  {(value) => {
+                    if (typeof value !== "string") return null;
+                    return maneuverNameById.get(value) ?? value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {(maneuversQuery.data?.items ?? []).map((maneuver) => (
@@ -356,7 +431,12 @@ export function SessionDetailsPage() {
               onValueChange={(value) => setSelectedVariationId(value ?? "")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose variation" />
+                <SelectValue placeholder="Choose variation">
+                  {(value) => {
+                    if (typeof value !== "string") return null;
+                    return variationNameById.get(value) ?? value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {variationOptions.map((variation) => (
@@ -381,7 +461,7 @@ export function SessionDetailsPage() {
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Quality</p>
             <Select.Root value={addQuality} onValueChange={(v) => setAddQuality(v as RatingChoice)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {RATING_LEVELS.map((lvl) => (
@@ -397,7 +477,7 @@ export function SessionDetailsPage() {
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Comfort</p>
             <Select.Root value={addComfort} onValueChange={(v) => setAddComfort(v as RatingChoice)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {RATING_LEVELS.map((lvl) => (
@@ -416,7 +496,7 @@ export function SessionDetailsPage() {
               onValueChange={(v) => setAddRepeatability(v as RatingChoice)}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{renderRatingValue}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {RATING_LEVELS.map((lvl) => (
@@ -485,7 +565,7 @@ export function SessionDetailsPage() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {RATING_LEVELS.map((lvl) => (
@@ -508,7 +588,7 @@ export function SessionDetailsPage() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {RATING_LEVELS.map((lvl) => (
@@ -533,7 +613,7 @@ export function SessionDetailsPage() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue>{renderRatingValue}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {RATING_LEVELS.map((lvl) => (
@@ -546,12 +626,6 @@ export function SessionDetailsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="secondary">
-                    Entry ID: {item.performedVariationId.slice(0, 8)}...
-                  </Badge>
-                  <Badge variant="secondary">Variation ID: {item.variationId.slice(0, 8)}...</Badge>
-                </div>
               </div>
             ))
           )}

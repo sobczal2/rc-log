@@ -21,6 +21,11 @@ pub trait SessionTransaction: Transaction<Session> {
         filter: SessionFilter,
         sort: SessionSort,
     ) -> impl Future<Output = Result<(Vec<Session>, u64), TransactionError>> + Send;
+
+    fn delete_by_id(
+        &mut self,
+        id: SessionId,
+    ) -> impl Future<Output = Result<(), TransactionError>> + Send;
 }
 
 #[derive(Debug, Clone, Default)]
