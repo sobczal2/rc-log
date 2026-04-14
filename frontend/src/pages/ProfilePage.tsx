@@ -44,7 +44,7 @@ export function ProfilePage() {
     queryFn: () => modelsApi.list({ page, pageSize: PAGE_SIZE }),
   });
 
-  const { data: photoPaths } = usePhotoPath(user?.photoAssetName ?? null);
+  const { data: photoPaths } = usePhotoPath(user?.photoAssetId ?? null);
 
   const photoUrl = photoPaths?.smallPath ? getPhotoUrl(photoPaths.smallPath) : null;
 
@@ -64,14 +64,14 @@ export function ProfilePage() {
     mutationFn: (file: File) => usersApi.updatePhoto(file),
     onSuccess: (updatedUser) => {
       updateUser(updatedUser);
-      queryClient.invalidateQueries({ queryKey: ["photo-path", user?.photoAssetName] });
+      queryClient.invalidateQueries({ queryKey: ["photo-path", user?.photoAssetId] });
     },
   });
 
   const removePhotoMutation = useMutation({
     mutationFn: () => usersApi.removePhoto(),
     onSuccess: () => {
-      if (user) updateUser({ ...user, photoAssetName: null });
+      if (user) updateUser({ ...user, photoAssetId: null });
     },
   });
 
@@ -122,7 +122,7 @@ export function ProfilePage() {
             <Camera size={18} className="text-white" />
           </button>
           {/* Remove photo button */}
-          {user?.photoAssetName && (
+          {user?.photoAssetId && (
             <button
               className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => removePhotoMutation.mutate()}

@@ -62,7 +62,7 @@ where
             UserId::new(input.owner_id),
             name,
             r#type,
-            existing.photo_asset_name().cloned(),
+            existing.photo_asset_id().cloned(),
         );
 
         debug!("Saving updated model");

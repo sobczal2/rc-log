@@ -48,7 +48,7 @@ where
             return Err(RemoveModelPhotoError::Forbidden.into());
         }
 
-        let old_photo_name = model.photo_asset_name().cloned();
+        let old_photo_id = model.photo_asset_id().cloned();
 
         let updated = Model::new(
             model.id(),
@@ -64,10 +64,10 @@ where
         debug!("Committing transaction");
         tx.commit().await.map_err(RemoveModelPhotoError::from)?;
 
-        if let Some(old_name) = old_photo_name {
-            debug!(name = %old_name.as_str(), "Deleting photo from storage (best-effort)");
-            if let Err(e) = self.photo_service.delete(&old_name).await {
-                warn!(error = %e, name = %old_name.as_str(), "Failed to delete photo");
+        if let Some(old_photo_id) = old_photo_id {
+            debug!(photo_id = %old_photo_id.as_uuid(), "Deleting photo from storage (best-effort)");
+            if let Err(e) = self.photo_service.delete(&old_photo_id).await {
+                warn!(error = %e, photo_id = %old_photo_id.as_uuid(), "Failed to delete photo");
             }
         }
 

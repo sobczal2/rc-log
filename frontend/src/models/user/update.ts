@@ -6,5 +6,5 @@ export interface UpdateUserDto {
   id: string;
   username: string;
   email: string;
-  photoAssetName?: string | null;
+  photoAssetId?: string | null;
 }

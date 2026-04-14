@@ -53,7 +53,7 @@ export interface SessionDto {
   modelId: string | null;
   modelName: string | null;
   modelType: Type | null;
-  modelPhotoAssetName: string | null;
+  modelPhotoAssetId: string | null;
   performedVariations: PerformedVariationDto[];
 }
 

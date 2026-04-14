@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::Name as AssetName;
+use rc_log_domain::asset::photo::PhotoId;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::Type;
 use rc_log_domain::model::id::ModelId;
@@ -17,7 +17,7 @@ struct ModelRow {
     owner_id: Uuid,
     name: String,
     r#type: String,
-    photo_asset_name: Option<String>,
+    photo_asset_id: Option<Uuid>,
 }
 
 impl ModelRow {
@@ -34,16 +34,13 @@ impl ModelRow {
                 )));
             }
         };
-        let photo_asset_name = self
-            .photo_asset_name
-            .map(|s| AssetName::new(s).map_err(|e| TransactionError::InvalidData(e.to_string())))
-            .transpose()?;
+        let photo_asset_id = self.photo_asset_id.map(PhotoId::new);
         Ok(Model::new(
             ModelId::new(self.id),
             UserId::new(self.owner_id),
             name,
             r#type,
-            photo_asset_name,
+            photo_asset_id,
         ))
     }
 
@@ -58,7 +55,7 @@ impl ModelRow {
             owner_id: Uuid::from(model.owner_id()),
             name: model.name().as_str().to_string(),
             r#type,
-            photo_asset_name: model.photo_asset_name().map(|n| n.as_str().to_string()),
+            photo_asset_id: model.photo_asset_id().map(|id| id.as_uuid()),
         }
     }
 }
@@ -73,19 +70,19 @@ impl Transaction<Model> for SqlxModelTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO model.model (id, owner_id, name, type, photo_asset_name)
+            INSERT INTO model.model (id, owner_id, name, type, photo_asset_id)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
                 type = EXCLUDED.type,
-                photo_asset_name = EXCLUDED.photo_asset_name
+                photo_asset_id = EXCLUDED.photo_asset_id
             "#,
         )
         .bind(row.id)
         .bind(row.owner_id)
         .bind(&row.name)
         .bind(&row.r#type)
-        .bind(&row.photo_asset_name)
+        .bind(&row.photo_asset_id)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -106,7 +103,7 @@ impl ModelTransaction for SqlxModelTransaction {
     async fn get_by_id(&mut self, id: ModelId) -> Result<Option<Model>, TransactionError> {
         let row: Option<ModelRow> = sqlx::query_as(
             r#"
-            SELECT id, owner_id, name, type, photo_asset_name
+            SELECT id, owner_id, name, type, photo_asset_id
             FROM model.model
             WHERE id = $1
             "#,
@@ -138,7 +135,7 @@ impl ModelTransaction for SqlxModelTransaction {
 
         let rows: Vec<ModelRow> = sqlx::query_as(
             r#"
-            SELECT id, owner_id, name, type, photo_asset_name
+            SELECT id, owner_id, name, type, photo_asset_id
             FROM model.model
             WHERE owner_id = $1
             ORDER BY name ASC
@@ -211,7 +208,7 @@ mod tests {
             owner_id: Uuid::new_v4(),
             name: name.to_string(),
             r#type: r#type.to_string(),
-            photo_asset_name: None,
+            photo_asset_id: None,
         }
     }
 
@@ -248,23 +245,16 @@ mod tests {
     }
 
     #[test]
-    fn photo_asset_name_none_converts() {
+    fn photo_asset_id_none_converts() {
         let row = make_model_row("My Model", "Drone");
         assert!(row.try_into_model().is_ok());
     }
 
     #[test]
-    fn photo_asset_name_some_valid_converts() {
+    fn photo_asset_id_some_valid_converts() {
         let mut row = make_model_row("My Model", "Drone");
-        row.photo_asset_name = Some("my_photo".to_string());
+        row.photo_asset_id = Some(Uuid::new_v4());
         assert!(row.try_into_model().is_ok());
-    }
-
-    #[test]
-    fn photo_asset_name_empty_string_fails() {
-        let mut row = make_model_row("My Model", "Drone");
-        row.photo_asset_name = Some(String::new());
-        assert!(row.try_into_model().is_err());
     }
 
     #[test]
@@ -289,6 +279,6 @@ mod tests {
         assert_eq!(row.owner_id, owner_id);
         assert_eq!(row.name, "My Trex 700");
         assert_eq!(row.r#type, "Helicopter");
-        assert_eq!(row.photo_asset_name, None);
+        assert_eq!(row.photo_asset_id, None);
     }
 }

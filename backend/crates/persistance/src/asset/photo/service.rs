@@ -1,4 +1,3 @@
-use rc_log_domain::asset::name::Name;
 use rc_log_domain::asset::path::Path;
 use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo_service::{PhotoService, PhotoServiceError};
@@ -6,8 +5,6 @@ use rc_log_domain::asset::photo::transaction::PhotoTransaction;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::warn;
-use uuid::Uuid;
-
 use super::super::asset_storage::{AssetStorage, AssetStorageError};
 use super::super::processing::process_image;
 use super::transaction::SqlxPhotoUnitOfWork;
@@ -58,9 +55,9 @@ impl DiskDbPhotoService {
 }
 
 impl PhotoService for DiskDbPhotoService {
-    async fn save(&self, name: &Name, data: &[u8]) -> Result<Photo, PhotoServiceError> {
+    async fn save(&self, id: &PhotoId, data: &[u8]) -> Result<Photo, PhotoServiceError> {
         let data = data.to_vec();
-        let name_str = name.as_str().to_string();
+        let id_str = id.as_uuid().to_string();
 
         let processed = tokio::task::spawn_blocking(move || process_image(&data))
             .await
@@ -69,7 +66,7 @@ impl PhotoService for DiskDbPhotoService {
         let mut tx_uow = self.photo_uow.clone();
         let mut tx = tx_uow.begin().await.map_err(Self::map_tx_error)?;
 
-        let small_rel = Self::rel_path(&name_str, "small");
+        let small_rel = Self::rel_path(&id_str, "small");
         self.asset_storage
             .save(&small_rel, &processed.small)
             .await
@@ -77,7 +74,7 @@ impl PhotoService for DiskDbPhotoService {
 
         let medium_rel = match processed.medium {
             Some(ref bytes) => {
-                let rel = Self::rel_path(&name_str, "medium");
+                let rel = Self::rel_path(&id_str, "medium");
                 self.asset_storage.save(&rel, bytes).await.map_err(Self::map_asset_error)?;
                 Some(rel)
             }
@@ -86,7 +83,7 @@ impl PhotoService for DiskDbPhotoService {
 
         let large_rel = match processed.large {
             Some(ref bytes) => {
-                let rel = Self::rel_path(&name_str, "large");
+                let rel = Self::rel_path(&id_str, "large");
                 self.asset_storage.save(&rel, bytes).await.map_err(Self::map_asset_error)?;
                 Some(rel)
             }
@@ -102,8 +99,7 @@ impl PhotoService for DiskDbPhotoService {
         }
 
         let photo = Photo::new(
-            PhotoId::new(Uuid::new_v4()),
-            name.clone(),
+            *id,
             Self::to_asset_path(&small_rel)?,
             medium_rel.as_deref().map(Self::to_asset_path).transpose()?,
             large_rel.as_deref().map(Self::to_asset_path).transpose()?,
@@ -122,13 +118,13 @@ impl PhotoService for DiskDbPhotoService {
         Ok(photo)
     }
 
-    async fn delete(&self, name: &Name) -> Result<(), PhotoServiceError> {
+    async fn delete(&self, id: &PhotoId) -> Result<(), PhotoServiceError> {
         let mut tx_uow = self.photo_uow.clone();
         let mut tx = tx_uow.begin().await.map_err(Self::map_tx_error)?;
 
-        let existing = tx.get_by_name(name).await.map_err(Self::map_tx_error)?;
+        let existing = tx.get_by_id(id).await.map_err(Self::map_tx_error)?;
 
-        tx.delete_by_name(name).await.map_err(Self::map_tx_error)?;
+        tx.delete_by_id(id).await.map_err(Self::map_tx_error)?;
         tx.commit().await.map_err(Self::map_tx_error)?;
 
         if let Some(photo) = existing {

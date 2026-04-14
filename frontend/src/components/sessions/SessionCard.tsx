@@ -18,7 +18,7 @@ function formatDate(date: string): string {
 }
 
 export function SessionCard({ session }: { session: ListSessionDto }) {
-  const { data: photoPathData } = usePhotoPath(session.modelPhotoAssetName);
+  const { data: photoPathData } = usePhotoPath(session.modelPhotoAssetId);
   const photoSrc = photoPathData ? getPhotoUrl(photoPathData.smallPath) : null;
 
   const maneuvers = session.performedVariations

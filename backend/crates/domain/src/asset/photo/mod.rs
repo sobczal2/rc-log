@@ -4,14 +4,12 @@ pub mod transaction;
 
 pub use id::PhotoId;
 
-use crate::asset::name::Name;
 use crate::asset::path::Path;
 use crate::asset::size::Size;
 
 #[derive(Debug, Clone)]
 pub struct Photo {
     pub id: PhotoId,
-    pub name: Name,
     pub small_path: Path,
     pub medium_path: Option<Path>,
     pub large_path: Option<Path>,
@@ -20,12 +18,11 @@ pub struct Photo {
 impl Photo {
     pub fn new(
         id: PhotoId,
-        name: Name,
         small_path: Path,
         medium_path: Option<Path>,
         large_path: Option<Path>,
     ) -> Self {
-        Self { id, name, small_path, medium_path, large_path }
+        Self { id, small_path, medium_path, large_path }
     }
 
     pub fn resolve_path(&self, size: Size) -> &Path {
@@ -43,7 +40,6 @@ impl Photo {
 mod tests {
     use uuid::Uuid;
 
-    use crate::asset::name::Name;
     use crate::asset::path::Path;
     use crate::asset::size::Size;
 
@@ -56,7 +52,6 @@ mod tests {
     fn make_photo(small: &str, medium: Option<&str>, large: Option<&str>) -> Photo {
         Photo::new(
             PhotoId::new(Uuid::nil()),
-            Name::new("test".to_string()).unwrap(),
             path(small),
             medium.map(path),
             large.map(path),

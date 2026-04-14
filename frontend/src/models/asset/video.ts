@@ -1,5 +1,5 @@
 export interface VideoPathsDto {
-  name: string;
+  id: string;
   smallPath: string;
   mediumPath?: string;
   largePath?: string;

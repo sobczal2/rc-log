@@ -6,7 +6,7 @@ pub mod r#type;
 
 pub use r#type::Type;
 
-use crate::asset::name::Name as AssetName;
+use crate::asset::photo::PhotoId;
 use crate::model::id::ModelId;
 use crate::model::name::Name;
 use crate::user::id::UserId;
@@ -17,7 +17,7 @@ pub struct Model {
     owner_id: UserId,
     name: Name,
     r#type: Type,
-    photo_asset_name: Option<AssetName>,
+    photo_asset_id: Option<PhotoId>,
 }
 
 impl Model {
@@ -26,9 +26,9 @@ impl Model {
         owner_id: UserId,
         name: Name,
         r#type: Type,
-        photo_asset_name: Option<AssetName>,
+        photo_asset_id: Option<PhotoId>,
     ) -> Self {
-        Self { id, owner_id, name, r#type, photo_asset_name }
+        Self { id, owner_id, name, r#type, photo_asset_id }
     }
 
     pub fn id(&self) -> ModelId {
@@ -47,7 +47,7 @@ impl Model {
         self.r#type
     }
 
-    pub fn photo_asset_name(&self) -> Option<&AssetName> {
-        self.photo_asset_name.as_ref()
+    pub fn photo_asset_id(&self) -> Option<&PhotoId> {
+        self.photo_asset_id.as_ref()
     }
 }

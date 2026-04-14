@@ -40,7 +40,7 @@ where
                 RemoveUserPhotoError::NotFound
             })?;
 
-        let old_photo_name = user.photo_asset_name().cloned();
+        let old_photo_name = user.photo_asset_id().cloned();
 
         let updated = User::new(
             user.id(),

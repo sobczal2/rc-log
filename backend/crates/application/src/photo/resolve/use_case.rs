@@ -1,6 +1,7 @@
-use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::photo::PhotoId;
 use rc_log_domain::asset::photo::resolver::PhotoResolver;
 use tracing::{debug, instrument};
+use uuid::Uuid;
 
 use crate::error::ApplicationError;
 
@@ -16,19 +17,20 @@ impl<R: PhotoResolver> ResolvePhotoUseCase<R> {
         Self { resolver }
     }
 
-    #[instrument(skip(self), fields(name = %input.name))]
+    #[instrument(skip(self), fields(photo_id = %input.id))]
     pub async fn execute(
         &self,
         input: ResolvePhotoInput,
     ) -> Result<PhotoPathsDto, ApplicationError> {
         debug!("Resolving photo asset paths");
 
-        let name = Name::new(input.name.clone())
-            .map_err(|e| ResolvePhotoError::InvalidName(e.to_string()))?;
+        let id = Uuid::parse_str(&input.id)
+            .map_err(|e| ResolvePhotoError::InvalidId(e.to_string()))?;
+        let photo_id = PhotoId::new(id);
 
         let photo = self
             .resolver
-            .get(&name)
+            .get(&photo_id)
             .await
             .map_err(ResolvePhotoError::from)?
             .ok_or(ResolvePhotoError::NotFound)?;

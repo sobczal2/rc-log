@@ -14,7 +14,7 @@ export interface ManeuverDto {
   maxDifficulty: DifficultyLevel;
   tags: TagDto[];
   description: string;
-  defaultVariationVideoAssetName: string;
+  defaultVariationVideoAssetId: string;
 }
 
 export interface ManeuverFilter {

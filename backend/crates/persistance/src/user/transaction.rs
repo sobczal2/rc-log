@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::photo::PhotoId;
 use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -13,7 +13,7 @@ struct UserRow {
     username: String,
     email: String,
     password_hash: String,
-    photo_asset_name: Option<String>,
+    photo_asset_id: Option<Uuid>,
 }
 
 impl UserRow {
@@ -24,12 +24,8 @@ impl UserRow {
             Email::new(self.email).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let password_hash = PasswordHash::new(self.password_hash)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let photo_asset_name = self
-            .photo_asset_name
-            .map(Name::new)
-            .transpose()
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        Ok(User::new(UserId::new(self.id), username, email, password_hash, photo_asset_name))
+        let photo_asset_id = self.photo_asset_id.map(PhotoId::new);
+        Ok(User::new(UserId::new(self.id), username, email, password_hash, photo_asset_id))
     }
 
     fn from_user(user: &User) -> Self {
@@ -38,7 +34,7 @@ impl UserRow {
             username: user.username().as_str().to_string(),
             email: user.email().as_str().to_string(),
             password_hash: user.password_hash().as_str().to_string(),
-            photo_asset_name: user.photo_asset_name().map(|n| n.as_str().to_string()),
+            photo_asset_id: user.photo_asset_id().map(|id| id.as_uuid()),
         }
     }
 }
@@ -53,20 +49,20 @@ impl Transaction<User> for SqlxUserTransaction {
 
         sqlx::query(
             r#"
-            INSERT INTO "user"."user" (id, username, email, password_hash, photo_asset_name)
+            INSERT INTO "user"."user" (id, username, email, password_hash, photo_asset_id)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 username = EXCLUDED.username,
                 email = EXCLUDED.email,
                 password_hash = EXCLUDED.password_hash,
-                photo_asset_name = EXCLUDED.photo_asset_name
+                photo_asset_id = EXCLUDED.photo_asset_id
             "#,
         )
         .bind(user_row.id)
         .bind(&user_row.username)
         .bind(&user_row.email)
         .bind(&user_row.password_hash)
-        .bind(&user_row.photo_asset_name)
+        .bind(&user_row.photo_asset_id)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| {
@@ -99,7 +95,7 @@ impl UserTransaction for SqlxUserTransaction {
     async fn get_by_id(&mut self, id: UserId) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash, photo_asset_name
+            SELECT id, username, email, password_hash, photo_asset_id
             FROM "user"."user"
             WHERE id = $1
             "#,
@@ -118,7 +114,7 @@ impl UserTransaction for SqlxUserTransaction {
     ) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash, photo_asset_name
+            SELECT id, username, email, password_hash, photo_asset_id
             FROM "user"."user"
             WHERE username = $1
             "#,
@@ -134,7 +130,7 @@ impl UserTransaction for SqlxUserTransaction {
     async fn get_by_email(&mut self, email: &Email) -> Result<Option<User>, TransactionError> {
         let user_row: Option<UserRow> = sqlx::query_as(
             r#"
-            SELECT id, username, email, password_hash, photo_asset_name
+            SELECT id, username, email, password_hash, photo_asset_id
             FROM "user"."user"
             WHERE email = $1
             "#,
@@ -185,7 +181,7 @@ mod tests {
             username: username.to_string(),
             email: email.to_string(),
             password_hash: password_hash.to_string(),
-            photo_asset_name: None,
+            photo_asset_id: None,
         }
     }
 

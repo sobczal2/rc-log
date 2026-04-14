@@ -4,14 +4,12 @@ pub mod transaction;
 
 pub use id::VideoId;
 
-use crate::asset::name::Name;
 use crate::asset::path::Path;
 use crate::asset::size::Size;
 
 #[derive(Debug, Clone)]
 pub struct Video {
     pub id: VideoId,
-    pub name: Name,
     pub small_path: Path,
     pub medium_path: Option<Path>,
     pub large_path: Option<Path>,
@@ -20,12 +18,11 @@ pub struct Video {
 impl Video {
     pub fn new(
         id: VideoId,
-        name: Name,
         small_path: Path,
         medium_path: Option<Path>,
         large_path: Option<Path>,
     ) -> Self {
-        Self { id, name, small_path, medium_path, large_path }
+        Self { id, small_path, medium_path, large_path }
     }
 
     pub fn resolve_path(&self, size: Size) -> &Path {
@@ -43,7 +40,6 @@ impl Video {
 mod tests {
     use uuid::Uuid;
 
-    use crate::asset::name::Name;
     use crate::asset::path::Path;
     use crate::asset::size::Size;
 
@@ -56,7 +52,6 @@ mod tests {
     fn make_video(small: &str, medium: Option<&str>, large: Option<&str>) -> Video {
         Video::new(
             VideoId::new(Uuid::nil()),
-            Name::new("test".to_string()).unwrap(),
             path(small),
             medium.map(path),
             large.map(path),

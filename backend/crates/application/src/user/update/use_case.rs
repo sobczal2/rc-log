@@ -56,7 +56,7 @@ where
             new_username,
             user.email().clone(),
             user.password_hash().clone(),
-            user.photo_asset_name().cloned(),
+            user.photo_asset_id().cloned(),
         );
 
         debug!("Saving updated user");

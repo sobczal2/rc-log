@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::video::VideoId;
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::id::ManeuverId;
@@ -30,7 +30,7 @@ struct VariationRow {
     maneuver_id: Uuid,
     name: String,
     description: String,
-    video_asset_name: String,
+    video_asset_id: Uuid,
     is_default: bool,
     difficulty: i32,
 }
@@ -64,8 +64,7 @@ impl VariationRow {
     fn try_into_variation(self) -> Result<Variation, TransactionError> {
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let video_asset_name = Name::new(self.video_asset_name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let video_asset_id = VideoId::new(self.video_asset_id);
         let difficulty = match self.difficulty {
             1 => Difficulty::Level1,
             2 => Difficulty::Level2,
@@ -86,7 +85,7 @@ impl VariationRow {
             ManeuverId::new(self.maneuver_id),
             self.name,
             description,
-            video_asset_name,
+            video_asset_id,
             difficulty,
         ))
     }
@@ -203,7 +202,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         };
         sqlx::query(
             r#"
-            INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)
+            INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_id, is_default, difficulty)
             VALUES ($1, $2, $3, $4, $5, TRUE, $6)
             "#,
         )
@@ -211,7 +210,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
         .bind(Uuid::from(maneuver.id()))
         .bind(default_var.name())
         .bind(default_var.description().as_str())
-        .bind(default_var.video_asset_name().as_str())
+        .bind(default_var.video_asset_id().as_uuid())
         .bind(default_difficulty)
         .execute(&mut *self.tx)
         .await
@@ -229,7 +228,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             };
             sqlx::query(
                 r#"
-                INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)
+                INSERT INTO maneuver.variation (id, maneuver_id, name, description, video_asset_id, is_default, difficulty)
                 VALUES ($1, $2, $3, $4, $5, FALSE, $6)
                 "#,
             )
@@ -237,7 +236,7 @@ impl Transaction<Maneuver> for SqlxManeuverTransaction {
             .bind(Uuid::from(maneuver.id()))
             .bind(var.name())
             .bind(var.description().as_str())
-            .bind(var.video_asset_name().as_str())
+            .bind(var.video_asset_id().as_uuid())
             .bind(var_difficulty)
             .execute(&mut *self.tx)
             .await
@@ -292,7 +291,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
 
         let variation_rows: Vec<VariationRow> = sqlx::query_as(
             r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            SELECT id, maneuver_id, name, description, video_asset_id, is_default, difficulty
             FROM maneuver.variation
             WHERE maneuver_id = $1
             "#,
@@ -329,7 +328,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
     ) -> Result<Option<Variation>, TransactionError> {
         let variation_row: Option<VariationRow> = sqlx::query_as(
             r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            SELECT id, maneuver_id, name, description, video_asset_id, is_default, difficulty
             FROM maneuver.variation
             WHERE id = $1
             "#,
@@ -478,7 +477,7 @@ impl ManeuverTransaction for SqlxManeuverTransaction {
 
         let all_variation_rows: Vec<VariationRow> = sqlx::query_as(
             r#"
-            SELECT id, maneuver_id, name, description, video_asset_name, is_default, difficulty
+            SELECT id, maneuver_id, name, description, video_asset_id, is_default, difficulty
             FROM maneuver.variation
             WHERE maneuver_id = ANY($1)
             "#,
@@ -554,13 +553,13 @@ mod tests {
 
     use super::{ManeuverRow, VariationRow};
 
-    fn make_variation_row(description: &str, asset_name: &str) -> VariationRow {
+    fn make_variation_row(description: &str, asset_id: Uuid) -> VariationRow {
         VariationRow {
             id: Uuid::new_v4(),
             maneuver_id: Uuid::new_v4(),
             name: "default".to_string(),
             description: description.to_string(),
-            video_asset_name: asset_name.to_string(),
+            video_asset_id: asset_id,
             is_default: true,
             difficulty: 1,
         }
@@ -579,35 +578,29 @@ mod tests {
 
     #[test]
     fn variation_row_valid_converts_to_variation() {
-        let row = make_variation_row("description text", "video_small");
+        let row = make_variation_row("description text", Uuid::new_v4());
         assert!(row.try_into_variation().is_ok());
     }
 
     #[test]
     fn variation_row_empty_description_fails() {
-        let row = make_variation_row("", "video_small");
-        assert!(row.try_into_variation().is_err());
-    }
-
-    #[test]
-    fn variation_row_empty_asset_name_fails() {
-        let row = make_variation_row("valid description", "");
+        let row = make_variation_row("", Uuid::new_v4());
         assert!(row.try_into_variation().is_err());
     }
 
     // --- ManeuverRow ---
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
-        use rc_log_domain::asset::name::Name;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
+        use rc_log_domain::asset::video::VideoId;
         rc_log_domain::maneuver::variation::Variation::new(
             VariationId::new(Uuid::new_v4()),
             rc_log_domain::maneuver::id::ManeuverId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("desc".to_string()).unwrap(),
-            Name::new("asset".to_string()).unwrap(),
+            VideoId::new(Uuid::new_v4()),
             Difficulty::Level1,
         )
     }
@@ -649,14 +642,14 @@ mod tests {
 
     #[test]
     fn variation_row_difficulty_zero_fails() {
-        let mut row = make_variation_row("valid description", "asset");
+        let mut row = make_variation_row("valid description", Uuid::new_v4());
         row.difficulty = 0;
         assert!(row.try_into_variation().is_err());
     }
 
     #[test]
     fn variation_row_difficulty_eight_fails() {
-        let mut row = make_variation_row("valid description", "asset");
+        let mut row = make_variation_row("valid description", Uuid::new_v4());
         row.difficulty = 8;
         assert!(row.try_into_variation().is_err());
     }

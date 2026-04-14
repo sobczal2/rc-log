@@ -1,17 +1,16 @@
 use std::future::Future;
 
-use crate::asset::name::Name;
-use crate::asset::video::Video;
+use crate::asset::video::{Video, VideoId};
 use crate::shared::transaction::{Transaction, TransactionError};
 
 pub trait VideoTransaction: Transaction<Video> {
-    fn get_by_name(
+    fn get_by_id(
         &mut self,
-        name: &Name,
+        id: &VideoId,
     ) -> impl Future<Output = Result<Option<Video>, TransactionError>> + Send;
 
-    fn delete_by_name(
+    fn delete_by_id(
         &mut self,
-        name: &Name,
+        id: &VideoId,
     ) -> impl Future<Output = Result<(), TransactionError>> + Send;
 }

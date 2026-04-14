@@ -2,8 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::future::Future;
 
-use super::name::Name;
-use super::photo::Photo;
+use super::photo::{Photo, PhotoId};
 
 #[derive(Debug)]
 pub enum PhotoServiceError {
@@ -27,12 +26,12 @@ impl Error for PhotoServiceError {}
 pub trait PhotoService: Send + Sync + Clone {
     fn save(
         &self,
-        name: &Name,
+        id: &PhotoId,
         data: &[u8],
     ) -> impl Future<Output = Result<Photo, PhotoServiceError>> + Send;
 
     fn delete(
         &self,
-        name: &Name,
+        id: &PhotoId,
     ) -> impl Future<Output = Result<(), PhotoServiceError>> + Send;
 }

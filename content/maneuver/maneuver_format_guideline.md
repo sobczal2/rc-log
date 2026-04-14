@@ -52,7 +52,6 @@ content/maneuver/
 ```json
 {
   "id": "28302640-dc0e-4ac8-b214-a4c367288d07",
-  "videoAssetName": "helicopter_hover_tail_in",
   "videoAssetId": "e0833c26-a107-4e14-b743-aa53dd4e2637",
   "name": "Tail-in Hover",
   "description": "### Execution Steps\n1. ...\n\n### Common Problems\n- **Problem:** ..."
@@ -60,7 +59,6 @@ content/maneuver/
 ```
 
 - **`id`**: A UUID v4 uniquely identifying this variation.
-- **`videoAssetName`**: The asset name used to resolve the demonstration video for this variation (must match an entry in the `asset.video` table).
 - **`videoAssetId`**: The UUID of the corresponding video asset record.
 - **`name`**: Short display name for this variation (e.g., `"Tail-in Hover"`, `"Nose-in Hover"`).
 - **`description`**: A Markdown text block that **briefly explains how this variation differs from the base maneuver**. It should not repeat the full maneuver description. Focus on what is unique to this variation — different orientation, reversed controls, specific tips, etc. Follow the structure below.

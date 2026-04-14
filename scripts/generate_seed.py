@@ -32,7 +32,7 @@ CONTENT_DIR = REPO_ROOT / "content" / "maneuver"
 TAGS_FILE = CONTENT_DIR / "tags.json"
 
 REQUIRED_MANEUVER_FIELDS = {"id", "model_type", "name", "tags", "description"}
-REQUIRED_VARIATION_FIELDS = {"id", "videoAssetName", "videoAssetId", "name", "description", "difficulty"}
+REQUIRED_VARIATION_FIELDS = {"id", "videoAssetId", "name", "description", "difficulty"}
 
 
 def load_tags() -> dict[str, str]:
@@ -182,22 +182,19 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
     # ---------------------------------------------------------- asset.video ---
     lines.append("-- 4. Video assets")
     for v in variations:
-        asset_name = v["videoAssetName"]
         asset_id = v["videoAssetId"]
-        small  = f"videos/{asset_name}_small.mp4"
-        medium = f"videos/{asset_name}_medium.mp4"
-        large  = f"videos/{asset_name}_large.mp4"
+        small  = f"videos/{asset_id}_small.mp4"
+        medium = f"videos/{asset_id}_medium.mp4"
+        large  = f"videos/{asset_id}_large.mp4"
         lines.append(
-            f"INSERT INTO asset.video (id, name, small_path, medium_path, large_path)"
+            f"INSERT INTO asset.video (id, small_path, medium_path, large_path)"
             f" VALUES ("
             f"'{asset_id}', "
-            f"{sql_str(asset_name)}, "
             f"{sql_str(small)}, "
             f"{sql_str(medium)}, "
             f"{sql_str(large)}"
             f")"
             f" ON CONFLICT (id) DO UPDATE SET"
-            f"  name = EXCLUDED.name,"
             f"  small_path = EXCLUDED.small_path,"
             f"  medium_path = EXCLUDED.medium_path,"
             f"  large_path = EXCLUDED.large_path;"
@@ -210,13 +207,13 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
         is_default_sql = "TRUE" if v["_is_default"] else "FALSE"
         lines.append(
             f"INSERT INTO maneuver.variation"
-            f" (id, maneuver_id, name, description, video_asset_name, is_default, difficulty)"
+            f" (id, maneuver_id, name, description, video_asset_id, is_default, difficulty)"
             f" VALUES ("
             f"'{v['id']}', "
             f"'{v['_maneuver_id']}', "
             f"{sql_str(v['name'])}, "
             f"{sql_str(v['description'])}, "
-            f"{sql_str(v['videoAssetName'])}, "
+            f"'{v['videoAssetId']}', "
             f"{is_default_sql}, "
             f"{v['difficulty']}"
             f")"
@@ -224,7 +221,7 @@ def generate_sql(maneuvers: list, variations: list, tag_registry: dict[str, str]
             f"  maneuver_id = EXCLUDED.maneuver_id,"
             f"  name = EXCLUDED.name,"
             f"  description = EXCLUDED.description,"
-            f"  video_asset_name = EXCLUDED.video_asset_name,"
+            f"  video_asset_id = EXCLUDED.video_asset_id,"
             f"  is_default = EXCLUDED.is_default,"
             f"  difficulty = EXCLUDED.difficulty;"
         )

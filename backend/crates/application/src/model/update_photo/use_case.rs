@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::photo::PhotoId;
 use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
@@ -52,15 +52,14 @@ where
             return Err(UpdateModelPhotoError::Forbidden.into());
         }
 
-        let old_photo_name = model.photo_asset_name().cloned();
+        let old_photo_id = model.photo_asset_id().cloned();
 
-        let new_asset_name = Name::new(format!("model-photo-{}", Uuid::new_v4()))
-            .map_err(|e| UpdateModelPhotoError::InvalidData(e.to_string()))?;
+        let new_photo_id = PhotoId::new(Uuid::new_v4());
 
         debug!("Storing new photo");
         let new_photo = self
             .photo_service
-            .save(&new_asset_name, &input.data)
+            .save(&new_photo_id, &input.data)
             .await
             .map_err(UpdateModelPhotoError::from)?;
 
@@ -69,7 +68,7 @@ where
             UserId::new(input.owner_id),
             model.name().clone(),
             model.r#type(),
-            Some(new_photo.name.clone()),
+            Some(new_photo.id),
         );
 
         debug!("Saving updated model");
@@ -78,10 +77,10 @@ where
         debug!("Committing transaction");
         tx.commit().await.map_err(UpdateModelPhotoError::from)?;
 
-        if let Some(old_name) = old_photo_name {
-            debug!(name = %old_name.as_str(), "Deleting old photo (best-effort)");
-            if let Err(e) = self.photo_service.delete(&old_name).await {
-                warn!(error = %e, name = %old_name.as_str(), "Failed to delete old photo");
+        if let Some(old_photo_id) = old_photo_id {
+            debug!(photo_id = %old_photo_id.as_uuid(), "Deleting old photo (best-effort)");
+            if let Err(e) = self.photo_service.delete(&old_photo_id).await {
+                warn!(error = %e, photo_id = %old_photo_id.as_uuid(), "Failed to delete old photo");
             }
         }
 

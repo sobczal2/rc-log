@@ -4,11 +4,11 @@ prepare_assets.py — Encode all maneuver variation videos into 3 sizes.
 
 For each variation directory found under content/maneuver/, this script:
   - Expects a source file named `video.mp4` inside the variation directory.
-  - Reads `variation.json` to obtain the `videoAssetName`.
+    - Reads `variation.json` to obtain the `videoAssetId`.
   - Encodes the source video into three outputs:
-      assets/videos/{videoAssetName}_small.mp4   (480p, 1 Mbps)
-      assets/videos/{videoAssetName}_medium.mp4  (720p, 2.5 Mbps)
-      assets/videos/{videoAssetName}_large.mp4   (1080p, 5 Mbps)
+            assets/videos/{videoAssetId}_small.mp4   (480p, 1 Mbps)
+            assets/videos/{videoAssetId}_medium.mp4  (720p, 2.5 Mbps)
+            assets/videos/{videoAssetId}_large.mp4   (1080p, 5 Mbps)
   - Skips encoding for any output that is already newer than the source
     (unless --force is passed).
 
@@ -22,7 +22,6 @@ Requirements:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -92,10 +91,10 @@ def process_variation(variation_dir: Path, force: bool) -> None:
     with open(variation_json, encoding="utf-8") as f:
         data = json.load(f)
 
-    asset_name = data.get("videoAssetName")
-    if not asset_name:
+    asset_id = data.get("videoAssetId")
+    if not asset_id:
         print(
-            f"  SKIP: 'videoAssetName' missing in "
+            f"  SKIP: 'videoAssetId' missing in "
             f"{variation_json.relative_to(REPO_ROOT)}"
         )
         return
@@ -103,13 +102,13 @@ def process_variation(variation_dir: Path, force: bool) -> None:
     if not source.exists():
         print(
             f"  SKIP: no video.mp4 in {variation_dir.relative_to(REPO_ROOT)} "
-            f"(asset: {asset_name})"
+            f"(asset: {asset_id})"
         )
         return
 
     any_encoded = False
     for size_label, scale, bitrate in SIZES:
-        output = OUTPUT_DIR / f"{asset_name}_{size_label}.mp4"
+        output = OUTPUT_DIR / f"{asset_id}_{size_label}.mp4"
         if not force and is_up_to_date(source, output):
             print(f"  UP-TO-DATE: {output.relative_to(REPO_ROOT)}")
             continue

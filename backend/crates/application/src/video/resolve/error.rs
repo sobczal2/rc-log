@@ -4,8 +4,8 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum ResolveVideoError {
     #[error("Video asset not found")]
     NotFound,
-    #[error("Invalid asset name: {0}")]
-    InvalidName(String),
+    #[error("Invalid asset id: {0}")]
+    InvalidId(String),
     #[error("Invalid data in repository: {0}")]
     InvalidData(String),
     #[error("Resolver error: {0}")]

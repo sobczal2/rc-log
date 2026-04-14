@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::photo::PhotoId;
 use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -45,15 +45,14 @@ where
                 UpdateUserPhotoError::NotFound
             })?;
 
-        let old_photo_name = user.photo_asset_name().cloned();
+        let old_photo_id = user.photo_asset_id().cloned();
 
-        let new_asset_name = Name::new(format!("user-photo-{}", Uuid::new_v4()))
-            .map_err(|e| UpdateUserPhotoError::InvalidData(e.to_string()))?;
+        let new_photo_id = PhotoId::new(Uuid::new_v4());
 
         debug!("Storing new photo");
         let new_photo = self
             .photo_service
-            .save(&new_asset_name, &input.data)
+            .save(&new_photo_id, &input.data)
             .await
             .map_err(UpdateUserPhotoError::from)?;
 
@@ -62,7 +61,7 @@ where
             user.username().clone(),
             user.email().clone(),
             user.password_hash().clone(),
-            Some(new_photo.name.clone()),
+            Some(new_photo.id),
         );
 
         debug!("Saving updated user");
@@ -71,7 +70,7 @@ where
         debug!("Committing transaction");
         tx.commit().await.map_err(UpdateUserPhotoError::from)?;
 
-        if let Some(old_name) = old_photo_name {
+        if let Some(old_name) = old_photo_id {
             debug!("Deleting old photo (best effort)");
             if let Err(e) = self.photo_service.delete(&old_name).await {
                 warn!("Failed to delete old user photo: {}", e);

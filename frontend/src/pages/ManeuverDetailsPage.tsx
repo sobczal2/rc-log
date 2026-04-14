@@ -25,8 +25,8 @@ export function ManeuverDetailsPage() {
     enabled: !!id,
   });
 
-  const assetName = maneuver?.defaultVariation?.videoAssetName ?? "";
-  const { data: videoPathData } = useVideoPath(assetName);
+  const assetId = maneuver?.defaultVariation?.videoAssetId ?? "";
+  const { data: videoPathData } = useVideoPath(assetId);
   const videoSrc = videoPathData
     ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath)
     : null;

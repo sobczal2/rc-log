@@ -10,7 +10,7 @@ export interface VariationDto {
   id: string;
   name: string;
   description: string;
-  videoAssetName: string;
+  videoAssetId: string;
   difficulty: DifficultyLevel;
 }
 

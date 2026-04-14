@@ -6,7 +6,7 @@ import { usePhotoPath } from "@/hooks/usePhotoPath";
 import { getPhotoUrl } from "@/models/asset/photo";
 
 export function ModelCard({ model }: { model: ListModelDto }) {
-  const { data: photoPathData } = usePhotoPath(model.photoAssetName);
+  const { data: photoPathData } = usePhotoPath(model.photoAssetId);
   const photoSrc = photoPathData ? getPhotoUrl(photoPathData.smallPath) : null;
 
   return (

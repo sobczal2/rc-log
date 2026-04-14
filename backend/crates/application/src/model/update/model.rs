@@ -20,7 +20,7 @@ pub struct ModelDto {
     pub owner_id: Uuid,
     pub name: String,
     pub r#type: TypeDto,
-    pub photo_asset_name: Option<String>,
+    pub photo_asset_id: Option<String>,
 }
 
 impl From<Model> for ModelDto {
@@ -35,7 +35,7 @@ impl From<Model> for ModelDto {
             owner_id: Uuid::from(m.owner_id()),
             name: m.name().as_str().to_string(),
             r#type,
-            photo_asset_name: m.photo_asset_name().map(|n| n.as_str().to_string()),
+            photo_asset_id: m.photo_asset_id().map(|id| id.as_uuid().to_string()),
         }
     }
 }

@@ -15,7 +15,7 @@ pub struct UserDto {
     pub id: Uuid,
     pub username: String,
     pub email: String,
-    pub photo_asset_name: Option<String>,
+    pub photo_asset_id: Option<String>,
 }
 
 impl From<User> for UserDto {
@@ -24,7 +24,7 @@ impl From<User> for UserDto {
             id: Uuid::from(user.id()),
             username: user.username().as_str().to_string(),
             email: user.email().as_str().to_string(),
-            photo_asset_name: user.photo_asset_name().map(|n| n.as_str().to_string()),
+            photo_asset_id: user.photo_asset_id().map(|id| id.as_uuid().to_string()),
         }
     }
 }

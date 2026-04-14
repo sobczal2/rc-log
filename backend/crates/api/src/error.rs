@@ -159,7 +159,7 @@ impl IntoResponse for ApiError {
                     .into_response()
             }
             ApiError::Application(ApplicationError::ResolveVideo(
-                ResolveVideoError::InvalidName(msg),
+                ResolveVideoError::InvalidId(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
             ApiError::Application(ApplicationError::ResolveVideo(
                 ResolveVideoError::InvalidData(_),
@@ -177,7 +177,7 @@ impl IntoResponse for ApiError {
                     .into_response()
             }
             ApiError::Application(ApplicationError::ResolvePhoto(
-                ResolvePhotoError::InvalidName(msg),
+                ResolvePhotoError::InvalidId(msg),
             )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
             ApiError::Application(ApplicationError::ResolvePhoto(
                 ResolvePhotoError::InvalidData(_),

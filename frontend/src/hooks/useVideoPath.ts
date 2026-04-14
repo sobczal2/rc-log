@@ -4,11 +4,11 @@ import type { VideoPathsDto } from "@/models/asset/video";
 
 export type { VideoPathsDto };
 
-export function useVideoPath(assetName: string | null) {
+export function useVideoPath(assetId: string | null) {
   return useQuery({
-    queryKey: ["video-path", assetName],
-    queryFn: () => assetsApi.getVideoPath(assetName!),
+    queryKey: ["video-path", assetId],
+    queryFn: () => assetsApi.getVideoPath(assetId!),
     staleTime: 5 * 60 * 1000,
-    enabled: !!assetName,
+    enabled: !!assetId,
   });
 }

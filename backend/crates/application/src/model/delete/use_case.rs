@@ -47,7 +47,7 @@ where
             return Err(DeleteModelError::Forbidden.into());
         }
 
-        let photo_name = model.photo_asset_name().cloned();
+        let photo_id = model.photo_asset_id().cloned();
 
         debug!("Deleting model");
         tx.delete_by_id(ModelId::new(input.id)).await.map_err(DeleteModelError::from)?;
@@ -55,10 +55,10 @@ where
         debug!("Committing transaction");
         tx.commit().await.map_err(DeleteModelError::from)?;
 
-        if let Some(name) = photo_name {
-            debug!(name = %name.as_str(), "Deleting model photo (best-effort)");
-            if let Err(e) = self.photo_service.delete(&name).await {
-                warn!(error = %e, name = %name.as_str(), "Failed to delete model photo");
+        if let Some(photo_id) = photo_id {
+            debug!(photo_id = %photo_id.as_uuid(), "Deleting model photo (best-effort)");
+            if let Err(e) = self.photo_service.delete(&photo_id).await {
+                warn!(error = %e, photo_id = %photo_id.as_uuid(), "Failed to delete model photo");
             }
         }
 

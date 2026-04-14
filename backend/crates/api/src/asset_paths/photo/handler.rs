@@ -7,7 +7,7 @@ use crate::asset_paths::photo::response::ResolvePhotoResponse;
 use crate::error::ApiError;
 use crate::state::AppState;
 
-#[instrument(skip(state), fields(name = %input.0.name))]
+#[instrument(skip(state), fields(photo_id = %input.0.id))]
 pub async fn resolve_photo(
     State(state): State<AppState>,
     input: ResolvePhotoRequest,
@@ -15,6 +15,6 @@ pub async fn resolve_photo(
     debug!("Handling resolve photo request");
     let use_case = ResolvePhotoUseCase::new(state.photo_resolver);
     let dto = use_case.execute(input.0).await?;
-    debug!(name = %dto.name, "Photo paths resolved");
+    debug!(photo_id = %dto.id, "Photo paths resolved");
     Ok(Json(ResolvePhotoResponse::from(dto)))
 }

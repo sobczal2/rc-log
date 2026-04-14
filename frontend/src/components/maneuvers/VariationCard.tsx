@@ -21,7 +21,7 @@ interface VariationCardProps {
 }
 
 export function VariationCard({ variation, type, isDefault }: VariationCardProps) {
-  const { data: videoPathData } = useVideoPath(variation.videoAssetName);
+  const { data: videoPathData } = useVideoPath(variation.videoAssetId);
   const smallSrc = videoPathData ? getVideoUrl(videoPathData.smallPath) : null;
   const largeSrc = videoPathData
     ? getVideoUrl(videoPathData.largePath ?? videoPathData.mediumPath ?? videoPathData.smallPath)

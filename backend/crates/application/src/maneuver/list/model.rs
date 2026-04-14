@@ -40,7 +40,7 @@ pub struct ManeuverDto {
     pub description: String,
     pub min_difficulty: DifficultyDto,
     pub max_difficulty: DifficultyDto,
-    pub default_variation_video_asset_name: String,
+    pub default_variation_video_asset_id: String,
 }
 
 impl From<Maneuver> for ManeuverDto {
@@ -85,10 +85,10 @@ impl From<Maneuver> for ManeuverDto {
             description: m.description().as_str().to_string(),
             min_difficulty,
             max_difficulty,
-            default_variation_video_asset_name: m
+            default_variation_video_asset_id: m
                 .default_variation()
-                .video_asset_name()
-                .as_str()
+                .video_asset_id()
+                .as_uuid()
                 .to_string(),
         }
     }

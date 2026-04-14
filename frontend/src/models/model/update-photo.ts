@@ -4,5 +4,5 @@ export interface UpdateModelPhotoDto {
   id: string;
   name: string;
   type: Type;
-  photoAssetName: string | null;
+  photoAssetId: string | null;
 }

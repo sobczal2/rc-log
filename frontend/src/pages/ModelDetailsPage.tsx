@@ -51,7 +51,7 @@ export function ModelDetailsPage() {
     enabled: !!id,
   });
 
-  const { data: photoPathData } = usePhotoPath(model?.photoAssetName ?? null);
+  const { data: photoPathData } = usePhotoPath(model?.photoAssetId ?? null);
   const photoSrc = photoPathData
     ? getPhotoUrl(photoPathData.largePath ?? photoPathData.mediumPath ?? photoPathData.smallPath)
     : null;
@@ -79,11 +79,11 @@ export function ModelDetailsPage() {
   const updatePhotoMutation = useMutation({
     mutationFn: (file: File) => modelsApi.updatePhoto(id!, file),
     onSuccess: (updated) => {
-      const prevAssetName = model?.photoAssetName;
+      const prevAssetId = model?.photoAssetId;
       queryClient.setQueryData(["models", id], updated);
       queryClient.invalidateQueries({ queryKey: ["models"] });
-      if (prevAssetName) {
-        queryClient.invalidateQueries({ queryKey: ["photo-path", prevAssetName] });
+      if (prevAssetId) {
+        queryClient.invalidateQueries({ queryKey: ["photo-path", prevAssetId] });
       }
     },
   });
@@ -92,11 +92,11 @@ export function ModelDetailsPage() {
   const removePhotoMutation = useMutation({
     mutationFn: () => modelsApi.removePhoto(id!),
     onSuccess: () => {
-      const prevAssetName = model?.photoAssetName;
+      const prevAssetId = model?.photoAssetId;
       queryClient.invalidateQueries({ queryKey: ["models", id] });
       queryClient.invalidateQueries({ queryKey: ["models"] });
-      if (prevAssetName) {
-        queryClient.invalidateQueries({ queryKey: ["photo-path", prevAssetName] });
+      if (prevAssetId) {
+        queryClient.invalidateQueries({ queryKey: ["photo-path", prevAssetId] });
       }
     },
   });

@@ -7,7 +7,7 @@ use crate::asset_paths::video::response::ResolveVideoResponse;
 use crate::error::ApiError;
 use crate::state::AppState;
 
-#[instrument(skip(state), fields(name = %input.0.name))]
+#[instrument(skip(state), fields(video_id = %input.0.id))]
 pub async fn resolve_video(
     State(state): State<AppState>,
     input: ResolveVideoRequest,
@@ -15,6 +15,6 @@ pub async fn resolve_video(
     debug!("Handling resolve video request");
     let use_case = ResolveVideoUseCase::new(state.video_resolver);
     let dto = use_case.execute(input.0).await?;
-    debug!(name = %dto.name, "Video paths resolved");
+    debug!(video_id = %dto.id, "Video paths resolved");
     Ok(Json(ResolveVideoResponse::from(dto)))
 }

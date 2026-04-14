@@ -53,7 +53,7 @@ export function SessionsPage() {
             modelId: created.modelId,
             modelName: null,
             modelType: null,
-            modelPhotoAssetName: null,
+            modelPhotoAssetId: null,
             performedVariations: [],
           },
           note: created.note,

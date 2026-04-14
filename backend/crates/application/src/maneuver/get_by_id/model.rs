@@ -46,7 +46,7 @@ pub struct VariationDto {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub video_asset_name: String,
+    pub video_asset_id: String,
     pub difficulty: DifficultyDto,
 }
 
@@ -97,7 +97,7 @@ impl From<Maneuver> for ManeuverDto {
             id: Uuid::from(m.default_variation().id()),
             name: m.default_variation().name().to_string(),
             description: m.default_variation().description().as_str().to_string(),
-            video_asset_name: m.default_variation().video_asset_name().as_str().to_string(),
+            video_asset_id: m.default_variation().video_asset_id().as_uuid().to_string(),
             difficulty: difficulty_to_dto(m.default_variation().difficulty()),
         };
 
@@ -108,7 +108,7 @@ impl From<Maneuver> for ManeuverDto {
                 id: Uuid::from(v.id()),
                 name: v.name().to_string(),
                 description: v.description().as_str().to_string(),
-                video_asset_name: v.video_asset_name().as_str().to_string(),
+                video_asset_id: v.video_asset_id().as_uuid().to_string(),
                 difficulty: difficulty_to_dto(v.difficulty()),
             })
             .collect();

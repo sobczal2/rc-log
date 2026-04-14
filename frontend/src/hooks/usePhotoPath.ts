@@ -4,11 +4,11 @@ import type { PhotoPathsDto } from "@/models/asset/photo";
 
 export type { PhotoPathsDto };
 
-export function usePhotoPath(assetName: string | null) {
+export function usePhotoPath(assetId: string | null) {
   return useQuery({
-    queryKey: ["photo-path", assetName],
-    queryFn: () => assetsApi.getPhotoPath(assetName!),
+    queryKey: ["photo-path", assetId],
+    queryFn: () => assetsApi.getPhotoPath(assetId!),
     staleTime: 5 * 60 * 1000,
-    enabled: !!assetName,
+    enabled: !!assetId,
   });
 }

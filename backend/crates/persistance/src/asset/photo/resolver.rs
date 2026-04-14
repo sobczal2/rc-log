@@ -1,7 +1,6 @@
 use crate::shared::cache_settings::CacheSettings;
 use moka::future::Cache;
-use rc_log_domain::asset::name::Name;
-use rc_log_domain::asset::photo::Photo;
+use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo::resolver::PhotoResolver;
 use rc_log_domain::asset::photo::transaction::PhotoTransaction;
 use rc_log_domain::shared::transaction::Transaction;
@@ -26,8 +25,8 @@ impl SqlxPhotoResolver {
 }
 
 impl PhotoResolver for SqlxPhotoResolver {
-    async fn get(&self, name: &Name) -> Result<Option<Photo>, TransactionError> {
-        let key = name.as_str().to_string();
+    async fn get(&self, id: &PhotoId) -> Result<Option<Photo>, TransactionError> {
+        let key = id.as_uuid().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {
             return Ok(Some(cached));
@@ -36,7 +35,7 @@ impl PhotoResolver for SqlxPhotoResolver {
         let mut photo_uow = self.photo_uow.clone();
         let mut tx = photo_uow.begin().await?;
 
-        let photo = match tx.get_by_name(name).await {
+        let photo = match tx.get_by_id(id).await {
             Ok(photo) => photo,
             Err(err) => {
                 return match tx.rollback().await {

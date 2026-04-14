@@ -5,7 +5,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  photoAssetName?: string | null;
+  photoAssetId?: string | null;
 }
 
 export interface AuthContextValue {

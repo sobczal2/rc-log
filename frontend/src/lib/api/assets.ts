@@ -5,16 +5,16 @@ import type { PhotoPathsDto } from "@/models/asset/photo";
 export type { VideoPathsDto, PhotoPathsDto };
 
 export const assetsApi = {
-  getVideoPath: async (name: string): Promise<VideoPathsDto> => {
+  getVideoPath: async (id: string): Promise<VideoPathsDto> => {
     const { data } = await apiClient.get<VideoPathsDto>(
-      `/asset-paths/video/${encodeURIComponent(name)}`,
+      `/asset-paths/video/${encodeURIComponent(id)}`,
     );
     return data;
   },
 
-  getPhotoPath: async (name: string): Promise<PhotoPathsDto> => {
+  getPhotoPath: async (id: string): Promise<PhotoPathsDto> => {
     const { data } = await apiClient.get<PhotoPathsDto>(
-      `/asset-paths/photo/${encodeURIComponent(name)}`,
+      `/asset-paths/photo/${encodeURIComponent(id)}`,
     );
     return data;
   },
