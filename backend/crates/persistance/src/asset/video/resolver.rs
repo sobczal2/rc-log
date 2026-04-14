@@ -9,7 +9,7 @@ use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 
-use super::video_transaction::SqlxVideoUnitOfWork;
+use super::transaction::SqlxVideoUnitOfWork;
 
 #[derive(Clone)]
 pub struct SqlxVideoResolver {

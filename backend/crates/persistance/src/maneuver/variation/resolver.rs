@@ -9,7 +9,7 @@ use sqlx::PgPool;
 
 use crate::shared::cache_settings::CacheSettings;
 
-use super::transaction::SqlxManeuverUnitOfWork;
+use super::super::transaction::SqlxManeuverUnitOfWork;
 
 #[derive(Clone)]
 pub struct SqlxVariationResolver {

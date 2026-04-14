@@ -1,7 +1,7 @@
-pub mod maneuver_resolver;
+pub mod resolver;
 pub mod transaction;
-pub mod variation_resolver;
+pub mod variation;
 
-pub use maneuver_resolver::SqlxManeuverResolver;
+pub use resolver::SqlxManeuverResolver;
 pub use transaction::{SqlxManeuverTransaction, SqlxManeuverUnitOfWork};
-pub use variation_resolver::SqlxVariationResolver;
+pub use variation::SqlxVariationResolver;

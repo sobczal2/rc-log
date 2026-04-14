@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use rc_log_persistance::asset::photo_resolver::SqlxPhotoResolver;
-use rc_log_persistance::asset::photo_service::DiskDbPhotoService;
-use rc_log_persistance::asset::video_resolver::SqlxVideoResolver;
-use rc_log_persistance::maneuver::maneuver_resolver::SqlxManeuverResolver;
+use rc_log_persistance::asset::photo::resolver::SqlxPhotoResolver;
+use rc_log_persistance::asset::photo::service::DiskDbPhotoService;
+use rc_log_persistance::asset::video::resolver::SqlxVideoResolver;
+use rc_log_persistance::maneuver::resolver::SqlxManeuverResolver;
 use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
-use rc_log_persistance::maneuver::variation_resolver::SqlxVariationResolver;
+use rc_log_persistance::maneuver::variation::resolver::SqlxVariationResolver;
 use rc_log_persistance::model::resolver::SqlxModelResolver;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
 use rc_log_persistance::session::transaction::SqlxSessionUnitOfWork;

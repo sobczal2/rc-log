@@ -8,8 +8,8 @@ use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::warn;
 use uuid::Uuid;
 
-use super::asset_storage::{AssetStorage, AssetStorageError};
-use super::processing::process_image;
+use super::super::asset_storage::{AssetStorage, AssetStorageError};
+use super::super::processing::process_image;
 use super::transaction::SqlxPhotoUnitOfWork;
 
 #[derive(Clone)]
