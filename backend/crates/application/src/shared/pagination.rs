@@ -1,8 +1,9 @@
 use crate::shared::validator::{Validate, ValidationError};
 use rc_log_domain::shared::pagination::Pagination;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct PaginationDto {
     pub page: u32,
     pub page_size: u32,
@@ -27,7 +28,7 @@ impl From<PaginationDto> for Pagination {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginatedResult<T> {
     pub items: Vec<T>,

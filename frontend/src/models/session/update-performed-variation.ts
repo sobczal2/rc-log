@@ -1,8 +1,12 @@
-import type { RatingLevel } from "./list";
+import type {
+  ComfortDto,
+  QualityDto,
+  RepeatabilityDto,
+} from "@/models/__generated/session/update-performed-variation";
 
-export type UpdatePerformedVariationQualityDto = RatingLevel;
-export type UpdatePerformedVariationComfortDto = RatingLevel;
-export type UpdatePerformedVariationRepeatabilityDto = RatingLevel;
+export type UpdatePerformedVariationQualityDto = QualityDto;
+export type UpdatePerformedVariationComfortDto = ComfortDto;
+export type UpdatePerformedVariationRepeatabilityDto = RepeatabilityDto;
 
 export interface UpdatePerformedVariationRequest {
   quality: UpdatePerformedVariationQualityDto;

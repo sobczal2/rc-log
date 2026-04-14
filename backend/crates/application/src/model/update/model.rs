@@ -1,6 +1,7 @@
 use rc_log_domain::model::Model;
 use rc_log_domain::model::Type;
 use serde::Serialize;
+use specta::Type as SpectaType;
 use uuid::Uuid;
 
 use crate::shared::TypeDto;
@@ -13,7 +14,7 @@ pub struct UpdateModelInput {
     pub r#type: TypeDto,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, SpectaType)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelDto {
     pub id: Uuid,

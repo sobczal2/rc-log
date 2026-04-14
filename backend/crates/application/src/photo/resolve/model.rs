@@ -1,5 +1,6 @@
 use rc_log_domain::asset::photo::Photo;
 use serde::Serialize;
+use specta::Type;
 
 use crate::shared::validator::{Validate, ValidationError};
 
@@ -21,7 +22,7 @@ impl Validate for ResolvePhotoInput {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PhotoPathsDto {
     pub id: String,

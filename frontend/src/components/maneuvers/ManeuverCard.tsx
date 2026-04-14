@@ -25,7 +25,7 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground/20 transition-transform duration-700 ease-out">
-              {getModelTypeIcon(maneuver.model_type, 48)}
+              {getModelTypeIcon(maneuver.modelType, 48)}
             </div>
           )}
         </div>
@@ -33,7 +33,7 @@ export function ManeuverCard({ maneuver }: { maneuver: ListManeuverDto }) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-bold text-[15px] leading-tight line-clamp-2">{maneuver.name}</h3>
             <div className="flex-shrink-0 text-muted-foreground/70 mt-0.5">
-              {getModelTypeIcon(maneuver.model_type, 16)}
+              {getModelTypeIcon(maneuver.modelType, 16)}
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-1 pr-10">

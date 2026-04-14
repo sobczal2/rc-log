@@ -1,8 +1,3 @@
-import type { Type } from "@/models/model/type";
+import type { ModelDto } from "@/models/__generated/model/list";
 
-export interface ListModelDto {
-  id: string;
-  name: string;
-  type: Type;
-  photoAssetId: string | null;
-}
+export type ListModelDto = ModelDto;

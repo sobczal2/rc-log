@@ -1,8 +1,3 @@
-import type { Type } from "@/models/model/type";
+import type { ModelDto } from "@/models/__generated/model/get-by-id";
 
-export interface GetByIdModelDto {
-  id: string;
-  name: string;
-  type: Type;
-  photoAssetId: string | null;
-}
+export type GetByIdModelDto = ModelDto;

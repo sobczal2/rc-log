@@ -1,6 +1,3 @@
-export interface GetByIdUserDto {
-  id: string;
-  username: string;
-  email: string;
-  photoAssetId?: string | null;
-}
+import type { UserDto } from "@/models/__generated/user/get-by-id";
+
+export type GetByIdUserDto = UserDto;

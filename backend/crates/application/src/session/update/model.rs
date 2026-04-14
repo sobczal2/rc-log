@@ -1,5 +1,6 @@
 use rc_log_domain::session::Session;
 use serde::Serialize;
+use specta::Type;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -11,7 +12,7 @@ pub struct UpdateSessionInput {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionDto {
     pub id: Uuid,

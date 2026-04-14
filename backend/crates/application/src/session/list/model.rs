@@ -4,6 +4,7 @@ use rc_log_domain::session::transaction::{
     SessionFilter, SessionSort, SessionSortField, SortDirection,
 };
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use uuid::Uuid;
 
 use crate::shared::TypeDto;
@@ -120,7 +121,7 @@ impl Validate for ListSessionsInput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum QualityDto {
     One,
@@ -130,7 +131,7 @@ pub enum QualityDto {
     Five,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ComfortDto {
     One,
@@ -140,7 +141,7 @@ pub enum ComfortDto {
     Five,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum RepeatabilityDto {
     One,
@@ -150,7 +151,7 @@ pub enum RepeatabilityDto {
     Five,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PerformedVariationDto {
     pub performed_variation_id: Uuid,
@@ -162,7 +163,7 @@ pub struct PerformedVariationDto {
     pub repeatability: RepeatabilityDto,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionDto {
     pub id: Uuid,

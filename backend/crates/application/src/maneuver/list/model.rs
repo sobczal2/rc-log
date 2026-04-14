@@ -5,13 +5,14 @@ use rc_log_domain::maneuver::transaction::{
 };
 use rc_log_domain::model::Type;
 use serde::{Deserialize, Serialize};
+use specta::Type as SpectaType;
 use uuid::Uuid;
 
 use crate::shared::TypeDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SpectaType, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum DifficultyDto {
     Level1,
@@ -23,14 +24,14 @@ pub enum DifficultyDto {
     Level7,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, SpectaType)]
 #[serde(rename_all = "camelCase")]
 pub struct TagDto {
     pub id: Uuid,
     pub name: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, SpectaType)]
 #[serde(rename_all = "camelCase")]
 pub struct ManeuverDto {
     pub id: Uuid,

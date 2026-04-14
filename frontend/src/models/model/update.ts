@@ -1,13 +1,9 @@
 import type { Type } from "@/models/model/type";
+import type { ModelDto } from "@/models/__generated/model/update";
 
 export interface UpdateModelRequest {
   name: string;
   type: Type;
 }
 
-export interface UpdateModelDto {
-  id: string;
-  name: string;
-  type: Type;
-  photoAssetId: string | null;
-}
+export type UpdateModelDto = ModelDto;

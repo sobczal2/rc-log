@@ -1,5 +1,6 @@
 use rc_log_domain::user::User;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -7,7 +8,7 @@ pub struct GetUserByUsernameInput {
     pub username: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDto {
     pub id: Uuid,

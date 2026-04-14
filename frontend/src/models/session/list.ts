@@ -1,12 +1,19 @@
 import type { Type } from "@/models/model/type";
+import type {
+  ComfortDto as GeneratedComfortDto,
+  PerformedVariationDto as GeneratedPerformedVariationDto,
+  QualityDto as GeneratedQualityDto,
+  RepeatabilityDto as GeneratedRepeatabilityDto,
+  SessionDto as GeneratedSessionDto,
+} from "@/models/__generated/session/list";
 
 export type SessionSortField = "date";
 export type SortDirection = "asc" | "desc";
 
-export type RatingLevel = "one" | "two" | "three" | "four" | "five";
-export type QualityDto = RatingLevel;
-export type ComfortDto = RatingLevel;
-export type RepeatabilityDto = RatingLevel;
+export type RatingLevel = GeneratedQualityDto;
+export type QualityDto = GeneratedQualityDto;
+export type ComfortDto = GeneratedComfortDto;
+export type RepeatabilityDto = GeneratedRepeatabilityDto;
 
 export const ALL_RATING_LEVELS: readonly RatingLevel[] = ["one", "two", "three", "four", "five"];
 
@@ -36,26 +43,8 @@ export interface SessionSort {
   direction?: SortDirection;
 }
 
-export interface PerformedVariationDto {
-  performedVariationId: string;
-  variationId: string;
-  maneuverName: string | null;
-  variationName: string | null;
-  quality: QualityDto;
-  comfort: ComfortDto;
-  repeatability: RepeatabilityDto;
-}
-
-export interface SessionDto {
-  id: string;
-  userId: string;
-  date: string;
-  modelId: string | null;
-  modelName: string | null;
-  modelType: Type | null;
-  modelPhotoAssetId: string | null;
-  performedVariations: PerformedVariationDto[];
-}
+export type PerformedVariationDto = GeneratedPerformedVariationDto;
+export type SessionDto = Omit<GeneratedSessionDto, "modelType"> & { modelType: Type | null };
 
 export function ratingToNumber(level: QualityDto | ComfortDto | RepeatabilityDto): number {
   switch (level) {

@@ -1,6 +1,3 @@
-export interface UpdateUserPhotoDto {
-  id: string;
-  username: string;
-  email: string;
-  photoAssetId?: string | null;
-}
+import type { UserDto } from "@/models/__generated/user/update-photo";
+
+export type UpdateUserPhotoDto = UserDto;

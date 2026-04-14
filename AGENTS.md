@@ -279,6 +279,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | Path | Contents |
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
+| `src/bin/typegen_models.rs` | Specta type generator: exports application DTO contracts to `frontend/src/models/__generated/` |
 | `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
 | `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, model_resolver, maneuver_resolver, variation_resolver, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
@@ -414,34 +415,35 @@ frontend/src/
 │   ├── auth-context.ts  # AuthContext value type + createContext call
 │   └── AuthContext.tsx  # AuthProvider component — JWT + user state, localStorage persistence
 ├── models/              # Domain layer — business types and formatting logic
+│   ├── __generated/     # Auto-generated Specta contracts (do not edit manually)
 │   ├── maneuver/        # Maneuver aggregate
-│   │   ├── list.ts         # ListManeuverDto, ManeuverFilter, ManeuverSort
-│   │   ├── get-by-id.ts    # GetByIdManeuverDto, TagDto, VariationDto
+│   │   ├── list.ts         # Wrapper: generated DTO re-export + frontend filter/sort helpers
+│   │   ├── get-by-id.ts    # Wrapper: generated DTO re-export
 │   │   └── index.ts        # Barrel export (re-exports as ListManeuverDto, GetByIdManeuverDto, etc.)
 │   ├── model/           # Model aggregate
-│   │   ├── list.ts         # ListModelDto
-│   │   ├── get-by-id.ts    # GetByIdModelDto
-│   │   ├── create.ts       # CreateModelRequest, CreateModelDto
-│   │   ├── update.ts       # UpdateModelRequest, UpdateModelDto
-│   │   ├── update-photo.ts # UpdateModelPhotoDto
+│   │   ├── list.ts         # Wrapper: generated DTO re-export
+│   │   ├── get-by-id.ts    # Wrapper: generated DTO re-export
+│   │   ├── create.ts       # CreateModelRequest (manual) + CreateModelDto (generated alias)
+│   │   ├── update.ts       # UpdateModelRequest (manual) + UpdateModelDto (generated alias)
+│   │   ├── update-photo.ts # Wrapper: generated DTO re-export
 │   │   └── index.ts        # Barrel export
 │   ├── user/            # User aggregate
-│   │   ├── get-by-id.ts    # GetByIdUserDto
-│   │   ├── sign-in.ts      # SignInUserDto
-│   │   ├── sign-up.ts      # SignUpUserDto
-│   │   ├── update.ts       # UpdateUserRequest, UpdateUserDto
-│   │   ├── update-photo.ts # UpdateUserPhotoDto
+│   │   ├── get-by-id.ts    # Wrapper: generated DTO re-export
+│   │   ├── sign-in.ts      # Wrapper: generated DTO re-export
+│   │   ├── sign-up.ts      # Wrapper: generated DTO re-export
+│   │   ├── update.ts       # UpdateUserRequest (manual) + UpdateUserDto (generated alias)
+│   │   ├── update-photo.ts # Wrapper: generated DTO re-export
 │   │   └── index.ts        # Barrel export
 │   ├── session/         # Session aggregate
-│   │   ├── list.ts         # ListSessionDto, PerformedVariationDto, SessionFilter, SessionSort, rating types
-│   │   ├── create.ts       # CreateSessionRequest, CreateSessionDto
-│   │   ├── update.ts       # UpdateSessionRequest, UpdateSessionDto
-│   │   ├── add-performed-variation.ts  # AddPerformedVariationRequest, AddPerformedVariationDto, rating types
-│   │   ├── update-performed-variation.ts # UpdatePerformedVariationRequest, rating types
+│   │   ├── list.ts         # Generated DTO aliases + frontend filter/sort + rating helper functions
+│   │   ├── create.ts       # CreateSessionRequest (manual) + CreateSessionDto (generated alias)
+│   │   ├── update.ts       # UpdateSessionRequest (manual) + UpdateSessionDto (generated alias)
+│   │   ├── add-performed-variation.ts  # Request (manual) + DTO/rating aliases (generated)
+│   │   ├── update-performed-variation.ts # Request (manual) + rating aliases (generated)
 │   │   └── index.ts        # Barrel export
 │   ├── asset/           # Asset types
-│   │   ├── photo.ts        # PhotoPathsDto + getPhotoUrl()
-│   │   ├── video.ts        # VideoPathsDto + getVideoUrl()
+│   │   ├── photo.ts        # Generated DTO alias + getPhotoUrl()
+│   │   ├── video.ts        # Generated DTO alias + getVideoUrl()
 │   │   └── index.ts
 │   └── shared/          # Shared domain types
 │       ├── type.tsx # Type type + getVehicleIcon(), getVehicleLabel()
@@ -481,13 +483,34 @@ frontend/src/
 ### Domain Layer (`models/`)
 
 **Principles:**
-- Types directly reflect backend DTOs (camelCase field names)
+- Generated contracts in `models/__generated/` are source-of-truth for backend DTO shapes
+- Wrapper files in `models/<entity>/` preserve stable import paths and hold frontend-only logic
 - Use **interfaces** for DTO shapes; `type` aliases for union types (e.g. `Type`, `DifficultyLevel`)
 - Formatting logic lives in domain functions, not components
 - No mappers needed — domain types match API response exactly
 - Files use **kebab-case** naming (e.g. `get-by-id.ts`, `type.tsx`)
 - **Per-operation DTOs**: Each API operation gets its own DTO type in its own file, matching the backend pattern. Even if two operations return the same shape, they must have separate types (e.g. `CreateModelDto` and `UpdateModelDto`). This prevents coupling — if one endpoint's response changes, others aren't affected.
 - **Cross-cutting `User` type**: The auth context defines its own `User` interface in `context/auth-context.ts` for application state storage. This is separate from per-operation user DTOs in `models/user/`.
+
+### Type Generation (`Specta`)
+
+Frontend DTO contracts are generated from **application-layer DTOs** using Specta.
+
+- Generator entrypoint: `backend/crates/api/src/bin/typegen_models.rs`
+- Output directory: `frontend/src/models/__generated/`
+- Generation command:
+
+```bash
+cd backend
+cargo run -p rc-log-api --bin typegen_models
+```
+
+Rules:
+- Never edit files in `frontend/src/models/__generated/` manually.
+- For new/changed backend response DTOs, add `#[derive(specta::Type)]` to application DTO structs/enums, register them in the generator, then re-run generation.
+- Keep request payload types and frontend-only helpers manual in wrapper files under `frontend/src/models/<entity>/`.
+- Components/pages/hooks should continue importing from `@/models/<entity>` (wrapper/barrel), not from `@/models/__generated/*` directly.
+- `context/auth-context.ts` `User` remains a manual cross-cutting state type; do not replace it with generated operation DTOs.
 
 **Example — difficulty formatting:**
 ```typescript
@@ -581,13 +604,16 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 
 ### Adding a New Feature — Frontend Checklist
 
-1. **Domain**: Add types in `models/<entity>/` matching backend DTOs. Add formatting functions (display logic) in domain files, not components.
-2. **API**: Add request/response types in `lib/api/<entity>.ts`. Request types reference domain types from `@/models/`.
-3. **Components**: Use domain types and domain formatting functions — never duplicate display logic.
-4. **Auth-gated routes**: Wrap the route element in `<ProtectedRoute>` in `App.tsx`.
-5. **Import rules**:
+1. **Backend DTOs first**: Add/update response DTOs in `backend/crates/application/src/**/model.rs` and derive `specta::Type`.
+2. **Regenerate contracts**: Run `cargo run -p rc-log-api --bin typegen_models` from `backend/`.
+3. **Domain wrappers**: Update `frontend/src/models/<entity>/` wrapper files (re-exports, request payloads, formatting helpers).
+4. **API layer**: Add/update request/response types in `lib/api/<entity>.ts`; import from `@/models/<entity>` wrappers.
+5. **Components**: Use domain wrapper exports and formatting functions — never duplicate display logic.
+6. **Auth-gated routes**: Wrap the route element in `<ProtectedRoute>` in `App.tsx`.
+7. **Import rules**:
    - Components import from `@/models/maneuver` (or other entity) for types and formatting
    - API layer imports from `@/models/<entity>` for type references
+  - Do not import from `@/models/__generated/*` outside wrapper modules
    - Never duplicate domain types in API layer
 
 ---

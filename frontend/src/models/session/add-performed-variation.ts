@@ -1,8 +1,13 @@
-import type { RatingLevel } from "./list";
+import type {
+  ComfortDto,
+  PerformedVariationDto,
+  QualityDto,
+  RepeatabilityDto,
+} from "@/models/__generated/session/add-performed-variation";
 
-export type AddPerformedVariationQualityDto = RatingLevel;
-export type AddPerformedVariationComfortDto = RatingLevel;
-export type AddPerformedVariationRepeatabilityDto = RatingLevel;
+export type AddPerformedVariationQualityDto = QualityDto;
+export type AddPerformedVariationComfortDto = ComfortDto;
+export type AddPerformedVariationRepeatabilityDto = RepeatabilityDto;
 
 export interface AddPerformedVariationRequest {
   variationId: string;
@@ -12,11 +17,4 @@ export interface AddPerformedVariationRequest {
   note?: string | null;
 }
 
-export interface AddPerformedVariationDto {
-  performedVariationId: string;
-  variationId: string;
-  quality: AddPerformedVariationQualityDto;
-  comfort: AddPerformedVariationComfortDto;
-  repeatability: AddPerformedVariationRepeatabilityDto;
-  note: string | null;
-}
+export type AddPerformedVariationDto = PerformedVariationDto;

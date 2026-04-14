@@ -1,7 +1,8 @@
 import { Plane, Helicopter, Drone } from "lucide-react";
 import type { ReactNode } from "react";
+import type { TypeDto } from "@/models/__generated/shared/type";
 
-export type Type = "Helicopter" | "Plane" | "Drone";
+export type Type = TypeDto;
 
 export const ALL_MODEL_TYPES: readonly Type[] = ["Helicopter", "Plane", "Drone"];
 
