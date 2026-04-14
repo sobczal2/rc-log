@@ -49,8 +49,8 @@ ALTER TABLE model.model
 ALTER TABLE "user"."user"
     DROP COLUMN photo_asset_name;
 
-DROP INDEX idx_asset_video_name;
-DROP INDEX idx_asset_photo_name;
+DROP INDEX asset.idx_asset_video_name;
+DROP INDEX asset.idx_asset_photo_name;
 
 ALTER TABLE asset.video
     DROP COLUMN name;
