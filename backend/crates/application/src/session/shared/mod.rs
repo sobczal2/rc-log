@@ -1,3 +1,3 @@
 pub mod rating;
 
-pub use rating::{ComfortDto, QualityDto, RepeatabilityDto};
+pub use rating::RatingDto;

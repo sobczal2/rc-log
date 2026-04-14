@@ -19,9 +19,7 @@ use rc_log_application::session::add_performed_variation::model::PerformedVariat
 use rc_log_application::session::create::model::SessionDto as CreateSessionDto;
 use rc_log_application::session::list::model::PerformedVariationDto as ListPerformedVariationDto;
 use rc_log_application::session::list::model::SessionDto as ListSessionDto;
-use rc_log_application::session::shared::rating::ComfortDto;
-use rc_log_application::session::shared::rating::QualityDto;
-use rc_log_application::session::shared::rating::RepeatabilityDto;
+use rc_log_application::session::shared::rating::RatingDto;
 use rc_log_application::session::update::model::SessionDto as UpdateSessionDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::user::get_by_id::model::UserDto as GetByIdUserDto;
@@ -34,6 +32,9 @@ use specta::ts::{ExportConfiguration, export};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let out_dir = output_dir();
+    if out_dir.exists() {
+        fs::remove_dir_all(&out_dir)?;
+    }
     fs::create_dir_all(&out_dir)?;
 
     export_file_with_deps(
@@ -142,9 +143,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "session/list.ts",
         &[
             export::<TypeDto>(&ExportConfiguration::default())?,
-            export::<QualityDto>(&ExportConfiguration::default())?,
-            export::<ComfortDto>(&ExportConfiguration::default())?,
-            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
+            export::<RatingDto>(&ExportConfiguration::default())?,
             export::<ListPerformedVariationDto>(&ExportConfiguration::default())?,
             export::<ListSessionDto>(&ExportConfiguration::default())?,
         ],
@@ -158,20 +157,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         &out_dir,
         "session/add-performed-variation.ts",
         &[
-            export::<QualityDto>(&ExportConfiguration::default())?,
-            export::<ComfortDto>(&ExportConfiguration::default())?,
-            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
+            export::<RatingDto>(&ExportConfiguration::default())?,
             export::<AddPerformedVariationDto>(&ExportConfiguration::default())?,
         ],
     )?;
     export_file_with_deps(
         &out_dir,
         "session/update-performed-variation.ts",
-        &[
-            export::<QualityDto>(&ExportConfiguration::default())?,
-            export::<ComfortDto>(&ExportConfiguration::default())?,
-            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
-        ],
+        &[export::<RatingDto>(&ExportConfiguration::default())?],
     )?;
     export_file_with_deps(
         &out_dir,

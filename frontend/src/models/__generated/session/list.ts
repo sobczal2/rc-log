@@ -3,12 +3,8 @@
 
 export type TypeDto = "Helicopter" | "Plane" | "Drone"
 
-export type QualityDto = "one" | "two" | "three" | "four" | "five"
+export type RatingDto = "one" | "two" | "three" | "four" | "five"
 
-export type ComfortDto = "one" | "two" | "three" | "four" | "five"
-
-export type RepeatabilityDto = "one" | "two" | "three" | "four" | "five"
-
-export type PerformedVariationDto = { performedVariationId: string; variationId: string; maneuverName: string | null; variationName: string | null; quality: QualityDto; comfort: ComfortDto; repeatability: RepeatabilityDto }
+export type PerformedVariationDto = { performedVariationId: string; variationId: string; maneuverName: string | null; variationName: string | null; quality: RatingDto; comfort: RatingDto; repeatability: RatingDto }
 
 export type SessionDto = { id: string; userId: string; date: string; modelId: string | null; modelName: string | null; modelType: TypeDto | null; modelPhotoAssetId: string | null; performedVariations: PerformedVariationDto[] }

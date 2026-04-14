@@ -2,9 +2,7 @@ use axum::{
     Json,
     extract::{FromRequest, FromRequestParts, Path, Request},
 };
-use rc_log_application::session::update_performed_variation::model::{
-    ComfortDto, QualityDto, RepeatabilityDto,
-};
+use rc_log_application::session::update_performed_variation::model::RatingDto;
 use rc_log_application::shared::validator::ValidationError;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -14,18 +12,18 @@ use crate::error::ApiError;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdatePerformedVariationBody {
-    quality: QualityDto,
-    comfort: ComfortDto,
-    repeatability: RepeatabilityDto,
+    quality: RatingDto,
+    comfort: RatingDto,
+    repeatability: RatingDto,
     note: Option<String>,
 }
 
 pub struct UpdatePerformedVariationRequest {
     pub session_id: Uuid,
     pub performed_variation_id: Uuid,
-    pub quality: QualityDto,
-    pub comfort: ComfortDto,
-    pub repeatability: RepeatabilityDto,
+    pub quality: RatingDto,
+    pub comfort: RatingDto,
+    pub repeatability: RatingDto,
     pub note: Option<String>,
 }
 

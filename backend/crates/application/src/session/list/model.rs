@@ -7,7 +7,7 @@ use specta::Type;
 use uuid::Uuid;
 
 use crate::model::shared::TypeDto;
-pub use crate::session::shared::rating::{ComfortDto, QualityDto, RepeatabilityDto};
+pub use crate::session::shared::rating::RatingDto;
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 
@@ -128,9 +128,9 @@ pub struct PerformedVariationDto {
     pub variation_id: Uuid,
     pub maneuver_name: Option<String>,
     pub variation_name: Option<String>,
-    pub quality: QualityDto,
-    pub comfort: ComfortDto,
-    pub repeatability: RepeatabilityDto,
+    pub quality: RatingDto,
+    pub comfort: RatingDto,
+    pub repeatability: RatingDto,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]

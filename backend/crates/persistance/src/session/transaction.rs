@@ -8,7 +8,7 @@ use rc_log_domain::session::date::Date;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
 use rc_log_domain::session::performed_variation::id::PerformedVariationId;
-use rc_log_domain::session::rating::{Comfort, Quality, Rating, Repeatability};
+use rc_log_domain::session::rating::Rating;
 use rc_log_domain::session::transaction::{
     SessionFilter, SessionSort, SessionSortField, SessionTransaction, SortDirection,
 };
@@ -85,26 +85,23 @@ impl SessionRow {
 
 impl PerformedVariationRow {
     fn from_performed_variation(performed_variation: &PerformedVariation) -> Self {
-        let rating = performed_variation.rating();
         Self {
             id: Uuid::from(performed_variation.id()),
             variation_id: Uuid::from(performed_variation.variation_id()),
-            quality: rating.quality().as_i16(),
-            comfort: rating.comfort().as_i16(),
-            repeatability: rating.repeatability().as_i16(),
+            quality: performed_variation.quality().as_i16(),
+            comfort: performed_variation.comfort().as_i16(),
+            repeatability: performed_variation.repeatability().as_i16(),
             note: performed_variation.note().map(|n| n.as_str().to_string()),
         }
     }
 
     fn try_into_performed_variation(self) -> Result<PerformedVariation, TransactionError> {
-        let quality = Quality::from_i16(self.quality)
+        let quality =
+            Rating::from_i16(self.quality).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let comfort =
+            Rating::from_i16(self.comfort).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let repeatability = Rating::from_i16(self.repeatability)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let comfort = Comfort::from_i16(self.comfort)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let repeatability = Repeatability::from_i16(self.repeatability)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-
-        let rating = Rating::new(quality, comfort, repeatability);
 
         let note = self
             .note
@@ -114,7 +111,9 @@ impl PerformedVariationRow {
         Ok(PerformedVariation::new(
             PerformedVariationId::new(self.id),
             VariationId::new(self.variation_id),
-            rating,
+            quality,
+            comfort,
+            repeatability,
             note,
         ))
     }
@@ -122,14 +121,12 @@ impl PerformedVariationRow {
 
 impl PerformedVariationRowWithSession {
     fn try_into_performed_variation(self) -> Result<(Uuid, PerformedVariation), TransactionError> {
-        let quality = Quality::from_i16(self.quality)
+        let quality =
+            Rating::from_i16(self.quality).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let comfort =
+            Rating::from_i16(self.comfort).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let repeatability = Rating::from_i16(self.repeatability)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let comfort = Comfort::from_i16(self.comfort)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let repeatability = Repeatability::from_i16(self.repeatability)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-
-        let rating = Rating::new(quality, comfort, repeatability);
 
         let note = self
             .note
@@ -139,7 +136,9 @@ impl PerformedVariationRowWithSession {
         let performed = PerformedVariation::new(
             PerformedVariationId::new(self.id),
             VariationId::new(self.variation_id),
-            rating,
+            quality,
+            comfort,
+            repeatability,
             note,
         );
         Ok((self.session_id, performed))

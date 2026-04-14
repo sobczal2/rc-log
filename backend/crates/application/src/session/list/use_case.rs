@@ -14,7 +14,7 @@ use super::error::ListSessionsError;
 use super::model::{ListSessionsInput, PerformedVariationDto, SessionDto};
 use crate::error::ApplicationError;
 use crate::model::shared::TypeDto;
-use crate::session::shared::rating::{comfort_to_dto, quality_to_dto, repeatability_to_dto};
+use crate::session::shared::rating::rating_to_dto;
 use crate::shared::pagination::PaginatedResult;
 
 pub struct ListSessionsUseCase<UoW, MR, ManR, VarR> {
@@ -129,15 +129,14 @@ where
                     }
                 };
 
-                let rating = performed.rating();
                 performed_variations.push(PerformedVariationDto {
                     performed_variation_id: performed.id().as_uuid(),
                     variation_id: variation_id.as_uuid(),
                     maneuver_name,
                     variation_name,
-                    quality: quality_to_dto(rating.quality()),
-                    comfort: comfort_to_dto(rating.comfort()),
-                    repeatability: repeatability_to_dto(rating.repeatability()),
+                    quality: rating_to_dto(performed.quality()),
+                    comfort: rating_to_dto(performed.comfort()),
+                    repeatability: rating_to_dto(performed.repeatability()),
                 });
             }
 

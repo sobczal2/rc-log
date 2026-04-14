@@ -1,19 +1,15 @@
 import type { Type } from "@/models/model/type";
 import type {
-  ComfortDto as GeneratedComfortDto,
   PerformedVariationDto as GeneratedPerformedVariationDto,
-  QualityDto as GeneratedQualityDto,
-  RepeatabilityDto as GeneratedRepeatabilityDto,
+  RatingDto as GeneratedRatingDto,
   SessionDto as GeneratedSessionDto,
 } from "@/models/__generated/session/list";
 
 export type SessionSortField = "date";
 export type SortDirection = "asc" | "desc";
 
-export type RatingLevel = GeneratedQualityDto;
-export type QualityDto = GeneratedQualityDto;
-export type ComfortDto = GeneratedComfortDto;
-export type RepeatabilityDto = GeneratedRepeatabilityDto;
+export type RatingLevel = GeneratedRatingDto;
+export type RatingDto = GeneratedRatingDto;
 
 export const ALL_RATING_LEVELS: readonly RatingLevel[] = ["one", "two", "three", "four", "five"];
 
@@ -46,7 +42,7 @@ export interface SessionSort {
 export type PerformedVariationDto = GeneratedPerformedVariationDto;
 export type SessionDto = Omit<GeneratedSessionDto, "modelType"> & { modelType: Type | null };
 
-export function ratingToNumber(level: QualityDto | ComfortDto | RepeatabilityDto): number {
+export function ratingToNumber(level: RatingDto): number {
   switch (level) {
     case "one":
       return 1;

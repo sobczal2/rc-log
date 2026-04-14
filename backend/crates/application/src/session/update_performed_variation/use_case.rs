@@ -1,7 +1,6 @@
 use rc_log_domain::session::Session;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
-use rc_log_domain::session::rating::Rating;
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::transaction::Transaction;
@@ -12,7 +11,7 @@ use uuid::Uuid;
 use super::error::UpdatePerformedVariationError;
 use super::model::UpdatePerformedVariationInput;
 use crate::error::ApplicationError;
-use crate::session::shared::rating::{comfort_from_dto, quality_from_dto, repeatability_from_dto};
+use crate::session::shared::rating::rating_from_dto;
 
 pub struct UpdatePerformedVariationUseCase<UoW> {
     uow: UoW,
@@ -32,9 +31,9 @@ where
         &mut self,
         input: UpdatePerformedVariationInput,
     ) -> Result<(), ApplicationError> {
-        let quality = quality_from_dto(input.quality);
-        let comfort = comfort_from_dto(input.comfort);
-        let repeatability = repeatability_from_dto(input.repeatability);
+        let quality = rating_from_dto(input.quality);
+        let comfort = rating_from_dto(input.comfort);
+        let repeatability = rating_from_dto(input.repeatability);
 
         let note = input
             .note
@@ -68,7 +67,9 @@ where
                     PerformedVariation::new(
                         pv.id(),
                         pv.variation_id(),
-                        Rating::new(quality, comfort, repeatability),
+                        quality,
+                        comfort,
+                        repeatability,
                         note.clone(),
                     )
                 } else {

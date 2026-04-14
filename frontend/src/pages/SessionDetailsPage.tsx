@@ -16,14 +16,10 @@ import { sessionsApi } from "@/lib/api/sessions";
 import { modelsApi } from "@/lib/api/models";
 import { maneuversApi } from "@/lib/api/maneuvers";
 import type {
-  AddPerformedVariationComfortDto,
-  AddPerformedVariationQualityDto,
-  AddPerformedVariationRepeatabilityDto,
+  AddPerformedVariationRatingDto,
   ListSessionDto,
   RatingLevel,
-  UpdatePerformedVariationComfortDto,
-  UpdatePerformedVariationQualityDto,
-  UpdatePerformedVariationRepeatabilityDto,
+  UpdatePerformedVariationRatingDto,
 } from "@/models/session";
 import { ALL_RATING_LEVELS, getRatingLabel } from "@/models/session";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -154,9 +150,9 @@ export function SessionDetailsPage() {
         sessionId: sessionId!,
         payload: {
           variationId: payload.variationId,
-          quality: payload.quality as AddPerformedVariationQualityDto,
-          comfort: payload.comfort as AddPerformedVariationComfortDto,
-          repeatability: payload.repeatability as AddPerformedVariationRepeatabilityDto,
+          quality: payload.quality as AddPerformedVariationRatingDto,
+          comfort: payload.comfort as AddPerformedVariationRatingDto,
+          repeatability: payload.repeatability as AddPerformedVariationRatingDto,
           note: payload.note ?? null,
         },
       }),
@@ -190,9 +186,9 @@ export function SessionDetailsPage() {
         sessionId: sessionId!,
         performedVariationId: payload.performedVariationId,
         payload: {
-          quality: payload.quality as UpdatePerformedVariationQualityDto,
-          comfort: payload.comfort as UpdatePerformedVariationComfortDto,
-          repeatability: payload.repeatability as UpdatePerformedVariationRepeatabilityDto,
+          quality: payload.quality as UpdatePerformedVariationRatingDto,
+          comfort: payload.comfort as UpdatePerformedVariationRatingDto,
+          repeatability: payload.repeatability as UpdatePerformedVariationRatingDto,
           note: payload.note ?? null,
         },
       }),

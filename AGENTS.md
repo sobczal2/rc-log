@@ -48,9 +48,9 @@ Pure domain model. No framework dependencies. Owns:
 | `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
 | `src/session/date.rs` | `Date` value object (`YYYY-MM-DD`) + `DateError` |
 | `src/session/id.rs` | `SessionId(Uuid)` newtype |
-| `src/session/performed_variation.rs` | `PerformedVariation` entity (id, variation_id, rating, note) |
+| `src/session/performed_variation.rs` | `PerformedVariation` entity (id, variation_id, quality, comfort, repeatability, note) — each metric uses `Rating` |
 | `src/session/performed_variation_id.rs` | `PerformedVariationId(Uuid)` newtype |
-| `src/session/rating.rs` | `Rating` value object (`quality`, `comfort`, `repeatability`) + typed scales |
+| `src/session/rating.rs` | `Rating` value object (`One`–`Five`) + conversion helpers (`from_i16`, `as_i16`) |
 | `src/session/transaction.rs` | `SessionTransaction` trait extending `Transaction<Session>` with `get_by_id()` |
 | `src/shared/transaction.rs` | `TransactionError`, `Transaction<T>` trait |
 | `src/shared/unit_of_work.rs` | `UnitOfWork<T>` trait |
@@ -158,15 +158,15 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/list/error.rs` | `ListSessionsError` (InvalidData, RepositoryError) |
 | `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` (list-view shape with `model_name`, `model_type`, and per-item `maneuver_name`/`variation_name`; no notes) |
 | `src/session/list/use_case.rs` | `ListSessionsUseCase<UoW, MR, ManR, VarR>` — owner-scoped paginated list with filters (`model_ids`, `maneuver_ids`, `search_query`) and sort (`date`); enriches list DTO using resolvers and infers `model_type` from first performed variation when session model is absent |
-| `src/session/shared/rating.rs` | Shared rating DTOs (`QualityDto`, `ComfortDto`, `RepeatabilityDto`) + conversion helpers for session operations |
+| `src/session/shared/rating.rs` | Shared `RatingDto` (`one`–`five`) + conversion helpers; used by `quality`/`comfort`/`repeatability` fields in session DTOs |
 | `src/session/update/error.rs` | `UpdateSessionError` (NotFound, Forbidden, ModelNotFound, ValidationError, InvalidData, RepositoryError) |
 | `src/session/update/model.rs` | `UpdateSessionInput { id, owner_id, date, model_id, note }`, `SessionDto` |
 | `src/session/update/use_case.rs` | `UpdateSessionUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate model type compatibility with existing performed variations, update date/model/note, save |
 | `src/session/add_performed_variation/error.rs` | `AddPerformedVariationError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
-| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, performed_variation_id, variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
+| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, performed_variation_id, variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }`, `SessionDto` |
 | `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate maneuver/model type compatibility (or existing performed-variation type when no model), append new performed variation by unique `performed_variation_id`, save |
 | `src/session/update_performed_variation/error.rs` | `UpdatePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, ValidationError, InvalidData, RepositoryError) |
-| `src/session/update_performed_variation/model.rs` | `UpdatePerformedVariationInput { session_id, owner_id, performed_variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
+| `src/session/update_performed_variation/model.rs` | `UpdatePerformedVariationInput { session_id, owner_id, performed_variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }`, `SessionDto` |
 | `src/session/update_performed_variation/use_case.rs` | `UpdatePerformedVariationUseCase<UoW>` — get session, ownership check, update performed variation by `performed_variation_id`, save |
 | `src/session/remove_performed_variation/error.rs` | `RemovePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, InvalidData, RepositoryError) |
 | `src/session/remove_performed_variation/model.rs` | `RemovePerformedVariationInput { session_id, owner_id, performed_variation_id }`, `SessionDto` |
@@ -271,7 +271,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `asset.photo` — identical structure to `asset.video`
 - `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(255) NOT NULL`, `type VARCHAR(50) NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
 - `session.session` — `id UUID PK`, `user_id UUID FK → user.user`, `date DATE NOT NULL`, `model_id UUID FK → model.model`, `note TEXT`
-- `session.performed_variation` — `id UUID PK`, `session_id UUID FK`, `variation_id UUID FK`, rating columns (`quality`, `comfort`, `repeatability`) + optional note; duplicate `variation_id` entries are allowed per session
+- `session.performed_variation` — `id UUID PK`, `session_id UUID FK`, `variation_id UUID FK`, `quality SMALLINT NOT NULL`, `comfort SMALLINT NOT NULL`, `repeatability SMALLINT NOT NULL` + optional note; duplicate `variation_id` entries are allowed per session
 
 ---
 

@@ -9,7 +9,9 @@ use crate::shared::markdown_text::MarkdownText;
 pub struct PerformedVariation {
     id: PerformedVariationId,
     variation_id: VariationId,
-    rating: Rating,
+    quality: Rating,
+    comfort: Rating,
+    repeatability: Rating,
     note: Option<MarkdownText>,
 }
 
@@ -17,10 +19,12 @@ impl PerformedVariation {
     pub fn new(
         id: PerformedVariationId,
         variation_id: VariationId,
-        rating: Rating,
+        quality: Rating,
+        comfort: Rating,
+        repeatability: Rating,
         note: Option<MarkdownText>,
     ) -> Self {
-        Self { id, variation_id, rating, note }
+        Self { id, variation_id, quality, comfort, repeatability, note }
     }
 
     pub fn id(&self) -> PerformedVariationId {
@@ -31,8 +35,16 @@ impl PerformedVariation {
         self.variation_id
     }
 
-    pub fn rating(&self) -> Rating {
-        self.rating
+    pub fn quality(&self) -> Rating {
+        self.quality
+    }
+
+    pub fn comfort(&self) -> Rating {
+        self.comfort
+    }
+
+    pub fn repeatability(&self) -> Rating {
+        self.repeatability
     }
 
     pub fn note(&self) -> Option<&MarkdownText> {

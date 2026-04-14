@@ -7,7 +7,6 @@ use rc_log_domain::session::Session;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
 use rc_log_domain::session::performed_variation::id::PerformedVariationId;
-use rc_log_domain::session::rating::Rating;
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::transaction::Transaction;
@@ -16,11 +15,9 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use super::error::AddPerformedVariationError;
-use super::model::{
-    AddPerformedVariationInput, PerformedVariationDto,
-};
+use super::model::{AddPerformedVariationInput, PerformedVariationDto};
 use crate::error::ApplicationError;
-use crate::session::shared::rating::{comfort_from_dto, quality_from_dto, repeatability_from_dto};
+use crate::session::shared::rating::rating_from_dto;
 
 pub struct AddPerformedVariationUseCase<UoW, MR, ManR, VarR> {
     uow: UoW,
@@ -53,9 +50,9 @@ where
     ) -> Result<PerformedVariationDto, ApplicationError> {
         let performed_variation_id = Uuid::new_v4();
 
-        let quality = quality_from_dto(input.quality);
-        let comfort = comfort_from_dto(input.comfort);
-        let repeatability = repeatability_from_dto(input.repeatability);
+        let quality = rating_from_dto(input.quality);
+        let comfort = rating_from_dto(input.comfort);
+        let repeatability = rating_from_dto(input.repeatability);
 
         let note = input
             .note
@@ -68,7 +65,9 @@ where
         let new_performed = PerformedVariation::new(
             PerformedVariationId::new(performed_variation_id),
             VariationId::new(input.variation_id),
-            Rating::new(quality, comfort, repeatability),
+            quality,
+            comfort,
+            repeatability,
             note,
         );
         let created_dto = PerformedVariationDto::from(new_performed.clone());

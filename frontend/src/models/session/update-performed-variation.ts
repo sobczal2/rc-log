@@ -1,16 +1,10 @@
-import type {
-  ComfortDto,
-  QualityDto,
-  RepeatabilityDto,
-} from "@/models/__generated/session/update-performed-variation";
+import type { RatingDto } from "@/models/__generated/session/update-performed-variation";
 
-export type UpdatePerformedVariationQualityDto = QualityDto;
-export type UpdatePerformedVariationComfortDto = ComfortDto;
-export type UpdatePerformedVariationRepeatabilityDto = RepeatabilityDto;
+export type UpdatePerformedVariationRatingDto = RatingDto;
 
 export interface UpdatePerformedVariationRequest {
-  quality: UpdatePerformedVariationQualityDto;
-  comfort: UpdatePerformedVariationComfortDto;
-  repeatability: UpdatePerformedVariationRepeatabilityDto;
+  quality: UpdatePerformedVariationRatingDto;
+  comfort: UpdatePerformedVariationRatingDto;
+  repeatability: UpdatePerformedVariationRatingDto;
   note?: string | null;
 }
