@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typegen": "cd ../backend && cargo run -p rc-log-api --bin typegen_models",
+    "prebuild": "npm run typegen",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
