@@ -1,35 +1,35 @@
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TrainingProgramName(String);
+pub struct Name(String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TrainingProgramNameError {
+pub enum NameError {
     Empty,
     TooLong,
 }
 
-impl fmt::Display for TrainingProgramNameError {
+impl fmt::Display for NameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TrainingProgramNameError::Empty => write!(f, "training program name must not be empty"),
-            TrainingProgramNameError::TooLong => {
+            NameError::Empty => write!(f, "training program name must not be empty"),
+            NameError::TooLong => {
                 write!(f, "training program name must not exceed 255 characters")
             }
         }
     }
 }
 
-impl std::error::Error for TrainingProgramNameError {}
+impl std::error::Error for NameError {}
 
-impl TrainingProgramName {
-    pub fn new(value: String) -> Result<Self, TrainingProgramNameError> {
+impl Name {
+    pub fn new(value: String) -> Result<Self, NameError> {
         if value.trim().is_empty() {
-            return Err(TrainingProgramNameError::Empty);
+            return Err(NameError::Empty);
         }
 
         if value.len() > 255 {
-            return Err(TrainingProgramNameError::TooLong);
+            return Err(NameError::TooLong);
         }
 
         Ok(Self(value))

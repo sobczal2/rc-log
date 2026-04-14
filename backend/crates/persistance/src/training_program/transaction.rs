@@ -7,9 +7,9 @@ use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use rc_log_domain::training_program::TrainingProgram;
 use rc_log_domain::training_program::id::TrainingProgramId;
-use rc_log_domain::training_program::name::TrainingProgramName;
-use rc_log_domain::training_program::part::TrainingProgramPart;
-use rc_log_domain::training_program::part::TrainingProgramPartVariation;
+use rc_log_domain::training_program::name::Name;
+use rc_log_domain::training_program::part::Part;
+use rc_log_domain::training_program::part::PartVariation;
 use rc_log_domain::training_program::part::id::TrainingProgramPartId;
 use rc_log_domain::training_program::transaction::TrainingProgramTransaction;
 use rc_log_domain::user::id::UserId;
@@ -61,9 +61,9 @@ impl TrainingProgramRow {
 
     fn try_into_training_program(
         self,
-        parts: Vec<TrainingProgramPart>,
+        parts: Vec<Part>,
     ) -> Result<TrainingProgram, TransactionError> {
-        let name = TrainingProgramName::new(self.name)
+        let name = Name::new(self.name)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
@@ -80,7 +80,7 @@ impl TrainingProgramRow {
 
 impl TrainingProgramPartRow {
     fn from_training_program_part(
-        part: &TrainingProgramPart,
+        part: &Part,
     ) -> Result<Self, TransactionError> {
         let position = i32::try_from(part.position()).map_err(|_| {
             TransactionError::InvalidData("training program part position exceeds i32 range".to_string())
@@ -97,9 +97,9 @@ impl TrainingProgramPartRow {
 
     fn try_into_training_program_part(
         self,
-        variations: Vec<TrainingProgramPartVariation>,
-    ) -> Result<TrainingProgramPart, TransactionError> {
-        let name = TrainingProgramName::new(self.name)
+        variations: Vec<PartVariation>,
+    ) -> Result<Part, TransactionError> {
+        let name = Name::new(self.name)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
@@ -107,7 +107,7 @@ impl TrainingProgramPartRow {
             TransactionError::InvalidData("training program part position must be non-negative".to_string())
         })?;
 
-        Ok(TrainingProgramPart::new(
+        Ok(Part::new(
             TrainingProgramPartId::new(self.id),
             TrainingProgramId::new(self.training_program_id),
             name,
@@ -121,8 +121,8 @@ impl TrainingProgramPartRow {
 impl TrainingProgramPartRowWithProgram {
     fn try_into_training_program_part(
         self,
-        variations: Vec<TrainingProgramPartVariation>,
-    ) -> Result<(Uuid, TrainingProgramPart), TransactionError> {
+        variations: Vec<PartVariation>,
+    ) -> Result<(Uuid, Part), TransactionError> {
         let part = TrainingProgramPartRow {
             id: self.id,
             training_program_id: self.training_program_id,
@@ -139,7 +139,7 @@ impl TrainingProgramPartRowWithProgram {
 impl TrainingProgramPartVariationRow {
     fn from_part_variation(
         part_id: TrainingProgramPartId,
-        part_variation: &TrainingProgramPartVariation,
+        part_variation: &PartVariation,
     ) -> Result<Self, TransactionError> {
         let position = i32::try_from(part_variation.position()).map_err(|_| {
             TransactionError::InvalidData(
@@ -154,7 +154,7 @@ impl TrainingProgramPartVariationRow {
         })
     }
 
-    fn try_into_part_variation(self) -> Result<(Uuid, TrainingProgramPartVariation), TransactionError> {
+    fn try_into_part_variation(self) -> Result<(Uuid, PartVariation), TransactionError> {
         let position = u32::try_from(self.position).map_err(|_| {
             TransactionError::InvalidData(
                 "training program part variation position must be non-negative".to_string(),
@@ -163,7 +163,7 @@ impl TrainingProgramPartVariationRow {
 
         Ok((
             self.part_id,
-            TrainingProgramPartVariation::new(VariationId::new(self.variation_id), position),
+            PartVariation::new(VariationId::new(self.variation_id), position),
         ))
     }
 }
@@ -231,7 +231,7 @@ impl SqlxTrainingProgramTransaction {
 
         let part_ids: Vec<Uuid> = part_rows.iter().map(|row| row.id).collect();
 
-        let mut variations_by_part: HashMap<Uuid, Vec<TrainingProgramPartVariation>> = HashMap::new();
+        let mut variations_by_part: HashMap<Uuid, Vec<PartVariation>> = HashMap::new();
         if !part_ids.is_empty() {
             let variation_rows: Vec<TrainingProgramPartVariationRow> = sqlx::query_as(
                 r#"
@@ -252,7 +252,7 @@ impl SqlxTrainingProgramTransaction {
             }
         }
 
-        let mut parts_by_program: HashMap<Uuid, Vec<TrainingProgramPart>> = HashMap::new();
+        let mut parts_by_program: HashMap<Uuid, Vec<Part>> = HashMap::new();
         for row in part_rows {
             let variations = variations_by_part.remove(&row.id).unwrap_or_default();
             let (program_id, part) = row.try_into_training_program_part(variations)?;
@@ -409,7 +409,7 @@ impl TrainingProgramTransaction for SqlxTrainingProgramTransaction {
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         let part_ids: Vec<Uuid> = part_rows.iter().map(|part_row| part_row.id).collect();
-        let mut variations_by_part: HashMap<Uuid, Vec<TrainingProgramPartVariation>> = HashMap::new();
+        let mut variations_by_part: HashMap<Uuid, Vec<PartVariation>> = HashMap::new();
 
         if !part_ids.is_empty() {
             let variation_rows: Vec<TrainingProgramPartVariationRow> = sqlx::query_as(

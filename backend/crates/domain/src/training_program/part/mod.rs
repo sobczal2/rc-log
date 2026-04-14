@@ -3,16 +3,16 @@ pub mod id;
 use crate::maneuver::variation::VariationId;
 use crate::shared::markdown_text::MarkdownText;
 use crate::training_program::id::TrainingProgramId;
-use crate::training_program::name::TrainingProgramName;
+use crate::training_program::name::Name;
 use crate::training_program::part::id::TrainingProgramPartId;
 
 #[derive(Debug, Clone)]
-pub struct TrainingProgramPartVariation {
+pub struct PartVariation {
     variation_id: VariationId,
     position: u32,
 }
 
-impl TrainingProgramPartVariation {
+impl PartVariation {
     pub fn new(variation_id: VariationId, position: u32) -> Self {
         Self { variation_id, position }
     }
@@ -27,23 +27,23 @@ impl TrainingProgramPartVariation {
 }
 
 #[derive(Debug, Clone)]
-pub struct TrainingProgramPart {
+pub struct Part {
     id: TrainingProgramPartId,
     training_program_id: TrainingProgramId,
-    name: TrainingProgramName,
+    name: Name,
     description: MarkdownText,
     position: u32,
-    variations: Vec<TrainingProgramPartVariation>,
+    variations: Vec<PartVariation>,
 }
 
-impl TrainingProgramPart {
+impl Part {
     pub fn new(
         id: TrainingProgramPartId,
         training_program_id: TrainingProgramId,
-        name: TrainingProgramName,
+        name: Name,
         description: MarkdownText,
         position: u32,
-        variations: Vec<TrainingProgramPartVariation>,
+        variations: Vec<PartVariation>,
     ) -> Self {
         Self { id, training_program_id, name, description, position, variations }
     }
@@ -56,7 +56,7 @@ impl TrainingProgramPart {
         self.training_program_id
     }
 
-    pub fn name(&self) -> &TrainingProgramName {
+    pub fn name(&self) -> &Name {
         &self.name
     }
 
@@ -68,7 +68,7 @@ impl TrainingProgramPart {
         self.position
     }
 
-    pub fn variations(&self) -> &[TrainingProgramPartVariation] {
+    pub fn variations(&self) -> &[PartVariation] {
         &self.variations
     }
 }
