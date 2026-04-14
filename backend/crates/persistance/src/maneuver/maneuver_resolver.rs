@@ -1,7 +1,7 @@
 use moka::future::Cache;
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::id::ManeuverId;
-use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
+use rc_log_domain::maneuver::resolver::ManeuverResolver;
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;

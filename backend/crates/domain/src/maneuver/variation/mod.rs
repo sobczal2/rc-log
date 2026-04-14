@@ -1,34 +1,12 @@
-use uuid::Uuid;
+pub mod id;
+pub mod resolver;
+
+pub use id::VariationId;
 
 use crate::asset::name::AssetName;
 use crate::maneuver::difficulty::Difficulty;
 use crate::maneuver::id::ManeuverId;
 use crate::shared::markdown_text::MarkdownText;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VariationId(Uuid);
-
-impl VariationId {
-    pub fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    pub fn as_uuid(&self) -> Uuid {
-        self.0
-    }
-}
-
-impl From<Uuid> for VariationId {
-    fn from(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
-impl From<VariationId> for Uuid {
-    fn from(id: VariationId) -> Uuid {
-        id.0
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Variation {

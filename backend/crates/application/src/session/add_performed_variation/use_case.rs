@@ -1,6 +1,6 @@
-use rc_log_domain::maneuver::maneuver_resolver::ManeuverResolver;
+use rc_log_domain::maneuver::resolver::ManeuverResolver;
 use rc_log_domain::maneuver::variation::VariationId;
-use rc_log_domain::maneuver::variation_resolver::VariationResolver;
+use rc_log_domain::maneuver::variation::resolver::VariationResolver;
 use rc_log_domain::model::Type;
 use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::session::Session;
