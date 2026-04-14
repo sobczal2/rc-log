@@ -26,6 +26,7 @@ use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;
 use crate::model::router::model_router;
 use crate::session::router::session_router;
+use crate::state::ResolverCacheConfig;
 use crate::user::router::user_router;
 
 #[tokio::main]
@@ -49,7 +50,18 @@ async fn main() {
     let state = AppState::new(
         pool,
         config.jwt_secret.clone(),
-        config.asset_cache_size,
+        ResolverCacheConfig {
+            model_ttl_seconds: config.model_cache_ttl_seconds,
+            model_size: config.model_cache_size,
+            maneuver_ttl_seconds: config.maneuver_cache_ttl_seconds,
+            maneuver_size: config.maneuver_cache_size,
+            variation_ttl_seconds: config.variation_cache_ttl_seconds,
+            variation_size: config.variation_cache_size,
+            video_ttl_seconds: config.video_cache_ttl_seconds,
+            video_size: config.video_cache_size,
+            photo_ttl_seconds: config.photo_cache_ttl_seconds,
+            photo_size: config.photo_cache_size,
+        },
         config.asset_path.clone(),
     );
 

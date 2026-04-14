@@ -247,7 +247,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 **Asset resolvers** (`src/asset/video.rs`, `src/asset/photo.rs`):
 - `SqlxVideoResolver` / `SqlxPhotoResolver` each hold a `PgPool` and a `moka::future::Cache<String, Arc<Video/Photo>>` keyed on asset name.
 - Both expose a concrete `resolve(&self, &AssetName, AssetSize) -> impl Future<…>` inherent method and implement the `VideoResolver` / `PhotoResolver` domain trait (`get(&self, &AssetName) -> Option<Video/Photo>`).
-- `::new(pool, capacity: u64)` — capacity is the maximum number of cached asset records (set via `RC_LOG_ASSET_CACHE_SIZE`).
+- `::new(pool, settings: CacheSettings)` — cache capacity and TTL are configured in API env (`RC_LOG_*_CACHE_SIZE`, `RC_LOG_*_CACHE_TTL_SECONDS`).
 - **Cache strategy**: per-asset (one cache entry per name; all sizes derived from that entry). On a cache miss the full row is fetched from DB, inserted into the cache, then `resolve_path(size)` is called on the cached value.
 - **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
 - Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
@@ -283,8 +283,8 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 |---|---|
 | `src/main.rs` | Bootstrap: load `.env` → init tracing → build `PgPool` → `AppState` → serve |
 | `src/bin/typegen_models.rs` | Specta type generator: exports application DTO contracts to `frontend/src/models/__generated/` |
-| `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_ASSET_CACHE_SIZE` from env |
-| `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, model_resolver, maneuver_resolver, variation_resolver, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, asset_cache_size, asset_path)` |
+| `src/config.rs` | `AppConfig::load()` reads `RC_LOG_ENV`, `RC_LOG_DATABASE_URL`, `RC_LOG_HOST`, `RC_LOG_PORT`, `RC_LOG_ASSET_PATH`, `RC_LOG_JWT_SECRET`, `RC_LOG_MODEL_CACHE_TTL_SECONDS`, `RC_LOG_MODEL_CACHE_SIZE`, `RC_LOG_MANEUVER_CACHE_TTL_SECONDS`, `RC_LOG_MANEUVER_CACHE_SIZE`, `RC_LOG_VARIATION_CACHE_TTL_SECONDS`, `RC_LOG_VARIATION_CACHE_SIZE`, `RC_LOG_VIDEO_CACHE_TTL_SECONDS`, `RC_LOG_VIDEO_CACHE_SIZE`, `RC_LOG_PHOTO_CACHE_TTL_SECONDS`, `RC_LOG_PHOTO_CACHE_SIZE` from env |
+| `src/state.rs` | `AppState { maneuver_uow, model_uow, session_uow, user_uow, model_resolver, maneuver_resolver, variation_resolver, video_resolver, photo_resolver, photo_service, jwt_secret }` — passed via axum `State`; `::new(pool, jwt_secret, cache_config, asset_path)` |
 | `src/error.rs` | `ApiError: IntoResponse` — maps `ApplicationError` to HTTP status codes; includes `Unauthorized` variant (401) |
 | `src/jwt.rs` | `JwtClaims`, `create_token()`, `verify_token()`, `new_claims()` — JWT HS256 utilities (24 h expiry) |
 | `src/extractors/auth.rs` | `AuthenticatedUser` — axum `FromRequestParts` extractor that validates Bearer JWT; rejects with 401 |
@@ -387,7 +387,16 @@ RC_LOG_HOST=127.0.0.1
 RC_LOG_PORT=3000
 RC_LOG_ASSET_PATH=              # Filesystem path served at /api/assets
 RC_LOG_JWT_SECRET=              # Required — secret key for HS256 JWT signing
-RC_LOG_ASSET_CACHE_SIZE=1024    # Max number of asset records held in the in-memory resolver cache
+RC_LOG_MODEL_CACHE_TTL_SECONDS=300    # TTL for model resolver cache (seconds)
+RC_LOG_MODEL_CACHE_SIZE=1024          # Max entries for model resolver cache
+RC_LOG_MANEUVER_CACHE_TTL_SECONDS=300 # TTL for maneuver resolver cache (seconds)
+RC_LOG_MANEUVER_CACHE_SIZE=1024       # Max entries for maneuver resolver cache
+RC_LOG_VARIATION_CACHE_TTL_SECONDS=300 # TTL for variation resolver cache (seconds)
+RC_LOG_VARIATION_CACHE_SIZE=1024      # Max entries for variation resolver cache
+RC_LOG_VIDEO_CACHE_TTL_SECONDS=300    # TTL for video resolver cache (seconds)
+RC_LOG_VIDEO_CACHE_SIZE=1024          # Max entries for video resolver cache
+RC_LOG_PHOTO_CACHE_TTL_SECONDS=300    # TTL for photo resolver cache (seconds)
+RC_LOG_PHOTO_CACHE_SIZE=1024          # Max entries for photo resolver cache
 RUST_LOG=rc_log_api=debug,rc_log_application=debug,sqlx=warn,info
 ```
 
