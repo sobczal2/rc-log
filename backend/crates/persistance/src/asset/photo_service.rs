@@ -1,8 +1,8 @@
-use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::path::AssetPath;
+use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::path::Path;
 use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo_service::{PhotoService, PhotoServiceError};
-use rc_log_domain::asset::photo_transaction::PhotoTransaction;
+use rc_log_domain::asset::photo::transaction::PhotoTransaction;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::warn;
@@ -30,8 +30,8 @@ impl DiskDbPhotoService {
         format!("photos/{}_{}.webp", name, suffix)
     }
 
-    fn to_asset_path(rel: &str) -> Result<AssetPath, PhotoServiceError> {
-        AssetPath::new(rel.to_string())
+    fn to_asset_path(rel: &str) -> Result<Path, PhotoServiceError> {
+        Path::new(rel.to_string())
             .map_err(|e| PhotoServiceError::InvalidData(format!("Invalid asset path: {e}")))
     }
 
@@ -58,7 +58,7 @@ impl DiskDbPhotoService {
 }
 
 impl PhotoService for DiskDbPhotoService {
-    async fn save(&self, name: &AssetName, data: &[u8]) -> Result<Photo, PhotoServiceError> {
+    async fn save(&self, name: &Name, data: &[u8]) -> Result<Photo, PhotoServiceError> {
         let data = data.to_vec();
         let name_str = name.as_str().to_string();
 
@@ -122,7 +122,7 @@ impl PhotoService for DiskDbPhotoService {
         Ok(photo)
     }
 
-    async fn delete(&self, name: &AssetName) -> Result<(), PhotoServiceError> {
+    async fn delete(&self, name: &Name) -> Result<(), PhotoServiceError> {
         let mut tx_uow = self.photo_uow.clone();
         let mut tx = tx_uow.begin().await.map_err(Self::map_tx_error)?;
 

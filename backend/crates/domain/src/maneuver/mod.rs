@@ -104,7 +104,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::asset::name::AssetName;
+    use crate::asset::name::Name;
     use crate::maneuver::difficulty::Difficulty;
     use crate::maneuver::id::ManeuverId;
     use crate::maneuver::tag::{Tag, TagId};
@@ -120,7 +120,7 @@ mod tests {
             ManeuverId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("description".to_string()).unwrap(),
-            AssetName::new("asset".to_string()).unwrap(),
+            Name::new("asset".to_string()).unwrap(),
             difficulty,
         )
     }

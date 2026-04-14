@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::asset::name::Name as AssetName;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::Type;
 use rc_log_domain::model::id::ModelId;

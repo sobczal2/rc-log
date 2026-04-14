@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::future::Future;
 
-use super::name::AssetName;
+use super::name::Name;
 use super::photo::Photo;
 
 #[derive(Debug)]
@@ -27,12 +27,12 @@ impl Error for PhotoServiceError {}
 pub trait PhotoService: Send + Sync + Clone {
     fn save(
         &self,
-        name: &AssetName,
+        name: &Name,
         data: &[u8],
     ) -> impl Future<Output = Result<Photo, PhotoServiceError>> + Send;
 
     fn delete(
         &self,
-        name: &AssetName,
+        name: &Name,
     ) -> impl Future<Output = Result<(), PhotoServiceError>> + Send;
 }

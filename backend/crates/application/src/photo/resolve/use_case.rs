@@ -1,5 +1,5 @@
-use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::photo_resolver::PhotoResolver;
+use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::photo::resolver::PhotoResolver;
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
@@ -23,7 +23,7 @@ impl<R: PhotoResolver> ResolvePhotoUseCase<R> {
     ) -> Result<PhotoPathsDto, ApplicationError> {
         debug!("Resolving photo asset paths");
 
-        let name = AssetName::new(input.name.clone())
+        let name = Name::new(input.name.clone())
             .map_err(|e| ResolvePhotoError::InvalidName(e.to_string()))?;
 
         let photo = self

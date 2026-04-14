@@ -6,7 +6,7 @@ pub mod r#type;
 
 pub use r#type::Type;
 
-use crate::asset::name::AssetName;
+use crate::asset::name::Name as AssetName;
 use crate::model::id::ModelId;
 use crate::model::name::Name;
 use crate::user::id::UserId;

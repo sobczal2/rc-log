@@ -2,7 +2,7 @@ pub mod id;
 pub mod query;
 pub mod username;
 
-use crate::asset::name::AssetName;
+use crate::asset::name::Name;
 use crate::shared::email::Email;
 use crate::shared::password_hash::PasswordHash;
 use id::UserId;
@@ -17,7 +17,7 @@ pub struct User {
     username: Username,
     email: Email,
     password_hash: PasswordHash,
-    photo_asset_name: Option<AssetName>,
+    photo_asset_name: Option<Name>,
 }
 
 impl User {
@@ -26,7 +26,7 @@ impl User {
         username: Username,
         email: Email,
         password_hash: PasswordHash,
-        photo_asset_name: Option<AssetName>,
+        photo_asset_name: Option<Name>,
     ) -> Self {
         Self { id, username, email, password_hash, photo_asset_name }
     }
@@ -47,7 +47,7 @@ impl User {
         &self.password_hash
     }
 
-    pub fn photo_asset_name(&self) -> Option<&AssetName> {
+    pub fn photo_asset_name(&self) -> Option<&Name> {
         self.photo_asset_name.as_ref()
     }
 }

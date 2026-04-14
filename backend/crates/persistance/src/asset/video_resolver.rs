@@ -1,9 +1,9 @@
 use crate::shared::cache_settings::CacheSettings;
 use moka::future::Cache;
-use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::asset::name::Name;
 use rc_log_domain::asset::video::Video;
-use rc_log_domain::asset::video_resolver::VideoResolver;
-use rc_log_domain::asset::video_transaction::VideoTransaction;
+use rc_log_domain::asset::video::resolver::VideoResolver;
+use rc_log_domain::asset::video::transaction::VideoTransaction;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -26,7 +26,7 @@ impl SqlxVideoResolver {
 }
 
 impl VideoResolver for SqlxVideoResolver {
-    async fn get(&self, name: &AssetName) -> Result<Option<Video>, TransactionError> {
+    async fn get(&self, name: &Name) -> Result<Option<Video>, TransactionError> {
         let key = name.as_str().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {

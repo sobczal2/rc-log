@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::asset::name::Name;
 use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -26,7 +26,7 @@ impl UserRow {
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let photo_asset_name = self
             .photo_asset_name
-            .map(AssetName::new)
+            .map(Name::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         Ok(User::new(UserId::new(self.id), username, email, password_hash, photo_asset_name))

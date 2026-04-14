@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::asset::name::Name;
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::id::ManeuverId;
@@ -64,7 +64,7 @@ impl VariationRow {
     fn try_into_variation(self) -> Result<Variation, TransactionError> {
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let video_asset_name = AssetName::new(self.video_asset_name)
+        let video_asset_name = Name::new(self.video_asset_name)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let difficulty = match self.difficulty {
             1 => Difficulty::Level1,
@@ -598,7 +598,7 @@ mod tests {
     // --- ManeuverRow ---
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
-        use rc_log_domain::asset::name::AssetName;
+        use rc_log_domain::asset::name::Name;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
@@ -607,7 +607,7 @@ mod tests {
             rc_log_domain::maneuver::id::ManeuverId::new(Uuid::new_v4()),
             "default".to_string(),
             MarkdownText::new("desc".to_string()).unwrap(),
-            AssetName::new("asset".to_string()).unwrap(),
+            Name::new("asset".to_string()).unwrap(),
             Difficulty::Level1,
         )
     }

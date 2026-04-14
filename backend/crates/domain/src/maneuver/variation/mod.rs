@@ -3,7 +3,7 @@ pub mod resolver;
 
 pub use id::VariationId;
 
-use crate::asset::name::AssetName;
+use crate::asset::name::Name;
 use crate::maneuver::difficulty::Difficulty;
 use crate::maneuver::id::ManeuverId;
 use crate::shared::markdown_text::MarkdownText;
@@ -14,7 +14,7 @@ pub struct Variation {
     maneuver_id: ManeuverId,
     name: String,
     description: MarkdownText,
-    video_asset_name: AssetName,
+    video_asset_name: Name,
     difficulty: Difficulty,
 }
 
@@ -24,7 +24,7 @@ impl Variation {
         maneuver_id: ManeuverId,
         name: String,
         description: MarkdownText,
-        video_asset_name: AssetName,
+        video_asset_name: Name,
         difficulty: Difficulty,
     ) -> Self {
         Self { id, maneuver_id, name, description, video_asset_name, difficulty }
@@ -46,7 +46,7 @@ impl Variation {
         &self.description
     }
 
-    pub fn video_asset_name(&self) -> &AssetName {
+    pub fn video_asset_name(&self) -> &Name {
         &self.video_asset_name
     }
 

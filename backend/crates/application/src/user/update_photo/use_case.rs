@@ -1,4 +1,4 @@
-use rc_log_domain::asset::name::AssetName;
+use rc_log_domain::asset::name::Name;
 use rc_log_domain::asset::photo_service::PhotoService;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -47,7 +47,7 @@ where
 
         let old_photo_name = user.photo_asset_name().cloned();
 
-        let new_asset_name = AssetName::new(format!("user-photo-{}", Uuid::new_v4()))
+        let new_asset_name = Name::new(format!("user-photo-{}", Uuid::new_v4()))
             .map_err(|e| UpdateUserPhotoError::InvalidData(e.to_string()))?;
 
         debug!("Storing new photo");

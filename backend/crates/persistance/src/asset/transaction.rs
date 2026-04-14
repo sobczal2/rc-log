@@ -1,7 +1,7 @@
-use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::path::AssetPath;
+use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::path::Path;
 use rc_log_domain::asset::photo::{Photo, PhotoId};
-use rc_log_domain::asset::photo_transaction::PhotoTransaction;
+use rc_log_domain::asset::photo::transaction::PhotoTransaction;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
@@ -21,17 +21,17 @@ struct PhotoRow {
 impl PhotoRow {
     fn try_into_photo(self) -> Result<Photo, TransactionError> {
         let name =
-            AssetName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let small_path = AssetPath::new(self.small_path)
+            Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let small_path = Path::new(self.small_path)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self
             .medium_path
-            .map(AssetPath::new)
+            .map(Path::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let large_path = self
             .large_path
-            .map(AssetPath::new)
+            .map(Path::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         Ok(Photo::new(PhotoId::new(self.id), name, small_path, medium_path, large_path))
@@ -90,7 +90,7 @@ impl Transaction<Photo> for SqlxPhotoTransaction {
 }
 
 impl PhotoTransaction for SqlxPhotoTransaction {
-    async fn get_by_name(&mut self, name: &AssetName) -> Result<Option<Photo>, TransactionError> {
+    async fn get_by_name(&mut self, name: &Name) -> Result<Option<Photo>, TransactionError> {
         let row: Option<PhotoRow> = sqlx::query_as(
             r#"
             SELECT id, name, small_path, medium_path, large_path
@@ -106,7 +106,7 @@ impl PhotoTransaction for SqlxPhotoTransaction {
         row.map(PhotoRow::try_into_photo).transpose()
     }
 
-    async fn delete_by_name(&mut self, name: &AssetName) -> Result<(), TransactionError> {
+    async fn delete_by_name(&mut self, name: &Name) -> Result<(), TransactionError> {
         sqlx::query(
             r#"
             DELETE FROM asset.photo
@@ -225,15 +225,15 @@ mod tests {
 
     #[test]
     fn from_photo_round_trip() {
-        use rc_log_domain::asset::name::AssetName;
-        use rc_log_domain::asset::path::AssetPath;
+        use rc_log_domain::asset::name::Name;
+        use rc_log_domain::asset::path::Path;
         use rc_log_domain::asset::photo::{Photo, PhotoId};
 
         let photo = Photo::new(
             PhotoId::new(Uuid::nil()),
-            AssetName::new("banner".to_string()).unwrap(),
-            AssetPath::new("photos/banner_small.webp".to_string()).unwrap(),
-            Some(AssetPath::new("photos/banner_medium.webp".to_string()).unwrap()),
+            Name::new("banner".to_string()).unwrap(),
+            Path::new("photos/banner_small.webp".to_string()).unwrap(),
+            Some(Path::new("photos/banner_medium.webp".to_string()).unwrap()),
             None,
         );
         let row = PhotoRow::from_photo(&photo);

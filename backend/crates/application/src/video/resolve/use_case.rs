@@ -1,5 +1,5 @@
-use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::video_resolver::VideoResolver;
+use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::video::resolver::VideoResolver;
 use tracing::{debug, instrument};
 
 use crate::error::ApplicationError;
@@ -23,7 +23,7 @@ impl<R: VideoResolver> ResolveVideoUseCase<R> {
     ) -> Result<VideoPathsDto, ApplicationError> {
         debug!("Resolving video asset paths");
 
-        let name = AssetName::new(input.name.clone())
+        let name = Name::new(input.name.clone())
             .map_err(|e| ResolveVideoError::InvalidName(e.to_string()))?;
 
         let video = self

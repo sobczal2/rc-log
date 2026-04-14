@@ -1,7 +1,7 @@
-use rc_log_domain::asset::name::AssetName;
-use rc_log_domain::asset::path::AssetPath;
+use rc_log_domain::asset::name::Name;
+use rc_log_domain::asset::path::Path;
 use rc_log_domain::asset::video::{Video, VideoId};
-use rc_log_domain::asset::video_transaction::VideoTransaction;
+use rc_log_domain::asset::video::transaction::VideoTransaction;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
@@ -19,17 +19,17 @@ struct VideoRow {
 impl VideoRow {
     fn try_into_video(self) -> Result<Video, TransactionError> {
         let name =
-            AssetName::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
-        let small_path = AssetPath::new(self.small_path)
+            Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let small_path = Path::new(self.small_path)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self
             .medium_path
-            .map(AssetPath::new)
+            .map(Path::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let large_path = self
             .large_path
-            .map(AssetPath::new)
+            .map(Path::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
 
@@ -87,7 +87,7 @@ impl Transaction<Video> for SqlxVideoTransaction {
 }
 
 impl VideoTransaction for SqlxVideoTransaction {
-    async fn get_by_name(&mut self, name: &AssetName) -> Result<Option<Video>, TransactionError> {
+    async fn get_by_name(&mut self, name: &Name) -> Result<Option<Video>, TransactionError> {
         let row: Option<VideoRow> = sqlx::query_as(
             r#"
             SELECT id, name, small_path, medium_path, large_path
@@ -103,7 +103,7 @@ impl VideoTransaction for SqlxVideoTransaction {
         row.map(VideoRow::try_into_video).transpose()
     }
 
-    async fn delete_by_name(&mut self, name: &AssetName) -> Result<(), TransactionError> {
+    async fn delete_by_name(&mut self, name: &Name) -> Result<(), TransactionError> {
         sqlx::query(
             r#"
             DELETE FROM asset.video
@@ -217,15 +217,15 @@ mod tests {
 
     #[test]
     fn from_video_round_trip() {
-        use rc_log_domain::asset::name::AssetName;
-        use rc_log_domain::asset::path::AssetPath;
+        use rc_log_domain::asset::name::Name;
+        use rc_log_domain::asset::path::Path;
         use rc_log_domain::asset::video::{Video, VideoId};
 
         let video = Video::new(
             VideoId::new(Uuid::nil()),
-            AssetName::new("hero".to_string()).unwrap(),
-            AssetPath::new("videos/hero_small.mp4".to_string()).unwrap(),
-            Some(AssetPath::new("videos/hero_medium.mp4".to_string()).unwrap()),
+            Name::new("hero".to_string()).unwrap(),
+            Path::new("videos/hero_small.mp4".to_string()).unwrap(),
+            Some(Path::new("videos/hero_medium.mp4".to_string()).unwrap()),
             None,
         );
 

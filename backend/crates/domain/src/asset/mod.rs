@@ -1,21 +1,17 @@
 pub mod name;
 pub mod path;
 pub mod photo;
-pub mod photo_resolver;
 pub mod photo_service;
-pub mod photo_transaction;
 pub mod size;
 pub mod video;
-pub mod video_resolver;
-pub mod video_transaction;
 
-pub use name::{AssetName, AssetNameError};
-pub use path::{AssetPath, AssetPathError};
+pub use name::{Name, NameError};
+pub use path::{Path, PathError};
 pub use photo::{Photo, PhotoId};
-pub use photo_resolver::PhotoResolver;
+pub use photo::resolver::PhotoResolver;
 pub use photo_service::{PhotoService, PhotoServiceError};
-pub use photo_transaction::PhotoTransaction;
-pub use size::AssetSize;
+pub use photo::transaction::PhotoTransaction;
+pub use size::Size;
 pub use video::{Video, VideoId};
-pub use video_resolver::VideoResolver;
-pub use video_transaction::VideoTransaction;
+pub use video::resolver::VideoResolver;
+pub use video::transaction::VideoTransaction;
