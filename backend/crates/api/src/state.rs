@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use rc_log_persistance::asset::photo::SqlxPhotoResolver;
+use rc_log_persistance::asset::photo_resolver::SqlxPhotoResolver;
 use rc_log_persistance::asset::photo_service::DiskDbPhotoService;
-use rc_log_persistance::asset::video::SqlxVideoResolver;
+use rc_log_persistance::asset::video_resolver::SqlxVideoResolver;
 use rc_log_persistance::maneuver::transaction::SqlxManeuverUnitOfWork;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
 use rc_log_persistance::user::transaction::SqlxUserUnitOfWork;
