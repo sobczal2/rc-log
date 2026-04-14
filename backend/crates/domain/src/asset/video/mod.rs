@@ -50,12 +50,7 @@ mod tests {
     }
 
     fn make_video(small: &str, medium: Option<&str>, large: Option<&str>) -> Video {
-        Video::new(
-            VideoId::new(Uuid::nil()),
-            path(small),
-            medium.map(path),
-            large.map(path),
-        )
+        Video::new(VideoId::new(Uuid::nil()), path(small), medium.map(path), large.map(path))
     }
 
     #[test]

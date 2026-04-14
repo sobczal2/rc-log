@@ -1,6 +1,6 @@
 use rc_log_domain::asset::path::Path;
-use rc_log_domain::asset::video::{Video, VideoId};
 use rc_log_domain::asset::video::transaction::VideoTransaction;
+use rc_log_domain::asset::video::{Video, VideoId};
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
@@ -16,8 +16,8 @@ struct VideoRow {
 
 impl VideoRow {
     fn try_into_video(self) -> Result<Video, TransactionError> {
-        let small_path = Path::new(self.small_path)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let small_path =
+            Path::new(self.small_path).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self
             .medium_path
             .map(Path::new)

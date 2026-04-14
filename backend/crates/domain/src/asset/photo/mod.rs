@@ -50,12 +50,7 @@ mod tests {
     }
 
     fn make_photo(small: &str, medium: Option<&str>, large: Option<&str>) -> Photo {
-        Photo::new(
-            PhotoId::new(Uuid::nil()),
-            path(small),
-            medium.map(path),
-            large.map(path),
-        )
+        Photo::new(PhotoId::new(Uuid::nil()), path(small), medium.map(path), large.map(path))
     }
 
     #[test]

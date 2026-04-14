@@ -24,8 +24,8 @@ impl<R: VideoResolver> ResolveVideoUseCase<R> {
     ) -> Result<VideoPathsDto, ApplicationError> {
         debug!("Resolving video asset paths");
 
-        let id = Uuid::parse_str(&input.id)
-            .map_err(|e| ResolveVideoError::InvalidId(e.to_string()))?;
+        let id =
+            Uuid::parse_str(&input.id).map_err(|e| ResolveVideoError::InvalidId(e.to_string()))?;
         let video_id = VideoId::new(id);
 
         let video = self

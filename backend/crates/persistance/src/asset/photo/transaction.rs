@@ -1,6 +1,6 @@
 use rc_log_domain::asset::path::Path;
-use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo::transaction::PhotoTransaction;
+use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
@@ -18,8 +18,8 @@ struct PhotoRow {
 
 impl PhotoRow {
     fn try_into_photo(self) -> Result<Photo, TransactionError> {
-        let small_path = Path::new(self.small_path)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let small_path =
+            Path::new(self.small_path).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self
             .medium_path
             .map(Path::new)

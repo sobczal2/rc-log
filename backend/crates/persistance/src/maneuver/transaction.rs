@@ -103,7 +103,10 @@ impl ManeuverRow {
             "Plane" => Type::Plane,
             "Drone" => Type::Drone,
             other => {
-                return Err(TransactionError::InvalidData(format!("Unknown model_type: {}", other)));
+                return Err(TransactionError::InvalidData(format!(
+                    "Unknown model_type: {}",
+                    other
+                )));
             }
         };
 
@@ -591,10 +594,10 @@ mod tests {
     // --- ManeuverRow ---
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
+        use rc_log_domain::asset::video::VideoId;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
-        use rc_log_domain::asset::video::VideoId;
         rc_log_domain::maneuver::variation::Variation::new(
             VariationId::new(Uuid::new_v4()),
             rc_log_domain::maneuver::id::ManeuverId::new(Uuid::new_v4()),

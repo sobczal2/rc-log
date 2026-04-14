@@ -24,8 +24,8 @@ impl<R: PhotoResolver> ResolvePhotoUseCase<R> {
     ) -> Result<PhotoPathsDto, ApplicationError> {
         debug!("Resolving photo asset paths");
 
-        let id = Uuid::parse_str(&input.id)
-            .map_err(|e| ResolvePhotoError::InvalidId(e.to_string()))?;
+        let id =
+            Uuid::parse_str(&input.id).map_err(|e| ResolvePhotoError::InvalidId(e.to_string()))?;
         let photo_id = PhotoId::new(id);
 
         let photo = self

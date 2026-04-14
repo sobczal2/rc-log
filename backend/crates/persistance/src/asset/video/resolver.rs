@@ -1,8 +1,8 @@
 use crate::shared::cache_settings::CacheSettings;
 use moka::future::Cache;
-use rc_log_domain::asset::video::{Video, VideoId};
 use rc_log_domain::asset::video::resolver::VideoResolver;
 use rc_log_domain::asset::video::transaction::VideoTransaction;
+use rc_log_domain::asset::video::{Video, VideoId};
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;

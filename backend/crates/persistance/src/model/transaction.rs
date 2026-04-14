@@ -29,9 +29,7 @@ impl ModelRow {
             "Plane" => Type::Plane,
             "Drone" => Type::Drone,
             other => {
-                return Err(TransactionError::InvalidData(format!(
-                    "unknown model type: {other}"
-                )));
+                return Err(TransactionError::InvalidData(format!("unknown model type: {other}")));
             }
         };
         let photo_asset_id = self.photo_asset_id.map(PhotoId::new);

@@ -30,8 +30,5 @@ pub trait PhotoService: Send + Sync + Clone {
         data: &[u8],
     ) -> impl Future<Output = Result<Photo, PhotoServiceError>> + Send;
 
-    fn delete(
-        &self,
-        id: &PhotoId,
-    ) -> impl Future<Output = Result<(), PhotoServiceError>> + Send;
+    fn delete(&self, id: &PhotoId) -> impl Future<Output = Result<(), PhotoServiceError>> + Send;
 }

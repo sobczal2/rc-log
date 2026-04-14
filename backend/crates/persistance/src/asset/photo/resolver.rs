@@ -1,8 +1,8 @@
 use crate::shared::cache_settings::CacheSettings;
 use moka::future::Cache;
-use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::asset::photo::resolver::PhotoResolver;
 use rc_log_domain::asset::photo::transaction::PhotoTransaction;
+use rc_log_domain::asset::photo::{Photo, PhotoId};
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;

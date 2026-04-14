@@ -5,11 +5,11 @@ pub mod size;
 pub mod video;
 
 pub use path::{Path, PathError};
-pub use photo::{Photo, PhotoId};
 pub use photo::resolver::PhotoResolver;
-pub use photo_service::{PhotoService, PhotoServiceError};
 pub use photo::transaction::PhotoTransaction;
+pub use photo::{Photo, PhotoId};
+pub use photo_service::{PhotoService, PhotoServiceError};
 pub use size::Size;
-pub use video::{Video, VideoId};
 pub use video::resolver::VideoResolver;
 pub use video::transaction::VideoTransaction;
+pub use video::{Video, VideoId};

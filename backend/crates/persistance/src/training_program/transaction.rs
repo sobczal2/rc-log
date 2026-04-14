@@ -63,8 +63,8 @@ impl TrainingProgramRow {
         self,
         parts: Vec<Part>,
     ) -> Result<TrainingProgram, TransactionError> {
-        let name = Name::new(self.name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let name =
+            Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
 
@@ -79,11 +79,11 @@ impl TrainingProgramRow {
 }
 
 impl TrainingProgramPartRow {
-    fn from_training_program_part(
-        part: &Part,
-    ) -> Result<Self, TransactionError> {
+    fn from_training_program_part(part: &Part) -> Result<Self, TransactionError> {
         let position = i32::try_from(part.position()).map_err(|_| {
-            TransactionError::InvalidData("training program part position exceeds i32 range".to_string())
+            TransactionError::InvalidData(
+                "training program part position exceeds i32 range".to_string(),
+            )
         })?;
 
         Ok(Self {
@@ -99,12 +99,14 @@ impl TrainingProgramPartRow {
         self,
         variations: Vec<PartVariation>,
     ) -> Result<Part, TransactionError> {
-        let name = Name::new(self.name)
-            .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let name =
+            Name::new(self.name).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let description = MarkdownText::new(self.description)
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let position = u32::try_from(self.position).map_err(|_| {
-            TransactionError::InvalidData("training program part position must be non-negative".to_string())
+            TransactionError::InvalidData(
+                "training program part position must be non-negative".to_string(),
+            )
         })?;
 
         Ok(Part::new(
@@ -161,10 +163,7 @@ impl TrainingProgramPartVariationRow {
             )
         })?;
 
-        Ok((
-            self.part_id,
-            PartVariation::new(VariationId::new(self.variation_id), position),
-        ))
+        Ok((self.part_id, PartVariation::new(VariationId::new(self.variation_id), position)))
     }
 }
 
@@ -344,7 +343,8 @@ impl Transaction<TrainingProgram> for SqlxTrainingProgramTransaction {
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        part_variation_rows.sort_by_key(|variation_row| (variation_row.part_id, variation_row.position));
+        part_variation_rows
+            .sort_by_key(|variation_row| (variation_row.part_id, variation_row.position));
 
         for variation_row in part_variation_rows {
             sqlx::query(
