@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::error::CreateModelError;
 use super::model::{CreateModelInput, ModelDto};
 use crate::error::ApplicationError;
-use crate::shared::TypeDto;
+use crate::model::shared::TypeDto;
 
 pub struct CreateModelUseCase<UoW> {
     uow: UoW,

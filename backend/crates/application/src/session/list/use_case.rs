@@ -11,12 +11,10 @@ use rc_log_domain::user::id::UserId;
 use tracing::{debug, instrument};
 
 use super::error::ListSessionsError;
-use super::model::{
-    ListSessionsInput, PerformedVariationDto, SessionDto, comfort_to_dto, quality_to_dto,
-    repeatability_to_dto,
-};
+use super::model::{ListSessionsInput, PerformedVariationDto, SessionDto};
 use crate::error::ApplicationError;
-use crate::shared::TypeDto;
+use crate::model::shared::TypeDto;
+use crate::session::shared::rating::{comfort_to_dto, quality_to_dto, repeatability_to_dto};
 use crate::shared::pagination::PaginatedResult;
 
 pub struct ListSessionsUseCase<UoW, MR, ManR, VarR> {

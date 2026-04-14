@@ -2,7 +2,7 @@ use axum::{
     Json,
     extract::{FromRequest, Request},
 };
-use rc_log_application::shared::TypeDto;
+use rc_log_application::model::shared::TypeDto;
 use rc_log_application::shared::validator::ValidationError;
 use serde::Deserialize;
 

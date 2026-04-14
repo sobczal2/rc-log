@@ -100,6 +100,7 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/maneuver/list/error.rs` | `ListManeuversError` |
 | `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto`; `ManeuverDto` includes `default_variation_video_asset_name: String` (from the default variation only) |
 | `src/maneuver/list/use_case.rs` | `ListManeuversUseCase<UoW>` — returns `PaginatedResult<ManeuverDto>` |
+| `src/maneuver/shared/difficulty.rs` | Shared `DifficultyDto` used by maneuver DTOs within the maneuver bounded context |
 | `src/user/get_by_id/error.rs` | `GetUserByIdError` (NotFound, InvalidData, RepositoryError) |
 | `src/user/get_by_id/model.rs` | `GetUserByIdInput`, `UserDto` |
 | `src/user/get_by_id/use_case.rs` | `GetUserByIdUseCase<UoW>` — returns `UserDto` |
@@ -133,6 +134,7 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/list/error.rs` | `ListModelsError` (InvalidData, RepositoryError) |
 | `src/model/list/model.rs` | `ListModelsInput { owner_id, pagination }`, `ModelDto` |
 | `src/model/list/use_case.rs` | `ListModelsUseCase<UoW>` — returns `PaginatedResult<ModelDto>` scoped to owner |
+| `src/model/shared/type.rs` | Shared `TypeDto` used by model DTOs and API extractors for model type values |
 | `src/model/create/model.rs` | `CreateModelInput { owner_id, name, type }`, `ModelDto` |
 | `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name, creates model with `photo_asset_name: None`, saves |
 | `src/model/update/error.rs` | `UpdateModelError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
@@ -156,6 +158,7 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/list/error.rs` | `ListSessionsError` (InvalidData, RepositoryError) |
 | `src/session/list/model.rs` | `ListSessionsInput { owner_id, pagination, filter, sort }`, `SessionDto` (list-view shape with `model_name`, `model_type`, and per-item `maneuver_name`/`variation_name`; no notes) |
 | `src/session/list/use_case.rs` | `ListSessionsUseCase<UoW, MR, ManR, VarR>` — owner-scoped paginated list with filters (`model_ids`, `maneuver_ids`, `search_query`) and sort (`date`); enriches list DTO using resolvers and infers `model_type` from first performed variation when session model is absent |
+| `src/session/shared/rating.rs` | Shared rating DTOs (`QualityDto`, `ComfortDto`, `RepeatabilityDto`) + conversion helpers for session operations |
 | `src/session/update/error.rs` | `UpdateSessionError` (NotFound, Forbidden, ModelNotFound, ValidationError, InvalidData, RepositoryError) |
 | `src/session/update/model.rs` | `UpdateSessionInput { id, owner_id, date, model_id, note }`, `SessionDto` |
 | `src/session/update/use_case.rs` | `UpdateSessionUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate model type compatibility with existing performed variations, update date/model/note, save |
@@ -656,7 +659,9 @@ This is a critical architectural rule. The wrong type at the wrong layer creates
 
 **Key rule**: Primitive `Uuid` is used in application input/output DTOs (crossing the app/API boundary). Domain value objects (`ModelId`, `UserId`, etc.) are only instantiated *inside* the application use case after validation, and passed into persistence.
 
-**Type bridging**: `Type` (domain enum) ↔ `TypeDto` (application enum, serializable). Conversion happens in use case internals (`match input.type { TypeDto::Helicopter => Type::Helicopter, ... }`). API layer uses `TypeDto` (re-exported from application). Never use domain `Type` in API.
+**Type bridging**: `Type` (domain enum) ↔ `TypeDto` (application enum, serializable). Conversion happens in use case internals (`match input.type { TypeDto::Helicopter => Type::Helicopter, ... }`). API layer uses `rc_log_application::model::shared::TypeDto`. Never use domain `Type` in API.
+
+**Shared DTO rule (application layer)**: share DTOs only inside the same bounded context when they are truly invariant across operations. Current shared modules are `model/shared/type.rs`, `maneuver/shared/difficulty.rs`, and `session/shared/rating.rs`. When uncertain, keep per-operation DTOs duplicated to avoid coupling endpoints that may diverge.
 
 ---
 

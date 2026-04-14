@@ -1,7 +1,7 @@
 use rc_log_domain::session::Session;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
-use rc_log_domain::session::rating::{Comfort, Quality, Rating, Repeatability};
+use rc_log_domain::session::rating::Rating;
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::transaction::Transaction;
@@ -10,8 +10,9 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use super::error::UpdatePerformedVariationError;
-use super::model::{ComfortDto, QualityDto, RepeatabilityDto, UpdatePerformedVariationInput};
+use super::model::UpdatePerformedVariationInput;
 use crate::error::ApplicationError;
+use crate::session::shared::rating::{comfort_from_dto, quality_from_dto, repeatability_from_dto};
 
 pub struct UpdatePerformedVariationUseCase<UoW> {
     uow: UoW,
@@ -31,29 +32,9 @@ where
         &mut self,
         input: UpdatePerformedVariationInput,
     ) -> Result<(), ApplicationError> {
-        let quality = match input.quality {
-            QualityDto::One => Quality::One,
-            QualityDto::Two => Quality::Two,
-            QualityDto::Three => Quality::Three,
-            QualityDto::Four => Quality::Four,
-            QualityDto::Five => Quality::Five,
-        };
-
-        let comfort = match input.comfort {
-            ComfortDto::One => Comfort::One,
-            ComfortDto::Two => Comfort::Two,
-            ComfortDto::Three => Comfort::Three,
-            ComfortDto::Four => Comfort::Four,
-            ComfortDto::Five => Comfort::Five,
-        };
-
-        let repeatability = match input.repeatability {
-            RepeatabilityDto::One => Repeatability::One,
-            RepeatabilityDto::Two => Repeatability::Two,
-            RepeatabilityDto::Three => Repeatability::Three,
-            RepeatabilityDto::Four => Repeatability::Four,
-            RepeatabilityDto::Five => Repeatability::Five,
-        };
+        let quality = quality_from_dto(input.quality);
+        let comfort = comfort_from_dto(input.comfort);
+        let repeatability = repeatability_from_dto(input.repeatability);
 
         let note = input
             .note

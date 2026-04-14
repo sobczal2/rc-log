@@ -1,38 +1,11 @@
 use rc_log_domain::session::performed_variation::PerformedVariation;
-use rc_log_domain::session::rating::{Comfort, Quality, Repeatability};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use specta::Type;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum QualityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
+use crate::session::shared::rating::{comfort_to_dto, quality_to_dto, repeatability_to_dto};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ComfortDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum RepeatabilityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
+pub use crate::session::shared::rating::{ComfortDto, QualityDto, RepeatabilityDto};
 
 #[derive(Debug, Clone)]
 pub struct AddPerformedVariationInput {
@@ -67,35 +40,5 @@ impl From<PerformedVariation> for PerformedVariationDto {
             repeatability: repeatability_to_dto(rating.repeatability()),
             note: performed.note().map(|n| n.as_str().to_string()),
         }
-    }
-}
-
-fn quality_to_dto(quality: Quality) -> QualityDto {
-    match quality {
-        Quality::One => QualityDto::One,
-        Quality::Two => QualityDto::Two,
-        Quality::Three => QualityDto::Three,
-        Quality::Four => QualityDto::Four,
-        Quality::Five => QualityDto::Five,
-    }
-}
-
-fn comfort_to_dto(comfort: Comfort) -> ComfortDto {
-    match comfort {
-        Comfort::One => ComfortDto::One,
-        Comfort::Two => ComfortDto::Two,
-        Comfort::Three => ComfortDto::Three,
-        Comfort::Four => ComfortDto::Four,
-        Comfort::Five => ComfortDto::Five,
-    }
-}
-
-fn repeatability_to_dto(repeatability: Repeatability) -> RepeatabilityDto {
-    match repeatability {
-        Repeatability::One => RepeatabilityDto::One,
-        Repeatability::Two => RepeatabilityDto::Two,
-        Repeatability::Three => RepeatabilityDto::Three,
-        Repeatability::Four => RepeatabilityDto::Four,
-        Repeatability::Five => RepeatabilityDto::Five,
     }
 }

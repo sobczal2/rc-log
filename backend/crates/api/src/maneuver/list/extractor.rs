@@ -5,7 +5,7 @@ use axum::{
 use rc_log_application::maneuver::list::model::{
     DifficultyDto, ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
 };
-use rc_log_application::shared::TypeDto;
+use rc_log_application::model::shared::TypeDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::shared::validator::{Validate, ValidationError};
 use serde::Deserialize;

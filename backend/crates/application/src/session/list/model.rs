@@ -1,13 +1,13 @@
 use rc_log_domain::maneuver::id::ManeuverId;
-use rc_log_domain::session::rating::{Comfort, Quality, Repeatability};
 use rc_log_domain::session::transaction::{
     SessionFilter, SessionSort, SessionSortField, SortDirection,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use specta::Type;
 use uuid::Uuid;
 
-use crate::shared::TypeDto;
+use crate::model::shared::TypeDto;
+pub use crate::session::shared::rating::{ComfortDto, QualityDto, RepeatabilityDto};
 use crate::shared::pagination::PaginationDto;
 use crate::shared::validator::{Validate, ValidationError};
 
@@ -121,36 +121,6 @@ impl Validate for ListSessionsInput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum QualityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ComfortDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum RepeatabilityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PerformedVariationDto {
@@ -174,34 +144,4 @@ pub struct SessionDto {
     pub model_type: Option<TypeDto>,
     pub model_photo_asset_id: Option<String>,
     pub performed_variations: Vec<PerformedVariationDto>,
-}
-
-pub fn quality_to_dto(quality: Quality) -> QualityDto {
-    match quality {
-        Quality::One => QualityDto::One,
-        Quality::Two => QualityDto::Two,
-        Quality::Three => QualityDto::Three,
-        Quality::Four => QualityDto::Four,
-        Quality::Five => QualityDto::Five,
-    }
-}
-
-pub fn comfort_to_dto(comfort: Comfort) -> ComfortDto {
-    match comfort {
-        Comfort::One => ComfortDto::One,
-        Comfort::Two => ComfortDto::Two,
-        Comfort::Three => ComfortDto::Three,
-        Comfort::Four => ComfortDto::Four,
-        Comfort::Five => ComfortDto::Five,
-    }
-}
-
-pub fn repeatability_to_dto(repeatability: Repeatability) -> RepeatabilityDto {
-    match repeatability {
-        Repeatability::One => RepeatabilityDto::One,
-        Repeatability::Two => RepeatabilityDto::Two,
-        Repeatability::Three => RepeatabilityDto::Three,
-        Repeatability::Four => RepeatabilityDto::Four,
-        Repeatability::Five => RepeatabilityDto::Five,
-    }
 }

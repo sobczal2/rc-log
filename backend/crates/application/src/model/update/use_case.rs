@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::error::UpdateModelError;
 use super::model::{ModelDto, UpdateModelInput};
 use crate::error::ApplicationError;
-use crate::shared::TypeDto;
+use crate::model::shared::TypeDto;
 
 pub struct UpdateModelUseCase<UoW> {
     uow: UoW,

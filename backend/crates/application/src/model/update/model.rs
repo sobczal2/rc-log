@@ -4,7 +4,7 @@ use serde::Serialize;
 use specta::Type as SpectaType;
 use uuid::Uuid;
 
-use crate::shared::TypeDto;
+use crate::model::shared::TypeDto;
 
 #[derive(Debug, Clone)]
 pub struct UpdateModelInput {

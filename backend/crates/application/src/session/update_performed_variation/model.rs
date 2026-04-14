@@ -1,36 +1,6 @@
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum QualityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ComfortDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum RepeatabilityDto {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-}
+pub use crate::session::shared::rating::{ComfortDto, QualityDto, RepeatabilityDto};
 
 #[derive(Debug, Clone)]
 pub struct UpdatePerformedVariationInput {

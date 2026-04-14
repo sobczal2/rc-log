@@ -2,35 +2,28 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-use rc_log_application::maneuver::get_by_id::model::DifficultyDto as GetByIdDifficultyDto;
 use rc_log_application::maneuver::get_by_id::model::ManeuverDto as GetByIdManeuverDto;
 use rc_log_application::maneuver::get_by_id::model::TagDto as GetByIdTagDto;
 use rc_log_application::maneuver::get_by_id::model::VariationDto as GetByIdVariationDto;
-use rc_log_application::maneuver::list::model::DifficultyDto as ListDifficultyDto;
 use rc_log_application::maneuver::list::model::ManeuverDto as ListManeuverDto;
 use rc_log_application::maneuver::list::model::TagDto as ListTagDto;
+use rc_log_application::maneuver::shared::difficulty::DifficultyDto;
 use rc_log_application::model::create::model::ModelDto as CreateModelDto;
 use rc_log_application::model::get_by_id::model::ModelDto as GetByIdModelDto;
 use rc_log_application::model::list::model::ModelDto as ListModelDto;
+use rc_log_application::model::shared::TypeDto;
 use rc_log_application::model::update::model::ModelDto as UpdateModelDto;
 use rc_log_application::model::update_photo::model::ModelDto as UpdateModelPhotoDto;
 use rc_log_application::photo::resolve::model::PhotoPathsDto;
-use rc_log_application::session::add_performed_variation::model::ComfortDto as AddPerformedVariationComfortDto;
 use rc_log_application::session::add_performed_variation::model::PerformedVariationDto as AddPerformedVariationDto;
-use rc_log_application::session::add_performed_variation::model::QualityDto as AddPerformedVariationQualityDto;
-use rc_log_application::session::add_performed_variation::model::RepeatabilityDto as AddPerformedVariationRepeatabilityDto;
 use rc_log_application::session::create::model::SessionDto as CreateSessionDto;
-use rc_log_application::session::list::model::ComfortDto as ListComfortDto;
 use rc_log_application::session::list::model::PerformedVariationDto as ListPerformedVariationDto;
-use rc_log_application::session::list::model::QualityDto as ListQualityDto;
-use rc_log_application::session::list::model::RepeatabilityDto as ListRepeatabilityDto;
 use rc_log_application::session::list::model::SessionDto as ListSessionDto;
+use rc_log_application::session::shared::rating::ComfortDto;
+use rc_log_application::session::shared::rating::QualityDto;
+use rc_log_application::session::shared::rating::RepeatabilityDto;
 use rc_log_application::session::update::model::SessionDto as UpdateSessionDto;
-use rc_log_application::session::update_performed_variation::model::ComfortDto as UpdatePerformedVariationComfortDto;
-use rc_log_application::session::update_performed_variation::model::QualityDto as UpdatePerformedVariationQualityDto;
-use rc_log_application::session::update_performed_variation::model::RepeatabilityDto as UpdatePerformedVariationRepeatabilityDto;
 use rc_log_application::shared::pagination::PaginationDto;
-use rc_log_application::shared::r#type::TypeDto;
 use rc_log_application::user::get_by_id::model::UserDto as GetByIdUserDto;
 use rc_log_application::user::sign_in::model::UserDto as SignInUserDto;
 use rc_log_application::user::sign_up::model::UserDto as SignUpUserDto;
@@ -45,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     export_file_with_deps(
         &out_dir,
-        "shared/type.ts",
+        "model/shared/type.ts",
         &[export::<TypeDto>(&ExportConfiguration::default())?],
     )?;
     export_file_with_deps(
@@ -58,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "maneuver/get-by-id.ts",
         &[
             export::<TypeDto>(&ExportConfiguration::default())?,
-            export::<GetByIdDifficultyDto>(&ExportConfiguration::default())?,
+            export::<DifficultyDto>(&ExportConfiguration::default())?,
             export::<GetByIdTagDto>(&ExportConfiguration::default())?,
             export::<GetByIdVariationDto>(&ExportConfiguration::default())?,
             export::<GetByIdManeuverDto>(&ExportConfiguration::default())?,
@@ -69,7 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "maneuver/list.ts",
         &[
             export::<TypeDto>(&ExportConfiguration::default())?,
-            export::<ListDifficultyDto>(&ExportConfiguration::default())?,
+            export::<DifficultyDto>(&ExportConfiguration::default())?,
             export::<ListTagDto>(&ExportConfiguration::default())?,
             export::<ListManeuverDto>(&ExportConfiguration::default())?,
         ],
@@ -149,9 +142,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         "session/list.ts",
         &[
             export::<TypeDto>(&ExportConfiguration::default())?,
-            export::<ListQualityDto>(&ExportConfiguration::default())?,
-            export::<ListComfortDto>(&ExportConfiguration::default())?,
-            export::<ListRepeatabilityDto>(&ExportConfiguration::default())?,
+            export::<QualityDto>(&ExportConfiguration::default())?,
+            export::<ComfortDto>(&ExportConfiguration::default())?,
+            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
             export::<ListPerformedVariationDto>(&ExportConfiguration::default())?,
             export::<ListSessionDto>(&ExportConfiguration::default())?,
         ],
@@ -165,9 +158,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         &out_dir,
         "session/add-performed-variation.ts",
         &[
-            export::<AddPerformedVariationQualityDto>(&ExportConfiguration::default())?,
-            export::<AddPerformedVariationComfortDto>(&ExportConfiguration::default())?,
-            export::<AddPerformedVariationRepeatabilityDto>(&ExportConfiguration::default())?,
+            export::<QualityDto>(&ExportConfiguration::default())?,
+            export::<ComfortDto>(&ExportConfiguration::default())?,
+            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
             export::<AddPerformedVariationDto>(&ExportConfiguration::default())?,
         ],
     )?;
@@ -175,9 +168,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         &out_dir,
         "session/update-performed-variation.ts",
         &[
-            export::<UpdatePerformedVariationQualityDto>(&ExportConfiguration::default())?,
-            export::<UpdatePerformedVariationComfortDto>(&ExportConfiguration::default())?,
-            export::<UpdatePerformedVariationRepeatabilityDto>(&ExportConfiguration::default())?,
+            export::<QualityDto>(&ExportConfiguration::default())?,
+            export::<ComfortDto>(&ExportConfiguration::default())?,
+            export::<RepeatabilityDto>(&ExportConfiguration::default())?,
         ],
     )?;
     export_file_with_deps(
