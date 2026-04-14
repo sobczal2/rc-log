@@ -5,6 +5,7 @@ use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::session::Session;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
+use rc_log_domain::session::performed_variation::id::PerformedVariationId;
 use rc_log_domain::session::rating::{Comfort, Quality, Rating, Repeatability};
 use rc_log_domain::session::transaction::SessionTransaction;
 use rc_log_domain::shared::markdown_text::MarkdownText;
@@ -16,7 +17,7 @@ use uuid::Uuid;
 
 use super::error::AddPerformedVariationError;
 use super::model::{
-    AddPerformedVariationInput, ComfortDto, QualityDto, RepeatabilityDto, SessionDto,
+    AddPerformedVariationInput, ComfortDto, PerformedVariationDto, QualityDto, RepeatabilityDto,
 };
 use crate::error::ApplicationError;
 
@@ -43,7 +44,9 @@ where
     pub async fn execute(
         &mut self,
         input: AddPerformedVariationInput,
-    ) -> Result<SessionDto, ApplicationError> {
+    ) -> Result<PerformedVariationDto, ApplicationError> {
+        let performed_variation_id = Uuid::new_v4();
+
         let quality = match input.quality {
             QualityDto::One => Quality::One,
             QualityDto::Two => Quality::Two,
@@ -77,10 +80,12 @@ where
             .transpose()?;
 
         let new_performed = PerformedVariation::new(
+            PerformedVariationId::new(performed_variation_id),
             VariationId::new(input.variation_id),
             Rating::new(quality, comfort, repeatability),
             note,
         );
+        let created_dto = PerformedVariationDto::from(new_performed.clone());
 
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(AddPerformedVariationError::from)?;
@@ -173,8 +178,8 @@ where
         }
 
         let mut performed_variations = existing.performed_variations().to_vec();
-        performed_variations.retain(|pv| Uuid::from(pv.variation_id()) != input.variation_id);
         performed_variations.push(new_performed);
+        performed_variations.sort_by_key(|pv| pv.id().as_uuid());
 
         let updated = Session::new(
             existing.id(),
@@ -188,6 +193,6 @@ where
         tx.save(&updated).await.map_err(AddPerformedVariationError::from)?;
         tx.commit().await.map_err(AddPerformedVariationError::from)?;
 
-        Ok(SessionDto::from(updated))
+        Ok(created_dto)
     }
 }

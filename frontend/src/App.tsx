@@ -9,6 +9,8 @@ import { SignInPage } from "./pages/SignInPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ModelDetailsPage } from "./pages/ModelDetailsPage";
+import { SessionsPage } from "./pages/SessionsPage";
+import { SessionDetailsPage } from "./pages/SessionDetailsPage";
 
 const router = createBrowserRouter([
   {
@@ -48,6 +50,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ModelDetailsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/sessions",
+        element: (
+          <ProtectedRoute>
+            <SessionsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/sessions/:id",
+        element: (
+          <ProtectedRoute>
+            <SessionDetailsPage />
           </ProtectedRoute>
         ),
       },

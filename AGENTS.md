@@ -48,7 +48,8 @@ Pure domain model. No framework dependencies. Owns:
 | `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
 | `src/session/date.rs` | `Date` value object (`YYYY-MM-DD`) + `DateError` |
 | `src/session/id.rs` | `SessionId(Uuid)` newtype |
-| `src/session/performed_variation.rs` | `PerformedVariation` entity (variation_id, rating, note) |
+| `src/session/performed_variation.rs` | `PerformedVariation` entity (id, variation_id, rating, note) |
+| `src/session/performed_variation_id.rs` | `PerformedVariationId(Uuid)` newtype |
 | `src/session/rating.rs` | `Rating` value object (`quality`, `comfort`, `repeatability`) + typed scales |
 | `src/session/transaction.rs` | `SessionTransaction` trait extending `Transaction<Session>` with `get_by_id()` |
 | `src/shared/repository.rs` | `RepositoryError`, `Transaction<T>` trait, `UnitOfWork<T>` trait |
@@ -146,11 +147,14 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/update/model.rs` | `UpdateSessionInput { id, owner_id, date, model_id, note }`, `SessionDto` |
 | `src/session/update/use_case.rs` | `UpdateSessionUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate model type compatibility with existing performed variations, update date/model/note, save |
 | `src/session/add_performed_variation/error.rs` | `AddPerformedVariationError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
-| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
-| `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate maneuver/model type compatibility (or existing performed-variation type when no model), upsert performed variation by `variation_id`, save |
+| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, performed_variation_id, variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
+| `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate maneuver/model type compatibility (or existing performed-variation type when no model), append new performed variation by unique `performed_variation_id`, save |
+| `src/session/update_performed_variation/error.rs` | `UpdatePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, ValidationError, InvalidData, RepositoryError) |
+| `src/session/update_performed_variation/model.rs` | `UpdatePerformedVariationInput { session_id, owner_id, performed_variation_id, quality: QualityDto, comfort: ComfortDto, repeatability: RepeatabilityDto, note }`, `SessionDto` |
+| `src/session/update_performed_variation/use_case.rs` | `UpdatePerformedVariationUseCase<UoW>` — get session, ownership check, update performed variation by `performed_variation_id`, save |
 | `src/session/remove_performed_variation/error.rs` | `RemovePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, InvalidData, RepositoryError) |
-| `src/session/remove_performed_variation/model.rs` | `RemovePerformedVariationInput { session_id, owner_id, variation_id }`, `SessionDto` |
-| `src/session/remove_performed_variation/use_case.rs` | `RemovePerformedVariationUseCase<UoW>` — get session, ownership check, remove performed variation by `variation_id`, save |
+| `src/session/remove_performed_variation/model.rs` | `RemovePerformedVariationInput { session_id, owner_id, performed_variation_id }`, `SessionDto` |
+| `src/session/remove_performed_variation/use_case.rs` | `RemovePerformedVariationUseCase<UoW>` — get session, ownership check, remove performed variation by `performed_variation_id`, save |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
 
 **Use case pattern** (all use cases follow this template):
@@ -251,7 +255,7 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `asset.photo` — identical structure to `asset.video`
 - `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(100) NOT NULL`, `vehicle_type TEXT NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
 - `session.session` — `id UUID PK`, `user_id UUID FK → user.user`, `date DATE NOT NULL`, `model_id UUID FK → model.model`, `note TEXT`
-- `session.performed_variation` — `(session_id, variation_id)` composite PK + rating columns (`quality`, `comfort`, `repeatability`) + optional note
+- `session.performed_variation` — `id UUID PK`, `session_id UUID FK`, `variation_id UUID FK`, rating columns (`quality`, `comfort`, `repeatability`) + optional note; duplicate `variation_id` entries are allowed per session
 
 ---
 
@@ -287,6 +291,7 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/session/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/add_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/session/update_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/remove_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/router.rs` | Mounts session routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
@@ -330,8 +335,9 @@ DELETE /api/models/{id}/photo   [JWT required]  → 204 No Content
 POST /api/sessions              [JWT required]  → CreateSessionResponse  (201 Created)
 GET  /api/sessions              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
 PUT  /api/sessions/{id}         [JWT required]  → UpdateSessionResponse
-POST /api/sessions/{id}/performed-variations                    [JWT required]  → AddPerformedVariationResponse
-DELETE /api/sessions/{id}/performed-variations/{variation_id}   [JWT required]  → RemovePerformedVariationResponse
+POST /api/sessions/{id}/performed-variations                                           [JWT required]  → AddPerformedVariationResponse
+PUT  /api/sessions/{id}/performed-variations/{performed_variation_id}                  [JWT required]  → UpdatePerformedVariationResponse
+DELETE /api/sessions/{id}/performed-variations/{performed_variation_id}                [JWT required]  → RemovePerformedVariationResponse
 ```
 
 Also adds `RemoveModelPhoto` error to `ApiError` mapping: `NotFound` → 404, `Forbidden` → 403, all other variants → 500.

@@ -128,6 +128,7 @@ where
 
                 let rating = performed.rating();
                 performed_variations.push(PerformedVariationDto {
+                    performed_variation_id: performed.id().as_uuid(),
                     variation_id: variation_id.as_uuid(),
                     maneuver_name,
                     variation_name,
@@ -136,6 +137,8 @@ where
                     repeatability: repeatability_to_dto(rating.repeatability()),
                 });
             }
+
+            performed_variations.sort_by_key(|pv| pv.performed_variation_id);
 
             if model_type.is_none() {
                 model_type = inferred_model_type_from_variations;

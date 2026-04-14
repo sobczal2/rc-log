@@ -159,6 +159,7 @@ pub enum RepeatabilityDto {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PerformedVariationDto {
+    pub performed_variation_id: Uuid,
     pub variation_id: Uuid,
     pub maneuver_name: Option<String>,
     pub variation_name: Option<String>,

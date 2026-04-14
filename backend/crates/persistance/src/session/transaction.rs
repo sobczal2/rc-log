@@ -6,6 +6,7 @@ use rc_log_domain::session::Session;
 use rc_log_domain::session::date::Date;
 use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
+use rc_log_domain::session::performed_variation::id::PerformedVariationId;
 use rc_log_domain::session::rating::{Comfort, Quality, Rating, Repeatability};
 use rc_log_domain::session::transaction::{
     SessionFilter, SessionSort, SessionSortField, SessionTransaction, SortDirection,
@@ -29,6 +30,7 @@ struct SessionRow {
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct PerformedVariationRow {
+    id: Uuid,
     variation_id: Uuid,
     quality: i16,
     comfort: i16,
@@ -39,6 +41,7 @@ struct PerformedVariationRow {
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct PerformedVariationRowWithSession {
     session_id: Uuid,
+    id: Uuid,
     variation_id: Uuid,
     quality: i16,
     comfort: i16,
@@ -84,6 +87,7 @@ impl PerformedVariationRow {
     fn from_performed_variation(performed_variation: &PerformedVariation) -> Self {
         let rating = performed_variation.rating();
         Self {
+            id: Uuid::from(performed_variation.id()),
             variation_id: Uuid::from(performed_variation.variation_id()),
             quality: rating.quality().as_i16(),
             comfort: rating.comfort().as_i16(),
@@ -107,7 +111,12 @@ impl PerformedVariationRow {
             .map(|n| MarkdownText::new(n).map_err(|e| TransactionError::InvalidData(e.to_string())))
             .transpose()?;
 
-        Ok(PerformedVariation::new(VariationId::new(self.variation_id), rating, note))
+        Ok(PerformedVariation::new(
+            PerformedVariationId::new(self.id),
+            VariationId::new(self.variation_id),
+            rating,
+            note,
+        ))
     }
 }
 
@@ -127,7 +136,12 @@ impl PerformedVariationRowWithSession {
             .map(|n| MarkdownText::new(n).map_err(|e| TransactionError::InvalidData(e.to_string())))
             .transpose()?;
 
-        let performed = PerformedVariation::new(VariationId::new(self.variation_id), rating, note);
+        let performed = PerformedVariation::new(
+            PerformedVariationId::new(self.id),
+            VariationId::new(self.variation_id),
+            rating,
+            note,
+        );
         Ok((self.session_id, performed))
     }
 }
@@ -171,16 +185,23 @@ impl Transaction<Session> for SqlxSessionTransaction {
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
-        for performed_variation in session.performed_variations() {
-            let performed_row = PerformedVariationRow::from_performed_variation(performed_variation);
+        let mut performed_rows = session
+            .performed_variations()
+            .iter()
+            .map(PerformedVariationRow::from_performed_variation)
+            .collect::<Vec<_>>();
+        performed_rows.sort_by_key(|row| row.id);
+
+        for performed_row in performed_rows {
 
             sqlx::query(
                 r#"
                 INSERT INTO session.performed_variation
-                    (session_id, variation_id, quality, comfort, repeatability, note)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                    (id, session_id, variation_id, quality, comfort, repeatability, note)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 "#,
             )
+            .bind(performed_row.id)
             .bind(row.id)
             .bind(performed_row.variation_id)
             .bind(performed_row.quality)
@@ -225,9 +246,10 @@ impl SessionTransaction for SqlxSessionTransaction {
 
         let performed_rows: Vec<PerformedVariationRow> = sqlx::query_as(
             r#"
-            SELECT variation_id, quality, comfort, repeatability, note
+            SELECT id, variation_id, quality, comfort, repeatability, note
             FROM session.performed_variation
             WHERE session_id = $1
+            ORDER BY id ASC
             "#,
         )
         .bind(id.as_uuid())
@@ -353,9 +375,10 @@ impl SessionTransaction for SqlxSessionTransaction {
 
         let performed_rows: Vec<PerformedVariationRowWithSession> = sqlx::query_as(
             r#"
-            SELECT session_id, variation_id, quality, comfort, repeatability, note
+            SELECT session_id, id, variation_id, quality, comfort, repeatability, note
             FROM session.performed_variation
             WHERE session_id = ANY($1)
+            ORDER BY session_id ASC, id ASC
             "#,
         )
         .bind(&session_ids)

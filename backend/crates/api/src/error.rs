@@ -19,6 +19,7 @@ use rc_log_application::session::create::error::CreateSessionError;
 use rc_log_application::session::list::error::ListSessionsError;
 use rc_log_application::session::remove_performed_variation::error::RemovePerformedVariationError;
 use rc_log_application::session::update::error::UpdateSessionError;
+use rc_log_application::session::update_performed_variation::error::UpdatePerformedVariationError;
 use rc_log_application::user::get_by_id::error::GetUserByIdError;
 use rc_log_application::user::get_by_username::error::GetUserByUsernameError;
 use rc_log_application::user::remove_photo::error::RemoveUserPhotoError;
@@ -406,6 +407,37 @@ impl IntoResponse for ApiError {
             ))
             | ApiError::Application(ApplicationError::RemovePerformedVariation(
                 RemovePerformedVariationError::RepositoryError(_),
+            )) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response(),
+            // Update performed variation errors
+            ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::NotFound,
+            )) => {
+                (StatusCode::NOT_FOUND, Json(json!({ "error": "Session not found" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::PerformedVariationNotFound,
+            )) => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Performed variation not found" })),
+            )
+                .into_response(),
+            ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::Forbidden,
+            )) => {
+                (StatusCode::FORBIDDEN, Json(json!({ "error": "Access denied" }))).into_response()
+            }
+            ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::ValidationError(msg),
+            )) => (StatusCode::BAD_REQUEST, Json(json!({ "error": msg }))).into_response(),
+            ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::InvalidData(_),
+            ))
+            | ApiError::Application(ApplicationError::UpdatePerformedVariation(
+                UpdatePerformedVariationError::RepositoryError(_),
             )) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": "Internal server error" })),

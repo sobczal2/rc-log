@@ -7,7 +7,7 @@ use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use super::error::RemovePerformedVariationError;
-use super::model::{RemovePerformedVariationInput, SessionDto};
+use super::model::RemovePerformedVariationInput;
 use crate::error::ApplicationError;
 
 pub struct RemovePerformedVariationUseCase<UoW> {
@@ -23,11 +23,11 @@ where
         Self { uow }
     }
 
-    #[instrument(skip(self), fields(session_id = %input.session_id, owner_id = %input.owner_id, variation_id = %input.variation_id))]
+    #[instrument(skip(self), fields(session_id = %input.session_id, owner_id = %input.owner_id, performed_variation_id = %input.performed_variation_id))]
     pub async fn execute(
         &mut self,
         input: RemovePerformedVariationInput,
-    ) -> Result<SessionDto, ApplicationError> {
+    ) -> Result<(), ApplicationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(RemovePerformedVariationError::from)?;
 
@@ -44,7 +44,8 @@ where
 
         let before_count = existing.performed_variations().len();
         let mut performed_variations = existing.performed_variations().to_vec();
-        performed_variations.retain(|pv| Uuid::from(pv.variation_id()) != input.variation_id);
+        performed_variations.retain(|pv| Uuid::from(pv.id()) != input.performed_variation_id);
+        performed_variations.sort_by_key(|pv| pv.id().as_uuid());
 
         if performed_variations.len() == before_count {
             tx.rollback().await.map_err(RemovePerformedVariationError::from)?;
@@ -65,6 +66,6 @@ where
             .map_err(RemovePerformedVariationError::from)?;
         tx.commit().await.map_err(RemovePerformedVariationError::from)?;
 
-        Ok(SessionDto::from(updated))
+        Ok(())
     }
 }

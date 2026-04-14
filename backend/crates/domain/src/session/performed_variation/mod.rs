@@ -1,9 +1,13 @@
+pub mod id;
+
 use crate::maneuver::variation::VariationId;
+use crate::session::performed_variation::id::PerformedVariationId;
 use crate::session::rating::Rating;
 use crate::shared::markdown_text::MarkdownText;
 
 #[derive(Debug, Clone)]
 pub struct PerformedVariation {
+    id: PerformedVariationId,
     variation_id: VariationId,
     rating: Rating,
     note: Option<MarkdownText>,
@@ -11,11 +15,16 @@ pub struct PerformedVariation {
 
 impl PerformedVariation {
     pub fn new(
+        id: PerformedVariationId,
         variation_id: VariationId,
         rating: Rating,
         note: Option<MarkdownText>,
     ) -> Self {
-        Self { variation_id, rating, note }
+        Self { id, variation_id, rating, note }
+    }
+
+    pub fn id(&self) -> PerformedVariationId {
+        self.id
     }
 
     pub fn variation_id(&self) -> VariationId {
