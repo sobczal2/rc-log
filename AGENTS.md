@@ -37,19 +37,22 @@ Pure domain model. No framework dependencies. Owns:
 | `src/maneuver/mod.rs` | `Maneuver` aggregate (id, type, name, tags, description, difficulty, default_variation, other_variations) |
 | `src/maneuver/difficulty.rs` | `Difficulty` enum (Level1–Level7) |
 | `src/maneuver/tag.rs` | `Tag` value object (id, name) |
-| `src/maneuver/variation.rs` | `Variation` entity (id, maneuver_id, name, description: MarkdownText, video_asset_name: AssetName) |
-| `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash, photo_asset_name: Option<AssetName>) |
+| `src/maneuver/variation/mod.rs` | `Variation` entity (id, maneuver_id, name, description: MarkdownText, video_asset_id: VideoId, difficulty) |
+| `src/user/mod.rs` | `User` aggregate (id, username, email, password_hash, photo_asset_id: Option<PhotoId>) |
+| `src/user/id.rs` | `UserId(Uuid)` newtype |
+| `src/user/username.rs` | `Username` validated newtype (non-empty, ≤255 chars) + `UsernameError` |
 | `src/user/query.rs` | `UserTransaction` trait extending `Transaction<User>` with `get_by_id()`, `get_by_username()`, `get_by_email()` |
-| `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: Name, type: Type, photo_asset_name: Option<AssetName>) |
+| `src/model/mod.rs` | `Model` aggregate (id, owner_id: UserId, name: Name, type: Type, photo_asset_id: Option<PhotoId>) |
 | `src/model/id.rs` | `ModelId(Uuid)` newtype (Copy, wraps Uuid via `::new()`, `::as_uuid()`, `From<ModelId> for Uuid`) |
 | `src/model/model_resolver.rs` | `ModelResolver` trait — `get_by_id(&self, &ModelId) -> Option<Model>` |
 | `src/model/name.rs` | `Name` validated newtype (non-empty, ≤255 chars) + `NameError` |
+| `src/model/type.rs` | `Type` enum (Helicopter, Plane, Drone) |
 | `src/model/transaction.rs` | `ModelTransaction` trait extending `Transaction<Model>` with `get_by_id()`, `list_by_owner()`, `delete_by_id()` |
 | `src/session/mod.rs` | `Session` aggregate (id, user_id, date, model_id, note, performed_variations) |
 | `src/session/date.rs` | `Date` value object (`YYYY-MM-DD`) + `DateError` |
 | `src/session/id.rs` | `SessionId(Uuid)` newtype |
-| `src/session/performed_variation.rs` | `PerformedVariation` entity (id, variation_id, quality, comfort, repeatability, note) — each metric uses `Rating` |
-| `src/session/performed_variation_id.rs` | `PerformedVariationId(Uuid)` newtype |
+| `src/session/performed_variation/mod.rs` | `PerformedVariation` entity (id, variation_id, quality, comfort, repeatability, note) — each metric uses `Rating` |
+| `src/session/performed_variation/id.rs` | `PerformedVariationId(Uuid)` newtype |
 | `src/session/rating.rs` | `Rating` value object (`One`–`Five`) + conversion helpers (`from_i16`, `as_i16`) |
 | `src/session/transaction.rs` | `SessionTransaction` trait extending `Transaction<Session>` with `get_by_id()` |
 | `src/shared/transaction.rs` | `TransactionError`, `Transaction<T>` trait |
@@ -57,31 +60,34 @@ Pure domain model. No framework dependencies. Owns:
 | `src/shared/email.rs` | `Email` validated newtype (non-empty, trimmed, ≤255 chars, contains @) + `EmailError` |
 | `src/shared/pagination.rs` | `Pagination` value object (page, page_size) with `offset()`/`limit()` helpers |
 | `src/shared/password_hash.rs` | `PasswordHash` newtype |
-| `src/shared/type.rs` | `Type` enum (Helicopter, Plane, Drone) |
 | `src/shared/markdown_text.rs` | `MarkdownText` newtype |
 | `src/asset/mod.rs` | Re-exports all asset types and traits |
-| `src/asset/name.rs` | `AssetName` newtype (non-empty, trimmed, ≤255 chars) + `AssetNameError` |
-| `src/asset/path.rs` | `AssetPath` newtype (non-empty, trimmed) + `AssetPathError` |
-| `src/asset/size.rs` | `AssetSize` enum (`Small`, `Medium`, `Large`) |
-| `src/asset/video.rs` | `Video` aggregate + `resolve_path(&self, AssetSize) -> &AssetPath` (fallback: Large→Medium→Small) |
-| `src/asset/photo.rs` | `Photo` aggregate (identical structure to `Video`) |
-| `src/asset/video_resolver.rs` | `VideoResolver` trait — `get(&self, &AssetName) -> Option<Video>` |
-| `src/asset/photo_resolver.rs` | `PhotoResolver` trait — `get(&self, &AssetName) -> Option<Photo>` |
-| `src/asset/photo_service.rs` | `PhotoService` trait — `save(&self, &AssetName, &[u8]) -> Photo` and `delete(&self, &AssetName) -> ()` + `PhotoServiceError` |
-| `src/asset/photo_transaction.rs` | `PhotoTransaction` trait extending `Transaction<Photo>` with `get_by_name()`, `delete_by_name()` |
-| `src/asset/video_transaction.rs` | `VideoTransaction` trait extending `Transaction<Video>` with `get_by_name()`, `delete_by_name()` |
+| `src/asset/path.rs` | `Path` newtype (non-empty, trimmed) + `PathError` |
+| `src/asset/size.rs` | `Size` enum (`Small`, `Medium`, `Large`) |
+| `src/asset/video/mod.rs` | `Video` aggregate (`id: VideoId`) + `resolve_path(&self, Size) -> &Path` (fallback: Large→Medium→Small) |
+| `src/asset/photo/mod.rs` | `Photo` aggregate (`id: PhotoId`) + `resolve_path(&self, Size) -> &Path` |
+| `src/asset/video/id.rs` | `VideoId(Uuid)` newtype |
+| `src/asset/photo/id.rs` | `PhotoId(Uuid)` newtype |
+| `src/asset/video/resolver.rs` | `VideoResolver` trait — `get(&self, &VideoId) -> Option<Video>` |
+| `src/asset/photo/resolver.rs` | `PhotoResolver` trait — `get(&self, &PhotoId) -> Option<Photo>` |
+| `src/asset/photo_service.rs` | `PhotoService` trait — `save(&self, &PhotoId, &[u8]) -> Photo` and `delete(&self, &PhotoId) -> ()` + `PhotoServiceError` |
+| `src/asset/photo/transaction.rs` | `PhotoTransaction` trait extending `Transaction<Photo>` with `get_by_id()`, `delete_by_id()` |
+| `src/asset/video/transaction.rs` | `VideoTransaction` trait extending `Transaction<Video>` with `get_by_id()`, `delete_by_id()` |
+| `src/training_program/mod.rs` | `TrainingProgram` aggregate (id, author_id, name, description, parts) |
+| `src/training_program/name.rs` | `Name` validated newtype (non-empty, ≤255 chars) + `NameError` |
+| `src/training_program/part/mod.rs` | `Part` entity + `PartVariation` value object for ordered variation references |
+| `src/training_program/transaction.rs` | `TrainingProgramTransaction` trait (`get_by_id`, `list`, `list_by_author`, `delete_by_id`) |
 
 **`Transaction<T>` trait** (the repository contract):
 ```rust
-fn get_by_id(&mut self, id: Uuid) -> impl Future<Output = Result<Option<T>, TransactionError>>;
 fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), TransactionError>>;
 fn commit(self) -> impl Future<Output = Result<(), TransactionError>>;
 fn rollback(self) -> impl Future<Output = Result<(), TransactionError>>;
 ```
-```
 
 **`UnitOfWork<T>` trait**:
 ```rust
+type Transaction: Transaction<T>;
 fn begin(&mut self) -> impl Future<Output = Result<Self::Transaction, TransactionError>>;
 ```
 
@@ -98,7 +104,7 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/maneuver/get_by_id/model.rs` | `ManeuverDto`, `TagDto`, `VariationDto` — stable application DTOs; `ManeuverDto` includes `default_variation: VariationDto` and `variations: Vec<VariationDto>` |
 | `src/maneuver/get_by_id/use_case.rs` | `GetManeuverByIdUseCase<UoW>` — returns `ManeuverDto` |
 | `src/maneuver/list/error.rs` | `ListManeuversError` |
-| `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto`; `ManeuverDto` includes `default_variation_video_asset_name: String` (from the default variation only) |
+| `src/maneuver/list/model.rs` | `ManeuverDto`, `TagDto`; `ManeuverDto` includes `default_variation_video_asset_id: String` (from the default variation only) |
 | `src/maneuver/list/use_case.rs` | `ListManeuversUseCase<UoW>` — returns `PaginatedResult<ManeuverDto>` |
 | `src/maneuver/shared/difficulty.rs` | Shared `DifficultyDto` used by maneuver DTOs within the maneuver bounded context |
 | `src/user/get_by_id/error.rs` | `GetUserByIdError` (NotFound, InvalidData, RepositoryError) |
@@ -118,16 +124,16 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/user/update/use_case.rs` | `UpdateUserUseCase<UoW>` — checks username availability, updates user, returns `UserDto` |
 | `src/user/update_photo/error.rs` | `UpdateUserPhotoError` (NotFound, InvalidPhotoContent, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/user/update_photo/model.rs` | `UpdateUserPhotoInput { user_id, data: Vec<u8> }`, `UserDto` |
-| `src/user/update_photo/use_case.rs` | `UpdateUserPhotoUseCase<UoW, PS>` — generates `user-photo-{uuid}`, saves photo, updates user, best-effort delete old photo |
+| `src/user/update_photo/use_case.rs` | `UpdateUserPhotoUseCase<UoW, PS>` — generates `PhotoId::new(Uuid::new_v4())`, saves photo, updates user, best-effort delete old photo |
 | `src/user/remove_photo/error.rs` | `RemoveUserPhotoError` (NotFound, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/user/remove_photo/model.rs` | `RemoveUserPhotoInput { user_id }` — no output struct |
-| `src/user/remove_photo/use_case.rs` | `RemoveUserPhotoUseCase<UoW, PS>` — sets `photo_asset_name: None`, save, commit, best-effort delete old photo |
-| `src/video/resolve/error.rs` | `ResolveVideoError` (NotFound, InvalidName, InvalidData, ResolverError) |
+| `src/user/remove_photo/use_case.rs` | `RemoveUserPhotoUseCase<UoW, PS>` — sets `photo_asset_id: None`, save, commit, best-effort delete old photo |
+| `src/video/resolve/error.rs` | `ResolveVideoError` (NotFound, InvalidId, InvalidData, ResolverError) |
 | `src/video/resolve/model.rs` | `ResolveVideoInput`, `VideoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
-| `src/video/resolve/use_case.rs` | `ResolveVideoUseCase<R: VideoResolver>` — looks up video by name, returns `VideoPathsDto` |
-| `src/photo/resolve/error.rs` | `ResolvePhotoError` (NotFound, InvalidName, InvalidData, ResolverError) |
+| `src/video/resolve/use_case.rs` | `ResolveVideoUseCase<R: VideoResolver>` — looks up video by ID, returns `VideoPathsDto` |
+| `src/photo/resolve/error.rs` | `ResolvePhotoError` (NotFound, InvalidId, InvalidData, ResolverError) |
 | `src/photo/resolve/model.rs` | `ResolvePhotoInput`, `PhotoPathsDto` — raw stored paths (smallPath always present, mediumPath/largePath: `Option<String>`) |
-| `src/photo/resolve/use_case.rs` | `ResolvePhotoUseCase<R: PhotoResolver>` — looks up photo by name, returns `PhotoPathsDto` |
+| `src/photo/resolve/use_case.rs` | `ResolvePhotoUseCase<R: PhotoResolver>` — looks up photo by ID, returns `PhotoPathsDto` |
 | `src/model/get_by_id/error.rs` | `GetModelByIdError` (NotFound, Forbidden, InvalidData, RepositoryError) |
 | `src/model/get_by_id/model.rs` | `GetModelByIdInput { id, owner_id }`, `ModelDto` |
 | `src/model/get_by_id/use_case.rs` | `GetModelByIdUseCase<UoW>` — ownership check: returns Forbidden if owner_id mismatch |
@@ -135,8 +141,9 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/list/model.rs` | `ListModelsInput { owner_id, pagination }`, `ModelDto` |
 | `src/model/list/use_case.rs` | `ListModelsUseCase<UoW>` — returns `PaginatedResult<ModelDto>` scoped to owner |
 | `src/model/shared/type.rs` | Shared `TypeDto` used by model DTOs and API extractors for model type values |
+| `src/model/create/error.rs` | `CreateModelError` (ValidationError, InvalidData, RepositoryError) |
 | `src/model/create/model.rs` | `CreateModelInput { owner_id, name, type }`, `ModelDto` |
-| `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name, creates model with `photo_asset_name: None`, saves |
+| `src/model/create/use_case.rs` | `CreateModelUseCase<UoW>` — validates name, creates model with `photo_asset_id: None`, saves |
 | `src/model/update/error.rs` | `UpdateModelError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
 | `src/model/update/model.rs` | `UpdateModelInput { id, owner_id, name, type }`, `ModelDto` |
 | `src/model/update/use_case.rs` | `UpdateModelUseCase<UoW>` — get, ownership check, preserve existing photo, save |
@@ -145,10 +152,10 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/model/delete/use_case.rs` | `DeleteModelUseCase<UoW, PS>` — get, ownership check, delete_by_id, commit, then best-effort `photo_service.delete` |
 | `src/model/update_photo/error.rs` | `UpdateModelPhotoError` (NotFound, Forbidden, InvalidPhotoContent, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/model/update_photo/model.rs` | `UpdateModelPhotoInput { model_id, owner_id, data: Vec<u8> }`, `ModelDto` |
-| `src/model/update_photo/use_case.rs` | `UpdateModelPhotoUseCase<UoW, PS>` — get, ownership check, store new photo (name = `model-photo-{uuid}`), save, commit, best-effort delete old photo |
+| `src/model/update_photo/use_case.rs` | `UpdateModelPhotoUseCase<UoW, PS>` — get, ownership check, store new photo (`PhotoId::new(Uuid::new_v4())`), save, commit, best-effort delete old photo |
 | `src/model/remove_photo/error.rs` | `RemoveModelPhotoError` (NotFound, Forbidden, InvalidData, RepositoryError, PhotoServiceError) |
 | `src/model/remove_photo/model.rs` | `RemoveModelPhotoInput { model_id, owner_id }` — no output struct |
-| `src/model/remove_photo/use_case.rs` | `RemoveModelPhotoUseCase<UoW, PS>` — get, ownership check, set `photo_asset_name: None`, save, commit, best-effort delete old photo |
+| `src/model/remove_photo/use_case.rs` | `RemoveModelPhotoUseCase<UoW, PS>` — get, ownership check, set `photo_asset_id: None`, save, commit, best-effort delete old photo |
 | `src/session/create/error.rs` | `CreateSessionError` (ValidationError, ModelNotFound, InvalidData, RepositoryError) |
 | `src/session/create/model.rs` | `CreateSessionInput { user_id, date, model_id, note }`, `SessionDto` |
 | `src/session/create/use_case.rs` | `CreateSessionUseCase<SessionUoW, ModelUoW>` — validates date/note, verifies optional `model_id` exists, creates session with empty performed variations, saves |
@@ -163,15 +170,16 @@ Orchestrates domain operations. Depends only on `domain`. Owns use cases, applic
 | `src/session/update/model.rs` | `UpdateSessionInput { id, owner_id, date, model_id, note }`, `SessionDto` |
 | `src/session/update/use_case.rs` | `UpdateSessionUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate model type compatibility with existing performed variations, update date/model/note, save |
 | `src/session/add_performed_variation/error.rs` | `AddPerformedVariationError` (NotFound, Forbidden, ValidationError, InvalidData, RepositoryError) |
-| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, performed_variation_id, variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }`, `SessionDto` |
-| `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate maneuver/model type compatibility (or existing performed-variation type when no model), append new performed variation by unique `performed_variation_id`, save |
+| `src/session/add_performed_variation/model.rs` | `AddPerformedVariationInput { session_id, owner_id, variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }`, `PerformedVariationDto` |
+| `src/session/add_performed_variation/use_case.rs` | `AddPerformedVariationUseCase<UoW, MR, ManR, VarR>` — get session, ownership check, validate maneuver/model type compatibility (or existing performed-variation type when no model), generate new performed variation ID internally, save, return created `PerformedVariationDto` |
 | `src/session/update_performed_variation/error.rs` | `UpdatePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, ValidationError, InvalidData, RepositoryError) |
-| `src/session/update_performed_variation/model.rs` | `UpdatePerformedVariationInput { session_id, owner_id, performed_variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }`, `SessionDto` |
-| `src/session/update_performed_variation/use_case.rs` | `UpdatePerformedVariationUseCase<UoW>` — get session, ownership check, update performed variation by `performed_variation_id`, save |
+| `src/session/update_performed_variation/model.rs` | `UpdatePerformedVariationInput { session_id, owner_id, performed_variation_id, quality: RatingDto, comfort: RatingDto, repeatability: RatingDto, note }` |
+| `src/session/update_performed_variation/use_case.rs` | `UpdatePerformedVariationUseCase<UoW>` — get session, ownership check, update performed variation by `performed_variation_id`, save, return `()` |
 | `src/session/remove_performed_variation/error.rs` | `RemovePerformedVariationError` (NotFound, Forbidden, PerformedVariationNotFound, InvalidData, RepositoryError) |
-| `src/session/remove_performed_variation/model.rs` | `RemovePerformedVariationInput { session_id, owner_id, performed_variation_id }`, `SessionDto` |
-| `src/session/remove_performed_variation/use_case.rs` | `RemovePerformedVariationUseCase<UoW>` — get session, ownership check, remove performed variation by `performed_variation_id`, save |
+| `src/session/remove_performed_variation/model.rs` | `RemovePerformedVariationInput { session_id, owner_id, performed_variation_id }` |
+| `src/session/remove_performed_variation/use_case.rs` | `RemovePerformedVariationUseCase<UoW>` — get session, ownership check, remove performed variation by `performed_variation_id`, save, return `()` |
 | `src/shared/paginated_result.rs` | `PaginatedResult<T>` (items, total, page, page_size, total_pages()) |
+| `src/shared/validator.rs` | Shared validation primitives (`Validate`, `ValidationError`) used by API extractors/models |
 
 **Use case pattern** (all use cases follow this template):
 ```rust
@@ -193,10 +201,10 @@ impl<UoW: UnitOfWork<Entity>> FooUseCase<UoW> {
 pub struct FooResolveUseCase<R> { resolver: R }
 
 impl<R: FooResolver> FooResolveUseCase<R> {
-    #[instrument(skip(self), fields(name = %input.name))]
+    #[instrument(skip(self), fields(id = %input.id))]
     pub async fn execute(&self, input: FooInput) -> Result<FooDto, ApplicationError> {
-        let name = AssetName::new(input.name).map_err(|e| FooError::InvalidName(e.to_string()))?;
-        let asset = self.resolver.get(&name).await.map_err(FooError::from)?.ok_or(FooError::NotFound)?;
+      let id = FooId::new(Uuid::parse_str(&input.id).map_err(|e| FooError::InvalidId(e.to_string()))?);
+      let asset = self.resolver.get(&id).await.map_err(FooError::from)?.ok_or(FooError::NotFound)?;
         Ok(FooDto::from(asset))
     }
 }
@@ -206,7 +214,7 @@ impl<R: FooResolver> FooResolveUseCase<R> {
 
 > **Layer boundary rule**: Use cases accept and return only application-layer types (`FooDto`, `PaginatedResult<FooDto>`, primitive types). Domain types (`Maneuver`, `Difficulty`, etc.) are internal to the application layer — never exposed to or imported by `api`. The `From<DomainType> for FooDto` impl in `model.rs` is the only place where domain→DTO conversion happens.
 
-> **API response rule**: API handlers must return a *distinct response struct* (e.g. `GetManeuverByIdResponse`, not raw `ManeuverDto`), but that struct **may embed application DTOs directly** as fields. This avoids re-mapping every field while still giving the API layer its own named contract type. Application DTOs derive `Serialize` for this reason.
+> **API response rule**: API handlers that return a response body must return a *distinct response struct* (e.g. `GetManeuverByIdResponse`, not raw `ManeuverDto`), but that struct **may embed application DTOs directly** as fields. This avoids re-mapping every field while still giving the API layer its own named contract type. Application DTOs derive `Serialize` for this reason.
 
 ---
 
@@ -217,13 +225,19 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 | Path | Contents |
 |---|---|
 | `src/maneuver/transaction.rs` | `SqlxManeuverTransaction`, `SqlxManeuverUnitOfWork` |
+| `src/maneuver/resolver.rs` | `SqlxManeuverResolver` — cached maneuver resolver by ID |
+| `src/maneuver/variation/resolver.rs` | `SqlxVariationResolver` — cached variation resolver by ID |
 | `src/model/transaction.rs` | `SqlxModelTransaction`, `SqlxModelUnitOfWork` |
 | `src/model/resolver.rs` | `SqlxModelResolver` — cached model-by-id resolver using `moka` |
 | `src/session/transaction.rs` | `SqlxSessionTransaction`, `SqlxSessionUnitOfWork` |
 | `src/user/transaction.rs` | `SqlxUserTransaction`, `SqlxUserUnitOfWork` |
-| `src/asset/video.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
-| `src/asset/photo.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
-| `src/asset/photo_service.rs` | `DiskDbPhotoService` — implements `PhotoService`; resizes images adaptively to WebP, writes to disk, upserts `asset.photo` row |
+| `src/asset/video/resolver.rs` | `SqlxVideoResolver` — cached resolver for `Video` assets |
+| `src/asset/photo/resolver.rs` | `SqlxPhotoResolver` — cached resolver for `Photo` assets |
+| `src/asset/photo/service.rs` | `DiskDbPhotoService` — implements `PhotoService`; resizes images adaptively to WebP, writes to disk, upserts `asset.photo` row |
+| `src/asset/photo/transaction.rs` | `SqlxPhotoTransaction`, `SqlxPhotoUnitOfWork` |
+| `src/asset/video/transaction.rs` | `SqlxVideoTransaction`, `SqlxVideoUnitOfWork` |
+| `src/training_program/transaction.rs` | `SqlxTrainingProgramTransaction`, `SqlxTrainingProgramUnitOfWork` |
+| `src/shared/cache_settings.rs` | Shared resolver cache config type (`CacheSettings`) |
 
 **Conventions:**
 - Repository function parameters must use domain value objects (e.g. `&Username`, `&Email`, `ModelId`, `UserId`) rather than primitive types (e.g. `&str`, `&Uuid`) wherever a value object exists. This ensures validation is enforced at the domain boundary and callers cannot bypass it.
@@ -244,34 +258,35 @@ Implements domain repository traits against PostgreSQL via **sqlx**. Depends on 
 - `save(user)`: upsert user record (insert or update on conflict).
 - `UserRow` is private sqlx row struct for DB mapping.
 
-**Asset resolvers** (`src/asset/video.rs`, `src/asset/photo.rs`):
-- `SqlxVideoResolver` / `SqlxPhotoResolver` each hold a `PgPool` and a `moka::future::Cache<String, Arc<Video/Photo>>` keyed on asset name.
-- Both expose a concrete `resolve(&self, &AssetName, AssetSize) -> impl Future<…>` inherent method and implement the `VideoResolver` / `PhotoResolver` domain trait (`get(&self, &AssetName) -> Option<Video/Photo>`).
+**Asset resolvers** (`src/asset/video/resolver.rs`, `src/asset/photo/resolver.rs`):
+- `SqlxVideoResolver` / `SqlxPhotoResolver` each hold a `PgPool` and a `moka::future::Cache<String, Video/Photo>` keyed by asset ID string.
+- Both implement the `VideoResolver` / `PhotoResolver` domain traits (`get(&self, &VideoId/PhotoId) -> Option<Video/Photo>`).
 - `::new(pool, settings: CacheSettings)` — cache capacity and TTL are configured in API env (`RC_LOG_*_CACHE_SIZE`, `RC_LOG_*_CACHE_TTL_SECONDS`).
-- **Cache strategy**: per-asset (one cache entry per name; all sizes derived from that entry). On a cache miss the full row is fetched from DB, inserted into the cache, then `resolve_path(size)` is called on the cached value.
+- **Cache strategy**: per-asset (one cache entry per ID). On a cache miss the full row is fetched from DB and inserted into cache.
 - **Size fallback**: `Large` → `medium_path` → `small_path`; `Medium` → `small_path`; `Small` always present (DB `NOT NULL`).
-- Both resolvers are `Clone` (moka cache shares the underlying store via `Arc`).
+- Both resolvers are `Clone` (moka cache shares the underlying store).
 
-**Photo service** (`src/asset/photo_service.rs`):
-- `DiskDbPhotoService { pool: PgPool, asset_path: PathBuf }` — `Clone`-derived; implements the `PhotoService` domain trait.
+**Photo service** (`src/asset/photo/service.rs`):
+- `DiskDbPhotoService { photo_uow: SqlxPhotoUnitOfWork, asset_storage: AssetStorage }` — `Clone`-derived; implements the `PhotoService` domain trait.
 - `::new(pool, asset_path: PathBuf)` — wired in `AppState::new`.
-- `save(&self, name, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
-- `delete(&self, name)`: fetch paths from DB → delete DB row → remove files (ignore `NotFound`). Always returns `Ok(())`; file errors are logged as warnings.
+- `save(&self, id, data)`: CPU work in `tokio::task::spawn_blocking` — decode with `image` crate → adaptive Lanczos3 resize → WebP encode → write to `{asset_path}/photos/` → upsert `asset.photo` row. Returns `Photo` domain value.
+- `delete(&self, id)`: fetch paths from DB → delete DB row → remove files (ignore `NotFound`). Always returns `Ok(())`; file errors are logged as warnings.
 - **Adaptive sizing** (longest side = max(width, height)): ≤400px → `small` only; ≤800px → `small` + `medium`; >800px → `small` + `medium` + `large`. Target pixel sizes: small=400, medium=800, large=1600. Images smaller than a tier's target are never upscaled.
-- **Stored paths** are relative to `asset_path`, e.g. `photos/{name}_small.webp`.
-- **Asset name convention** for model photos: `model-photo-{uuid}` (fresh UUID per upload).
+- **Stored paths** are relative to `asset_path`, e.g. `photos/{id}_small.webp`.
 
 **Database schema** (`migrations/`):
 - `maneuver.maneuver` — core entity table (no `video_path` column)
 - `maneuver.tag` — tag lookup table
 - `maneuver.maneuver_tag` — many-to-many join table
-- `maneuver.variation` — `id UUID PK`, `maneuver_id UUID FK`, `name TEXT NOT NULL`, `description TEXT NOT NULL`, `video_asset_name TEXT NOT NULL`, `is_default BOOLEAN NOT NULL`; unique partial index `(maneuver_id) WHERE is_default = TRUE` enforces exactly one default per maneuver
+- `maneuver.variation` — `id UUID PK`, `maneuver_id UUID FK`, `name TEXT NOT NULL`, `description TEXT NOT NULL`, `video_asset_id UUID FK → asset.video(id)`, `is_default BOOLEAN NOT NULL`, `difficulty VARCHAR(50) NOT NULL`; unique partial index `(maneuver_id) WHERE is_default = TRUE` enforces exactly one default per maneuver
 - `user.user` — user entity table with unique constraints on username and email
-- `asset.video` — `id UUID PK`, `name VARCHAR(255) UNIQUE NOT NULL`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
+- `asset.video` — `id UUID PK`, `small_path TEXT NOT NULL`, `medium_path TEXT`, `large_path TEXT`
 - `asset.photo` — identical structure to `asset.video`
-- `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(255) NOT NULL`, `type VARCHAR(50) NOT NULL`, `photo_asset_name VARCHAR(255)`; no FK to asset (loosely coupled)
+- `model.model` — `id UUID PK`, `owner_id UUID FK → user.user`, `name VARCHAR(255) NOT NULL`, `type VARCHAR(50) NOT NULL`, `photo_asset_id UUID FK → asset.photo(id)`
+- `user.user` — also has optional `photo_asset_id UUID FK → asset.photo(id)`
 - `session.session` — `id UUID PK`, `user_id UUID FK → user.user`, `date DATE NOT NULL`, `model_id UUID FK → model.model`, `note TEXT`
 - `session.performed_variation` — `id UUID PK`, `session_id UUID FK`, `variation_id UUID FK`, `quality SMALLINT NOT NULL`, `comfort SMALLINT NOT NULL`, `repeatability SMALLINT NOT NULL` + optional note; duplicate `variation_id` entries are allowed per session
+- `training_program.training_program` / `training_program.part` / `training_program.part_variation` — normalized tables for authored training programs and ordered part-variation references
 
 ---
 
@@ -303,17 +318,17 @@ Axum HTTP server. Wires concrete infrastructure into use cases. Depends on all o
 | `src/model/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/model/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
-| `src/model/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
+| `src/model/delete/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/model/update_photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser`; multipart `photo` field (image/jpeg, image/png, image/webp) |
 | `src/model/remove_photo/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content (no `response.rs` needed) |
 | `src/model/router.rs` | Mounts model routes |
 | `src/session/create/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
-| `src/session/delete/` | `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
+| `src/session/delete/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/session/list/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/update/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
 | `src/session/add_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
-| `src/session/update_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
-| `src/session/remove_performed_variation/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` — guarded by `AuthenticatedUser` |
+| `src/session/update_performed_variation/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
+| `src/session/remove_performed_variation/` | `extractor.rs`, `handler.rs`, `mod.rs` — guarded by `AuthenticatedUser`; returns 204 No Content |
 | `src/session/router.rs` | Mounts session routes |
 | `src/asset_paths/video/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
 | `src/asset_paths/photo/` | `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs` |
@@ -345,8 +360,8 @@ PUT  /api/users/me             [JWT required]  → UpdateResponse
 PUT  /api/users/me/photo       [JWT required]  → UpdatePhotoResponse  (multipart form-data, field: photo)
 DELETE /api/users/me/photo     [JWT required]  → 204 No Content
 
-GET  /api/asset-paths/video/{name}        → ResolveVideoResponse  { name, smallPath, mediumPath?, largePath? }
-GET  /api/asset-paths/photo/{name}        → ResolvePhotoResponse  { name, smallPath, mediumPath?, largePath? }
+GET  /api/asset-paths/video/{id}          → ResolveVideoResponse  { id, smallPath, mediumPath?, largePath? }
+GET  /api/asset-paths/photo/{id}          → ResolvePhotoResponse  { id, smallPath, mediumPath?, largePath? }
 
 GET    /api/models              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
 POST   /api/models              [JWT required]  → CreateResponse  (201 Created)
@@ -360,9 +375,9 @@ POST /api/sessions              [JWT required]  → CreateSessionResponse  (201 
 GET  /api/sessions              [JWT required]  → ListResponse  { items, total, page, pageSize, totalPages }
 PUT  /api/sessions/{id}         [JWT required]  → UpdateSessionResponse
 DELETE /api/sessions/{id}       [JWT required]  → 204 No Content
-POST /api/sessions/{id}/performed-variations                                           [JWT required]  → AddPerformedVariationResponse
-PUT  /api/sessions/{id}/performed-variations/{performed_variation_id}                  [JWT required]  → UpdatePerformedVariationResponse
-DELETE /api/sessions/{id}/performed-variations/{performed_variation_id}                [JWT required]  → RemovePerformedVariationResponse
+POST /api/sessions/{id}/performed-variations                                           [JWT required]  → AddPerformedVariationResponse  { performedVariationId, variationId, quality, comfort, repeatability, note }
+PUT  /api/sessions/{id}/performed-variations/{performed_variation_id}                  [JWT required]  → 204 No Content
+DELETE /api/sessions/{id}/performed-variations/{performed_variation_id}                [JWT required]  → 204 No Content
 ```
 
 Also adds `RemoveModelPhoto` error to `ApiError` mapping: `NotFound` → 404, `Forbidden` → 403, all other variants → 500.
@@ -457,11 +472,11 @@ frontend/src/
 │   │   ├── photo.ts        # Generated DTO alias + getPhotoUrl()
 │   │   ├── video.ts        # Generated DTO alias + getVideoUrl()
 │   │   └── index.ts
-│   └── shared/          # Shared domain types
-│       ├── type.tsx # Type type + getVehicleIcon(), getVehicleLabel()
+│   ├── shared/          # Shared domain types
 │       ├── difficulty.ts   # DifficultyLevel type + formatting functions
 │       ├── pagination.ts   # PaginatedResult, PaginationOptions
 │       └── index.ts        # Barrel export
+│   └── model/type.tsx   # Type type + getModelTypeIcon(), getModelTypeLabel()
 ├── lib/api/             # API layer — HTTP client and request/response types
 │   ├── apiClient.ts     # Axios instance with JWT request interceptor and 401 response interceptor
 │   ├── auth.ts          # authApi (signIn, signUp) — returns { token, user }
@@ -538,8 +553,8 @@ export function getDifficultyLevelName(type: Type, difficulty: DifficultyLevel):
 
 **Example — vehicle icons:**
 ```typescript
-// models/shared/type.tsx (JSX file for React component return)
-export function getVehicleIcon(type: Type, size = 18): ReactNode {
+// models/model/type.tsx (JSX file for React component return)
+export function getModelTypeIcon(type: Type, size = 18): ReactNode {
   switch (type) {
     case "Plane": return <Plane size={size} />;
     case "Helicopter": return <Helicopter size={size} />;
@@ -552,7 +567,7 @@ export function getVehicleIcon(type: Type, size = 18): ReactNode {
 
 **`AuthProvider`** wraps the whole app (in `App.tsx`). It persists `token` and `user` to `localStorage` and exposes them via `useAuth()`.
 
-**`User` type** (`context/auth-context.ts`): defines a `User` interface for auth state storage (id, username, email, photoAssetName). This is separate from per-operation DTOs in `models/user/` — the auth context is a cross-cutting application concern.
+**`User` type** (`context/auth-context.ts`): defines a `User` interface for auth state storage (id, username, email, photoAssetId). This is separate from per-operation DTOs in `models/user/` — the auth context is a cross-cutting application concern.
 
 **`useAuth()` returns:**
 - `user: User | null` — deserialized from localStorage on init
@@ -608,7 +623,7 @@ export const maneuversApi = {
 Backend DTOs use `#[serde(rename_all = "camelCase")]` to serialize fields as camelCase:
 - `type` → `type`
 - `page_size` → `pageSize`
-- `defaultVariationVideoAssetName` (in list response)
+- `defaultVariationVideoAssetId` (in list response)
 - `defaultVariation` / `variations` (in get-by-id response)
 - `total_pages` → `totalPages`
 
@@ -632,7 +647,7 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
 
 ## Adding a New Feature — Checklist
 
-1. **Domain**: add any new value objects / entity methods needed. For asset-type lookups define a `FooResolver` trait in `src/asset/foo_resolver.rs` following the `VideoResolver` / `PhotoResolver` pattern.
+1. **Domain**: add any new value objects / entity methods needed. For asset-type lookups define a `FooResolver` trait in `src/asset/<foo>/resolver.rs` following the `VideoResolver` / `PhotoResolver` pattern.
 2. **Application**: create a nested directory for the use case (e.g., `src/<entity>/<use_case>/`). Inside, create `error.rs`, `model.rs` (DTOs + `From<DomainType>` impls), `use_case.rs`, and `mod.rs`. Use cases must return DTO types, not domain types. Add error variant to `ApplicationError`.
    - UoW-based use cases: `execute(&mut self, ...)` — begin transaction, call repository, commit.
    - Resolver-based use cases: `execute(&self, ...)` — inject resolver directly via generic `R: FooResolver`, no transaction needed.
@@ -644,7 +659,7 @@ Difficulty serializes as lowercase string (`level1`–`level7`), not integer.
    - Only `api` (composition root) wires concrete infrastructure into use cases
 6. **Code Style**:
    - Always prefer explicit `use` declarations (e.g., `use std::env;`) instead of inline fully-qualified paths (`std::env::var()`), unless doing so creates severe ambiguity. Expand this preference across the entire backend workspace.
-   - Each API operation lives in its own subdirectory under the entity: `src/<entity>/<operation>/` with `extractor.rs`, `handler.rs`, `response.rs`, `mod.rs`.
+  - Each API operation lives in its own subdirectory under the entity: `src/<entity>/<operation>/` with `extractor.rs`, `handler.rs`, and `mod.rs`; add `response.rs` when the endpoint returns a response body.
    - **Extractor rule**: every handler parameter beyond `State` and `AuthenticatedUser` must be a named extractor struct that implements `FromRequest` (when a body or multipart is involved) or `FromRequestParts` (path/headers only). No inline `Path<Uuid>`, `Json<Body>`, or `Multipart` in handler signatures. The extractor owns all validation — the handler is a thin orchestrator that calls the use case and wraps the result.
    - `DifficultyLevel` serializes as lowercase strings (`level1`–`level7`) from the backend.
    - `lib.rs` in each crate only declares top-level modules with `pub mod`, never re-exports directly.
@@ -659,7 +674,7 @@ This is a critical architectural rule. The wrong type at the wrong layer creates
 
 | Layer | Type to Use | Reason |
 |---|---|---|
-| **Domain** | Domain value objects (`ModelId`, `UserId`, `Name`, `AssetName`, `Type`, etc.) | Value objects carry validation guarantees; domain logic is expressed in domain types |
+| **Domain** | Domain value objects (`ModelId`, `UserId`, `Name`, `PhotoId`, `VideoId`, `Type`, etc.) | Value objects carry validation guarantees; domain logic is expressed in domain types |
 | **Application (use case inputs)** | Primitive types (`Uuid`, `String`, `u32`) | Inputs come from the API — no domain objects cross the application/API boundary |
 | **Application (use case internals)** | Domain value objects | Conversion from primitive → value object happens inside the use case (validation point) |
 | **Application (DTOs / outputs)** | Primitive types + application enums (`TypeDto`) | Outputs are stable contracts for the API; no domain types escape the use case |
