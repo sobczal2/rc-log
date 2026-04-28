@@ -10,7 +10,7 @@ use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::shared::cache_settings::CacheSettings;
+use crate::cache::settings::CacheSettings;
 
 use super::transaction::SqlxModelUnitOfWork;
 

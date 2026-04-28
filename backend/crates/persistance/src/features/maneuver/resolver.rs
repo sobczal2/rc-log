@@ -9,7 +9,7 @@ use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 
-use crate::shared::cache_settings::CacheSettings;
+use crate::cache::settings::CacheSettings;
 
 use super::transaction::SqlxManeuverUnitOfWork;
 
