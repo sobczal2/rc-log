@@ -2,11 +2,11 @@ use std::future::Future;
 
 use crate::model::Model;
 use crate::model::id::ModelId;
-use crate::shared::transaction::TransactionError;
+use crate::shared::resolver::ResolverError;
 
 pub trait ModelResolver: Send + Sync {
-    fn get_by_id(
+    fn get(
         &self,
-        id: &ModelId,
-    ) -> impl Future<Output = Result<Option<Model>, TransactionError>> + Send;
+        id: ModelId,
+    ) -> impl Future<Output = Result<Option<Model>, ResolverError>> + Send;
 }

@@ -9,7 +9,6 @@ use uuid::Uuid;
 
 use super::error::DeleteModelError;
 use super::model::DeleteModelInput;
-use crate::error::ApplicationError;
 
 pub struct DeleteModelUseCase<UoW, PS> {
     uow: UoW,
@@ -27,7 +26,7 @@ where
     }
 
     #[instrument(skip(self), fields(model_id = %input.id, owner_id = %input.owner_id))]
-    pub async fn execute(&mut self, input: DeleteModelInput) -> Result<(), ApplicationError> {
+    pub async fn execute(&mut self, input: DeleteModelInput) -> Result<(), DeleteModelError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(DeleteModelError::from)?;
 
@@ -44,7 +43,7 @@ where
         if Uuid::from(model.owner_id()) != input.owner_id {
             debug!("Model belongs to a different owner, returning Forbidden");
             tx.rollback().await.map_err(DeleteModelError::from)?;
-            return Err(DeleteModelError::Forbidden.into());
+            return Err(DeleteModelError::Forbidden);
         }
 
         let photo_id = model.photo_asset_id().cloned();

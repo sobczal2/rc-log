@@ -3,8 +3,8 @@ use rc_log_application::model::update::UpdateModelUseCase;
 use rc_log_application::model::update::model::UpdateModelInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::model::update::error::Error;
 use crate::model::update::extractor::UpdateRequest;
 use crate::model::update::response::UpdateResponse;
 use crate::state::AppState;
@@ -14,7 +14,7 @@ pub async fn update_model(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: UpdateRequest,
-) -> Result<Json<UpdateResponse>, ApiError> {
+) -> Result<Json<UpdateResponse>, Error> {
     debug!("Handling update_model request");
     let mut use_case = UpdateModelUseCase::new(state.model_uow);
     let dto = use_case

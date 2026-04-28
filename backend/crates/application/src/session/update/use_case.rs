@@ -14,7 +14,6 @@ use uuid::Uuid;
 
 use super::error::UpdateSessionError;
 use super::model::{SessionDto, UpdateSessionInput};
-use crate::error::ApplicationError;
 
 pub struct UpdateSessionUseCase<UoW, MR, ManR, VarR> {
     uow: UoW,
@@ -44,7 +43,7 @@ where
     pub async fn execute(
         &mut self,
         input: UpdateSessionInput,
-    ) -> Result<SessionDto, ApplicationError> {
+    ) -> Result<SessionDto, UpdateSessionError> {
         let date = Date::parse(&input.date)
             .map_err(|e| UpdateSessionError::ValidationError(e.to_string()))?;
 
@@ -66,14 +65,14 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(UpdateSessionError::from)?;
-            return Err(UpdateSessionError::Forbidden.into());
+            return Err(UpdateSessionError::Forbidden);
         }
 
         let model_id = input.model_id.map(ModelId::new);
         if let Some(model_id) = model_id {
             let model = self
                 .model_resolver
-                .get_by_id(&model_id)
+                .get(model_id)
                 .await
                 .map_err(UpdateSessionError::from)?
                 .ok_or(UpdateSessionError::ModelNotFound)?;
@@ -107,8 +106,7 @@ where
                     return Err(UpdateSessionError::ValidationError(
                         "session model type must match performed variations maneuver type"
                             .to_string(),
-                    )
-                    .into());
+                    ));
                 }
             }
         }

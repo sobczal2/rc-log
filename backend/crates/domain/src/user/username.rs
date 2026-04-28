@@ -1,24 +1,15 @@
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Username(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum UsernameError {
+    #[error("username must not be empty")]
     Empty,
+    #[error("username must not exceed 255 characters")]
     TooLong,
 }
-
-impl fmt::Display for UsernameError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            UsernameError::Empty => write!(f, "username must not be empty"),
-            UsernameError::TooLong => write!(f, "username must not exceed 255 characters"),
-        }
-    }
-}
-
-impl std::error::Error for UsernameError {}
 
 impl Username {
     pub fn new(value: String) -> Result<Self, UsernameError> {

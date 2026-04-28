@@ -2,9 +2,9 @@ use axum::{Json, extract::State};
 use rc_log_application::user::get_by_id::GetUserByIdUseCase;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
 use crate::state::AppState;
+use crate::user::get_by_id::error::Error;
 use crate::user::get_by_id::extractor::GetByIdRequest;
 use crate::user::get_by_id::response::GetByIdResponse;
 
@@ -13,7 +13,7 @@ pub async fn get_user_by_id(
     State(state): State<AppState>,
     _auth: AuthenticatedUser,
     input: GetByIdRequest,
-) -> Result<Json<GetByIdResponse>, ApiError> {
+) -> Result<Json<GetByIdResponse>, Error> {
     debug!("Handling get_user_by_id request");
     let mut use_case = GetUserByIdUseCase::new(state.user_uow);
     let user = use_case.execute(input.0).await?;

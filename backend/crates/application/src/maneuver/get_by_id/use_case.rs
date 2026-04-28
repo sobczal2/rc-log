@@ -7,7 +7,6 @@ use tracing::{debug, instrument};
 
 use super::error::GetManeuverByIdError;
 use super::model::{GetManeuverByIdInput, ManeuverDto};
-use crate::error::ApplicationError;
 
 pub struct GetManeuverByIdUseCase<UoW> {
     uow: UoW,
@@ -26,7 +25,7 @@ where
     pub async fn execute(
         &mut self,
         input: GetManeuverByIdInput,
-    ) -> Result<ManeuverDto, ApplicationError> {
+    ) -> Result<ManeuverDto, GetManeuverByIdError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(GetManeuverByIdError::from)?;
 

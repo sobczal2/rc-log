@@ -1,9 +1,9 @@
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
-use rc_log_domain::maneuver::transaction::{
-    ManeuverFilter, ManeuverSort, ManeuverSortField, SortDirection,
-};
+use rc_log_domain::maneuver::transaction::{ManeuverFilter, ManeuverSort, ManeuverSortField};
 use rc_log_domain::model::Type;
+use rc_log_domain::shared::sort::SortDirection;
+use crate::shared::sort::SortDirectionDto;
 use serde::Serialize;
 use specta::Type as SpectaType;
 use uuid::Uuid;
@@ -95,10 +95,8 @@ pub struct ManeuverFilterDto {
 impl Validate for ManeuverFilterDto {
     fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
-        if let Some(sq) = &self.search_query {
-            if sq.len() > 100 {
-                errors.push(ValidationError::new("search_query", "must not exceed 100 characters"));
-            }
+        if let Some(sq) = &self.search_query && sq.len() > 100 {
+            errors.push(ValidationError::new("search_query", "must not exceed 100 characters"));
         }
         for (i, tag) in self.tags.iter().enumerate() {
             if tag.len() > 50 {
@@ -136,37 +134,35 @@ impl From<ManeuverFilterDto> for ManeuverFilter {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum ManeuverSortFieldDto {
+    Name,
+    Difficulty,
+}
+
 #[derive(Debug, Clone)]
 pub struct ManeuverSortDto {
-    pub field: String,
-    pub direction: String,
+    pub field: Option<ManeuverSortFieldDto>,
+    pub direction: Option<SortDirectionDto>,
 }
 
 impl Validate for ManeuverSortDto {
     fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        let mut errors = Vec::new();
-        let valid_fields = ["", "name", "difficulty"];
-        if !valid_fields.contains(&self.field.as_str()) {
-            errors.push(ValidationError::new("sort.field", "must be 'name' or 'difficulty'"));
-        }
-        let valid_dirs = ["", "asc", "desc"];
-        if !valid_dirs.contains(&self.direction.as_str()) {
-            errors.push(ValidationError::new("sort.direction", "must be 'asc' or 'desc'"));
-        }
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
+        // enums are validated by construction; nothing to validate here
+        Ok(())
     }
 }
 
 impl From<ManeuverSortDto> for ManeuverSort {
     fn from(dto: ManeuverSortDto) -> Self {
-        let field = match dto.field.to_lowercase().as_str() {
-            "difficulty" => ManeuverSortField::Difficulty,
-            _ => ManeuverSortField::Name,
+        let field = match dto.field.unwrap_or(ManeuverSortFieldDto::Name) {
+            ManeuverSortFieldDto::Difficulty => ManeuverSortField::Difficulty,
+            ManeuverSortFieldDto::Name => ManeuverSortField::Name,
         };
 
-        let direction = match dto.direction.to_lowercase().as_str() {
-            "desc" => SortDirection::Desc,
-            _ => SortDirection::Asc,
+        let direction = match dto.direction.unwrap_or(SortDirectionDto::default()) {
+            SortDirectionDto::Desc => SortDirection::Desc,
+            SortDirectionDto::Asc => SortDirection::Asc,
         };
 
         Self { field, direction }
@@ -198,7 +194,8 @@ impl Validate for ListManeuversInput {
 
 #[cfg(test)]
 mod tests {
-    use crate::shared::pagination::PaginationDto;
+    use crate::shared::sort::SortDirectionDto;
+    use crate::{maneuver::list::model::ManeuverSortFieldDto, shared::pagination::PaginationDto};
     use crate::shared::validator::Validate;
 
     use super::{ListManeuversInput, ManeuverFilterDto, ManeuverSortDto};
@@ -208,7 +205,7 @@ mod tests {
     }
 
     fn valid_sort() -> ManeuverSortDto {
-        ManeuverSortDto { field: String::new(), direction: String::new() }
+        ManeuverSortDto { field: None, direction: None }
     }
 
     fn valid_pagination() -> PaginationDto {
@@ -270,37 +267,18 @@ mod tests {
 
     #[test]
     fn sort_name_asc_passes() {
-        let s = ManeuverSortDto { field: "name".to_string(), direction: "asc".to_string() };
+        let s = ManeuverSortDto { field: Some(ManeuverSortFieldDto::Name), direction: Some(SortDirectionDto::Asc) };
         assert!(s.validate().is_ok());
     }
 
     #[test]
     fn sort_difficulty_desc_passes() {
-        let s = ManeuverSortDto { field: "difficulty".to_string(), direction: "desc".to_string() };
+        let s = ManeuverSortDto { field: Some(ManeuverSortFieldDto::Difficulty), direction: Some(SortDirectionDto::Desc) };
         assert!(s.validate().is_ok());
     }
 
     #[test]
-    fn sort_invalid_field_fails() {
-        let s = ManeuverSortDto { field: "bogus".to_string(), direction: "asc".to_string() };
-        let errs = s.validate().unwrap_err();
-        assert_eq!(errs.len(), 1);
-        assert_eq!(errs[0].field, "sort.field");
-    }
-
-    #[test]
-    fn sort_invalid_direction_fails() {
-        let s = ManeuverSortDto { field: "name".to_string(), direction: "sideways".to_string() };
-        let errs = s.validate().unwrap_err();
-        assert_eq!(errs.len(), 1);
-        assert_eq!(errs[0].field, "sort.direction");
-    }
-
-    #[test]
-    fn sort_both_invalid_reports_two_errors() {
-        let s = ManeuverSortDto { field: "bad".to_string(), direction: "bad".to_string() };
-        assert_eq!(s.validate().unwrap_err().len(), 2);
-    }
+    // enum-backed DTOs are validated by construction; invalid strings are parsed in the extractor
 
     // --- ListManeuversInput ---
 

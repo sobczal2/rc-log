@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use super::error::RemoveModelPhotoError;
 use super::model::RemoveModelPhotoInput;
-use crate::error::ApplicationError;
 
 pub struct RemoveModelPhotoUseCase<UoW, PS> {
     uow: UoW,
@@ -28,7 +27,7 @@ where
     }
 
     #[instrument(skip(self, input), fields(model_id = %input.model_id, owner_id = %input.owner_id))]
-    pub async fn execute(&mut self, input: RemoveModelPhotoInput) -> Result<(), ApplicationError> {
+    pub async fn execute(&mut self, input: RemoveModelPhotoInput) -> Result<(), RemoveModelPhotoError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(RemoveModelPhotoError::from)?;
 
@@ -43,9 +42,9 @@ where
             })?;
 
         if Uuid::from(model.owner_id()) != input.owner_id {
-            debug!("Model belongs to a different owner, returning Forbidden");
+            debug!("Model belongs to a different owner, returning NotFound");
             tx.rollback().await.map_err(RemoveModelPhotoError::from)?;
-            return Err(RemoveModelPhotoError::Forbidden.into());
+            return Err(RemoveModelPhotoError::NotFound);
         }
 
         let old_photo_id = model.photo_asset_id().cloned();

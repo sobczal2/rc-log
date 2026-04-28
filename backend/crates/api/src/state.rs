@@ -10,6 +10,7 @@ use rc_log_persistance::model::resolver::SqlxModelResolver;
 use rc_log_persistance::model::transaction::SqlxModelUnitOfWork;
 use rc_log_persistance::session::transaction::SqlxSessionUnitOfWork;
 use rc_log_persistance::shared::cache_settings::CacheSettings;
+use rc_log_persistance::training_program::transaction::SqlxTrainingProgramUnitOfWork;
 use rc_log_persistance::user::transaction::SqlxUserUnitOfWork;
 use sqlx::PgPool;
 use std::time::Duration;
@@ -33,6 +34,7 @@ pub struct AppState {
     pub maneuver_uow: SqlxManeuverUnitOfWork,
     pub model_uow: SqlxModelUnitOfWork,
     pub session_uow: SqlxSessionUnitOfWork,
+    pub training_program_uow: SqlxTrainingProgramUnitOfWork,
     pub user_uow: SqlxUserUnitOfWork,
     pub model_resolver: SqlxModelResolver,
     pub maneuver_resolver: SqlxManeuverResolver,
@@ -70,6 +72,7 @@ impl AppState {
             maneuver_uow: SqlxManeuverUnitOfWork::new(pool.clone()),
             model_uow: SqlxModelUnitOfWork::new(pool.clone()),
             session_uow: SqlxSessionUnitOfWork::new(pool.clone()),
+            training_program_uow: SqlxTrainingProgramUnitOfWork::new(pool.clone()),
             user_uow: SqlxUserUnitOfWork::new(pool.clone()),
             model_resolver: SqlxModelResolver::new(pool.clone(), model_cache_settings),
             maneuver_resolver: SqlxManeuverResolver::new(pool.clone(), maneuver_cache_settings),

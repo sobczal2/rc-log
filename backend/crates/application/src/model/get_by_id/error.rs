@@ -4,8 +4,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum GetModelByIdError {
     #[error("Model not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("Invalid model data in repository: {0}")]
     InvalidData(String),
     #[error("Repository error: {0}")]

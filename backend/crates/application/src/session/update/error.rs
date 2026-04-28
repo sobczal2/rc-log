@@ -1,3 +1,4 @@
+use rc_log_domain::shared::resolver::ResolverError;
 use rc_log_domain::shared::transaction::TransactionError;
 
 #[derive(Debug, thiserror::Error)]
@@ -21,6 +22,15 @@ impl From<TransactionError> for UpdateSessionError {
         match err {
             TransactionError::InvalidData(msg) => UpdateSessionError::InvalidData(msg),
             TransactionError::TransactionError(msg) => UpdateSessionError::RepositoryError(msg),
+        }
+    }
+}
+
+impl From<ResolverError> for UpdateSessionError {
+    fn from(err: ResolverError) -> Self {
+        match err {
+            ResolverError::InvalidData(msg) => UpdateSessionError::InvalidData(msg),
+            ResolverError::ResolverError(msg) => UpdateSessionError::RepositoryError(msg),
         }
     }
 }

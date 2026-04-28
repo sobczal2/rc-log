@@ -2,7 +2,8 @@ use axum::{
     extract::{FromRequestParts, Query},
     http::request::Parts,
 };
-use rc_log_application::session::list::model::{SessionFilterDto, SessionSortDto};
+use rc_log_application::session::list::model::{SessionFilterDto, SessionSortDto, SessionSortFieldDto};
+use rc_log_application::shared::sort::SortDirectionDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::shared::validator::{Validate, ValidationError};
 use serde::Deserialize;
@@ -83,7 +84,20 @@ where
                 Some(raw.search_query)
             },
         };
-        let sort = SessionSortDto { field: raw.sort_field, direction: raw.sort_direction };
+        let sort_field = match raw.sort_field.as_str() {
+            "" => None,
+            "date" => Some(SessionSortFieldDto::Date),
+            _ => return Err(ApiError::Validation(vec![ValidationError::new("sort.field", "must be 'date'")])),
+        };
+
+        let sort_direction = match raw.sort_direction.as_str() {
+            "" => None,
+            "asc" => Some(SortDirectionDto::Asc),
+            "desc" => Some(SortDirectionDto::Desc),
+            _ => return Err(ApiError::Validation(vec![ValidationError::new("sort.direction", "must be 'asc' or 'desc'")])),
+        };
+
+        let sort = SessionSortDto { field: sort_field, direction: sort_direction };
 
         let mut errors = Vec::new();
         if let Err(mut errs) = pagination.validate() {

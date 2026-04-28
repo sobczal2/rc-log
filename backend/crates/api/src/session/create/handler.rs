@@ -3,8 +3,8 @@ use rc_log_application::session::create::CreateSessionUseCase;
 use rc_log_application::session::create::model::CreateSessionInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::session::create::error::Error;
 use crate::session::create::extractor::CreateSessionRequest;
 use crate::session::create::response::CreateSessionResponse;
 use crate::state::AppState;
@@ -14,10 +14,9 @@ pub async fn create_session(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: CreateSessionRequest,
-) -> Result<(StatusCode, Json<CreateSessionResponse>), ApiError> {
+) -> Result<(StatusCode, Json<CreateSessionResponse>), Error> {
     debug!("Handling create_session request");
-
-    let mut use_case = CreateSessionUseCase::new(state.session_uow, state.model_uow);
+    let mut use_case = CreateSessionUseCase::new(state.session_uow, state.model_resolver.clone());
     let session = use_case
         .execute(CreateSessionInput {
             user_id: auth.id,
@@ -26,7 +25,6 @@ pub async fn create_session(
             note: input.note,
         })
         .await?;
-
     debug!(session_id = %session.id, "Session created, returning response");
     Ok((StatusCode::CREATED, Json(CreateSessionResponse::from(session))))
 }

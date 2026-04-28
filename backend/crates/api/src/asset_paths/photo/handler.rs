@@ -2,16 +2,16 @@ use axum::{Json, extract::State};
 use rc_log_application::photo::resolve::ResolvePhotoUseCase;
 use tracing::{debug, instrument};
 
+use crate::asset_paths::photo::error::Error;
 use crate::asset_paths::photo::extractor::ResolvePhotoRequest;
 use crate::asset_paths::photo::response::ResolvePhotoResponse;
-use crate::error::ApiError;
 use crate::state::AppState;
 
 #[instrument(skip(state), fields(photo_id = %input.0.id))]
 pub async fn resolve_photo(
     State(state): State<AppState>,
     input: ResolvePhotoRequest,
-) -> Result<Json<ResolvePhotoResponse>, ApiError> {
+) -> Result<Json<ResolvePhotoResponse>, Error> {
     debug!("Handling resolve photo request");
     let use_case = ResolvePhotoUseCase::new(state.photo_resolver);
     let dto = use_case.execute(input.0).await?;

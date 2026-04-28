@@ -1,22 +1,24 @@
-use rc_log_domain::shared::transaction::TransactionError;
+use rc_log_domain::shared::resolver::ResolverError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ResolveVideoError {
     #[error("Video asset not found")]
     NotFound,
-    #[error("Invalid asset id: {0}")]
-    InvalidId(String),
+    #[error("Invalid asset id: {id}")]
+    InvalidId{
+        id: String,
+    },
     #[error("Invalid data in repository: {0}")]
     InvalidData(String),
     #[error("Resolver error: {0}")]
     ResolverError(String),
 }
 
-impl From<TransactionError> for ResolveVideoError {
-    fn from(err: TransactionError) -> Self {
+impl From<ResolverError> for ResolveVideoError {
+    fn from(err: ResolverError) -> Self {
         match err {
-            TransactionError::InvalidData(msg) => ResolveVideoError::InvalidData(msg),
-            TransactionError::TransactionError(msg) => ResolveVideoError::ResolverError(msg),
+            ResolverError::InvalidData(msg) => ResolveVideoError::InvalidData(msg),
+            ResolverError::ResolverError(msg) => ResolveVideoError::ResolverError(msg),
         }
     }
 }

@@ -1,26 +1,17 @@
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Email(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum EmailError {
+    #[error("email must not be empty")]
     Empty,
+    #[error("email must not exceed 255 characters")]
     TooLong,
+    #[error("email must contain '@'")]
     InvalidFormat,
 }
-
-impl fmt::Display for EmailError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            EmailError::Empty => write!(f, "email must not be empty"),
-            EmailError::TooLong => write!(f, "email must not exceed 255 characters"),
-            EmailError::InvalidFormat => write!(f, "email must contain '@'"),
-        }
-    }
-}
-
-impl std::error::Error for EmailError {}
 
 impl Email {
     pub fn new(value: String) -> Result<Self, EmailError> {

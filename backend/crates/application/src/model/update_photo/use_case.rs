@@ -11,7 +11,6 @@ use uuid::Uuid;
 
 use super::error::UpdateModelPhotoError;
 use super::model::{ModelDto, UpdateModelPhotoInput};
-use crate::error::ApplicationError;
 
 pub struct UpdateModelPhotoUseCase<UoW, PS> {
     uow: UoW,
@@ -32,7 +31,7 @@ where
     pub async fn execute(
         &mut self,
         input: UpdateModelPhotoInput,
-    ) -> Result<ModelDto, ApplicationError> {
+    ) -> Result<ModelDto, UpdateModelPhotoError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(UpdateModelPhotoError::from)?;
 
@@ -49,7 +48,7 @@ where
         if Uuid::from(model.owner_id()) != input.owner_id {
             debug!("Model belongs to a different owner, returning Forbidden");
             tx.rollback().await.map_err(UpdateModelPhotoError::from)?;
-            return Err(UpdateModelPhotoError::Forbidden.into());
+            return Err(UpdateModelPhotoError::Forbidden);
         }
 
         let old_photo_id = model.photo_asset_id().cloned();
@@ -72,7 +71,7 @@ where
         );
 
         debug!("Saving updated model");
-        tx.save(&updated).await.map_err(|e| UpdateModelPhotoError::from(e))?;
+        tx.save(&updated).await.map_err(UpdateModelPhotoError::from)?;
 
         debug!("Committing transaction");
         tx.commit().await.map_err(UpdateModelPhotoError::from)?;

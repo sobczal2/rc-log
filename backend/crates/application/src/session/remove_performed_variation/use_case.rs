@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use super::error::RemovePerformedVariationError;
 use super::model::RemovePerformedVariationInput;
-use crate::error::ApplicationError;
 
 pub struct RemovePerformedVariationUseCase<UoW> {
     uow: UoW,
@@ -27,7 +26,7 @@ where
     pub async fn execute(
         &mut self,
         input: RemovePerformedVariationInput,
-    ) -> Result<(), ApplicationError> {
+    ) -> Result<(), RemovePerformedVariationError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(RemovePerformedVariationError::from)?;
 
@@ -39,7 +38,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(RemovePerformedVariationError::from)?;
-            return Err(RemovePerformedVariationError::Forbidden.into());
+            return Err(RemovePerformedVariationError::Forbidden);
         }
 
         let before_count = existing.performed_variations().len();
@@ -49,7 +48,7 @@ where
 
         if performed_variations.len() == before_count {
             tx.rollback().await.map_err(RemovePerformedVariationError::from)?;
-            return Err(RemovePerformedVariationError::PerformedVariationNotFound.into());
+            return Err(RemovePerformedVariationError::PerformedVariationNotFound);
         }
 
         let updated = Session::new(

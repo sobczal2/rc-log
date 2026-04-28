@@ -11,7 +11,6 @@ use uuid::Uuid;
 
 use super::error::CreateModelError;
 use super::model::{CreateModelInput, ModelDto};
-use crate::error::ApplicationError;
 use crate::model::shared::TypeDto;
 
 pub struct CreateModelUseCase<UoW> {
@@ -28,9 +27,9 @@ where
     }
 
     #[instrument(skip(self), fields(owner_id = %input.owner_id, name = %input.name))]
-    pub async fn execute(&mut self, input: CreateModelInput) -> Result<ModelDto, ApplicationError> {
+    pub async fn execute(&mut self, input: CreateModelInput) -> Result<ModelDto, CreateModelError> {
         let name =
-            Name::new(input.name).map_err(|e| CreateModelError::ValidationError(e.to_string()))?;
+            Name::new(input.name).map_err(CreateModelError::from)?;
 
         let r#type = match input.r#type {
             TypeDto::Helicopter => Type::Helicopter,

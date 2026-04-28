@@ -3,12 +3,20 @@ use moka::future::Cache;
 use rc_log_domain::asset::photo::resolver::PhotoResolver;
 use rc_log_domain::asset::photo::transaction::PhotoTransaction;
 use rc_log_domain::asset::photo::{Photo, PhotoId};
+use rc_log_domain::shared::resolver::ResolverError;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 
 use super::transaction::SqlxPhotoUnitOfWork;
+
+fn tx_err_to_resolver(e: TransactionError) -> ResolverError {
+    match e {
+        TransactionError::InvalidData(msg) => ResolverError::InvalidData(msg),
+        TransactionError::TransactionError(msg) => ResolverError::ResolverError(msg),
+    }
+}
 
 #[derive(Clone)]
 pub struct SqlxPhotoResolver {
@@ -25,7 +33,7 @@ impl SqlxPhotoResolver {
 }
 
 impl PhotoResolver for SqlxPhotoResolver {
-    async fn get(&self, id: &PhotoId) -> Result<Option<Photo>, TransactionError> {
+    async fn get(&self, id: PhotoId) -> Result<Option<Photo>, ResolverError> {
         let key = id.as_uuid().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {
@@ -33,19 +41,17 @@ impl PhotoResolver for SqlxPhotoResolver {
         }
 
         let mut photo_uow = self.photo_uow.clone();
-        let mut tx = photo_uow.begin().await?;
+        let mut tx = photo_uow.begin().await.map_err(tx_err_to_resolver)?;
 
-        let photo = match tx.get_by_id(id).await {
+        let photo = match tx.get_by_id(&id).await {
             Ok(photo) => photo,
             Err(err) => {
-                return match tx.rollback().await {
-                    Ok(()) => Err(err),
-                    Err(rollback_err) => Err(rollback_err),
-                };
+                let _ = tx.rollback().await;
+                return Err(tx_err_to_resolver(err));
             }
         };
 
-        tx.commit().await?;
+        tx.commit().await.map_err(tx_err_to_resolver)?;
 
         match photo {
             None => Ok(None),

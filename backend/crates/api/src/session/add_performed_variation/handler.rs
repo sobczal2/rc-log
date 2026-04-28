@@ -3,8 +3,8 @@ use rc_log_application::session::add_performed_variation::AddPerformedVariationU
 use rc_log_application::session::add_performed_variation::model::AddPerformedVariationInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::session::add_performed_variation::error::Error;
 use crate::session::add_performed_variation::extractor::AddPerformedVariationRequest;
 use crate::session::add_performed_variation::response::AddPerformedVariationResponse;
 use crate::state::AppState;
@@ -14,9 +14,8 @@ pub async fn add_performed_variation(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: AddPerformedVariationRequest,
-) -> Result<Json<AddPerformedVariationResponse>, ApiError> {
+) -> Result<Json<AddPerformedVariationResponse>, Error> {
     debug!("Handling add_performed_variation request");
-
     let mut use_case = AddPerformedVariationUseCase::new(
         state.session_uow,
         state.model_resolver,
@@ -34,6 +33,5 @@ pub async fn add_performed_variation(
             note: input.note,
         })
         .await?;
-
     Ok(Json(AddPerformedVariationResponse::from(session)))
 }

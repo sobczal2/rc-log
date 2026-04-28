@@ -1,4 +1,4 @@
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Rating {
@@ -32,20 +32,11 @@ impl Rating {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RatingError {
+    #[error("invalid rating: {0}")]
     InvalidValue(i16),
 }
-
-impl fmt::Display for RatingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RatingError::InvalidValue(value) => write!(f, "invalid rating: {value}"),
-        }
-    }
-}
-
-impl std::error::Error for RatingError {}
 
 #[cfg(test)]
 mod tests {

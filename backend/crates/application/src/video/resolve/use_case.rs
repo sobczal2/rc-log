@@ -3,8 +3,6 @@ use rc_log_domain::asset::video::resolver::VideoResolver;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
-use crate::error::ApplicationError;
-
 use super::error::ResolveVideoError;
 use super::model::{ResolveVideoInput, VideoPathsDto};
 
@@ -21,16 +19,16 @@ impl<R: VideoResolver> ResolveVideoUseCase<R> {
     pub async fn execute(
         &self,
         input: ResolveVideoInput,
-    ) -> Result<VideoPathsDto, ApplicationError> {
+    ) -> Result<VideoPathsDto, ResolveVideoError> {
         debug!("Resolving video asset paths");
 
         let id =
-            Uuid::parse_str(&input.id).map_err(|e| ResolveVideoError::InvalidId(e.to_string()))?;
+            Uuid::parse_str(&input.id).map_err(|_| ResolveVideoError::InvalidId { id: input.id.clone() })?;
         let video_id = VideoId::new(id);
 
         let video = self
             .resolver
-            .get(&video_id)
+            .get(video_id)
             .await
             .map_err(ResolveVideoError::from)?
             .ok_or(ResolveVideoError::NotFound)?;

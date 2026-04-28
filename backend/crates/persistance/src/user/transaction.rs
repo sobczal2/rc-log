@@ -62,18 +62,16 @@ impl Transaction<User> for SqlxUserTransaction {
         .bind(&user_row.username)
         .bind(&user_row.email)
         .bind(&user_row.password_hash)
-        .bind(&user_row.photo_asset_id)
+        .bind(user_row.photo_asset_id)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| {
-            if let sqlx::Error::Database(ref db_err) = e {
-                if let Some(constraint) = db_err.constraint() {
-                    if constraint.contains("username") {
-                        return TransactionError::InvalidData("unique_username".to_string());
-                    }
-                    if constraint.contains("email") {
-                        return TransactionError::InvalidData("unique_email".to_string());
-                    }
+            if let sqlx::Error::Database(ref db_err) = e && let Some(constraint) = db_err.constraint() {
+                if constraint.contains("username") {
+                    return TransactionError::InvalidData("unique_username".to_string());
+                }
+                if constraint.contains("email") {
+                    return TransactionError::InvalidData("unique_email".to_string());
                 }
             }
             TransactionError::TransactionError(e.to_string())

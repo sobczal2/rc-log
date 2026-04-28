@@ -8,7 +8,6 @@ use tracing::{debug, instrument};
 
 use super::error::ListModelsError;
 use super::model::{ListModelsInput, ModelDto};
-use crate::error::ApplicationError;
 use crate::shared::pagination::PaginatedResult;
 
 pub struct ListModelsUseCase<UoW> {
@@ -28,7 +27,7 @@ where
     pub async fn execute(
         &mut self,
         input: ListModelsInput,
-    ) -> Result<PaginatedResult<ModelDto>, ApplicationError> {
+    ) -> Result<PaginatedResult<ModelDto>, ListModelsError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ListModelsError::from)?;
 

@@ -5,6 +5,7 @@ use crate::model::id::ModelId;
 use crate::session::Session;
 use crate::session::id::SessionId;
 use crate::shared::pagination::Pagination;
+use crate::shared::sort::SortDirection;
 use crate::shared::transaction::{Transaction, TransactionError};
 use crate::user::id::UserId;
 
@@ -38,12 +39,6 @@ pub struct SessionFilter {
 #[derive(Debug, Clone, Copy)]
 pub enum SessionSortField {
     Date,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SortDirection {
-    Asc,
-    Desc,
 }
 
 #[derive(Debug, Clone, Copy)]

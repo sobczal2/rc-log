@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use super::error::GetModelByIdError;
 use super::model::{GetModelByIdInput, ModelDto};
-use crate::error::ApplicationError;
 
 pub struct GetModelByIdUseCase<UoW> {
     uow: UoW,
@@ -27,7 +26,7 @@ where
     pub async fn execute(
         &mut self,
         input: GetModelByIdInput,
-    ) -> Result<ModelDto, ApplicationError> {
+    ) -> Result<ModelDto, GetModelByIdError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(GetModelByIdError::from)?;
 
@@ -42,9 +41,9 @@ where
             })?;
 
         if Uuid::from(model.owner_id()) != input.owner_id {
-            debug!("Model belongs to a different owner, returning Forbidden");
+            debug!("Model belongs to a different owner, returning NotFound");
             tx.rollback().await.map_err(GetModelByIdError::from)?;
-            return Err(GetModelByIdError::Forbidden.into());
+            return Err(GetModelByIdError::NotFound);
         }
 
         debug!("Model retrieved, committing transaction");

@@ -9,9 +9,9 @@ use rc_log_domain::session::id::SessionId;
 use rc_log_domain::session::performed_variation::PerformedVariation;
 use rc_log_domain::session::performed_variation::id::PerformedVariationId;
 use rc_log_domain::session::rating::Rating;
-use rc_log_domain::session::transaction::{
-    SessionFilter, SessionSort, SessionSortField, SessionTransaction, SortDirection,
-};
+use rc_log_domain::session::transaction::
+    {SessionFilter, SessionSort, SessionSortField, SessionTransaction};
+use rc_log_domain::shared::sort::SortDirection;
 use rc_log_domain::shared::markdown_text::MarkdownText;
 use rc_log_domain::shared::pagination::Pagination;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
@@ -166,9 +166,9 @@ impl Transaction<Session> for SqlxSessionTransaction {
         )
         .bind(row.id)
         .bind(row.user_id)
-        .bind(&row.date)
+        .bind(row.date)
         .bind(row.model_id)
-        .bind(&row.note)
+        .bind(row.note)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -205,7 +205,7 @@ impl Transaction<Session> for SqlxSessionTransaction {
             .bind(performed_row.quality)
             .bind(performed_row.comfort)
             .bind(performed_row.repeatability)
-            .bind(&performed_row.note)
+            .bind(performed_row.note)
             .execute(&mut *self.tx)
             .await
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
@@ -379,7 +379,7 @@ impl SessionTransaction for SqlxSessionTransaction {
             ORDER BY session_id ASC, id ASC
             "#,
         )
-        .bind(&session_ids)
+        .bind(session_ids)
         .fetch_all(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;

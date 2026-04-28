@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use super::error::DeleteSessionError;
 use super::model::DeleteSessionInput;
-use crate::error::ApplicationError;
 
 pub struct DeleteSessionUseCase<UoW> {
     uow: UoW,
@@ -24,7 +23,7 @@ where
     }
 
     #[instrument(skip(self), fields(session_id = %input.id, owner_id = %input.owner_id))]
-    pub async fn execute(&mut self, input: DeleteSessionInput) -> Result<(), ApplicationError> {
+    pub async fn execute(&mut self, input: DeleteSessionInput) -> Result<(), DeleteSessionError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(DeleteSessionError::from)?;
 
@@ -41,7 +40,7 @@ where
         if Uuid::from(session.user_id()) != input.owner_id {
             debug!("Session belongs to a different owner, returning Forbidden");
             tx.rollback().await.map_err(DeleteSessionError::from)?;
-            return Err(DeleteSessionError::Forbidden.into());
+            return Err(DeleteSessionError::Forbidden);
         }
 
         debug!("Deleting session");

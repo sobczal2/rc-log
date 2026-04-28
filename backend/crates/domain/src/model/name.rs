@@ -1,24 +1,15 @@
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Name(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum NameError {
+    #[error("model name must not be empty")]
     Empty,
+    #[error("model name must not exceed 255 characters")]
     TooLong,
 }
-
-impl fmt::Display for NameError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            NameError::Empty => write!(f, "model name must not be empty"),
-            NameError::TooLong => write!(f, "model name must not exceed 255 characters"),
-        }
-    }
-}
-
-impl std::error::Error for NameError {}
 
 impl Name {
     pub fn new(value: String) -> Result<Self, NameError> {

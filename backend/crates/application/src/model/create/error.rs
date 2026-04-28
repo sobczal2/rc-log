@@ -1,9 +1,11 @@
-use rc_log_domain::shared::transaction::TransactionError;
+use rc_log_domain::{model::name::NameError, shared::transaction::TransactionError};
+
+use crate::shared::validator::ValidationError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateModelError {
     #[error("Validation error: {0}")]
-    ValidationError(String),
+    Validation(ValidationError),
     #[error("Invalid model data: {0}")]
     InvalidData(String),
     #[error("Repository error: {0}")]
@@ -16,5 +18,11 @@ impl From<TransactionError> for CreateModelError {
             TransactionError::InvalidData(msg) => CreateModelError::InvalidData(msg),
             TransactionError::TransactionError(msg) => CreateModelError::RepositoryError(msg),
         }
+    }
+}
+
+impl From<NameError> for CreateModelError {
+    fn from(err: NameError) -> Self {
+        CreateModelError::Validation(ValidationError::new("name", &err.to_string()))
     }
 }

@@ -8,6 +8,7 @@ mod maneuver;
 mod model;
 mod session;
 mod state;
+mod training_program;
 mod user;
 
 use axum::extract::DefaultBodyLimit;
@@ -26,6 +27,7 @@ use crate::config::AppConfig;
 use crate::maneuver::router::maneuver_router;
 use crate::model::router::model_router;
 use crate::session::router::session_router;
+use crate::training_program::router::training_program_router;
 use crate::state::ResolverCacheConfig;
 use crate::user::router::user_router;
 
@@ -69,6 +71,7 @@ async fn main() {
         .merge(maneuver_router())
         .merge(model_router())
         .merge(session_router())
+        .merge(training_program_router())
         .merge(auth_router())
         .merge(user_router())
         .merge(asset_paths_router())

@@ -1,27 +1,16 @@
 use chrono::NaiveDate;
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Date(NaiveDate);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DateError {
+    #[error("session date must not be empty")]
     Empty,
+    #[error("session date must use format YYYY-MM-DD")]
     InvalidFormat,
 }
-
-impl fmt::Display for DateError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DateError::Empty => write!(f, "session date must not be empty"),
-            DateError::InvalidFormat => {
-                write!(f, "session date must use format YYYY-MM-DD")
-            }
-        }
-    }
-}
-
-impl std::error::Error for DateError {}
 
 impl Date {
     pub fn parse(value: &str) -> Result<Self, DateError> {

@@ -80,7 +80,7 @@ impl Transaction<Model> for SqlxModelTransaction {
         .bind(row.owner_id)
         .bind(&row.name)
         .bind(&row.r#type)
-        .bind(&row.photo_asset_id)
+        .bind(row.photo_asset_id)
         .execute(&mut *self.tx)
         .await
         .map_err(|e| TransactionError::TransactionError(e.to_string()))?;

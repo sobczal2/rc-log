@@ -12,7 +12,6 @@ use tracing::{debug, instrument};
 
 use super::error::ListSessionsError;
 use super::model::{ListSessionsInput, PerformedVariationDto, SessionDto};
-use crate::error::ApplicationError;
 use crate::model::shared::TypeDto;
 use crate::session::shared::rating::rating_to_dto;
 use crate::shared::pagination::PaginatedResult;
@@ -45,7 +44,7 @@ where
     pub async fn execute(
         &mut self,
         input: ListSessionsInput,
-    ) -> Result<PaginatedResult<SessionDto>, ApplicationError> {
+    ) -> Result<PaginatedResult<SessionDto>, ListSessionsError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ListSessionsError::from)?;
 
@@ -72,7 +71,7 @@ where
                 Some(model_id) => {
                     let model = self
                         .model_resolver
-                        .get_by_id(&model_id)
+                        .get(model_id)
                         .await
                         .map_err(ListSessionsError::from)?;
 
@@ -114,14 +113,14 @@ where
                             .await
                             .map_err(ListSessionsError::from)?;
 
-                        if inferred_model_type_from_variations.is_none() {
-                            if let Some(ref m) = maneuver {
-                                inferred_model_type_from_variations = Some(match *m.model_type() {
-                                    Type::Helicopter => TypeDto::Helicopter,
-                                    Type::Plane => TypeDto::Plane,
-                                    Type::Drone => TypeDto::Drone,
-                                });
-                            }
+                        if inferred_model_type_from_variations.is_none()
+                            && let Some(ref m) = maneuver
+                        {
+                            inferred_model_type_from_variations = Some(match *m.model_type() {
+                                Type::Helicopter => TypeDto::Helicopter,
+                                Type::Plane => TypeDto::Plane,
+                                Type::Drone => TypeDto::Drone,
+                            });
                         }
 
                         let maneuver_name = maneuver.map(|m| m.name().to_string());

@@ -1,22 +1,13 @@
-use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PasswordHash(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum PasswordHashError {
+    #[error("password hash must not be empty")]
     Empty,
 }
-
-impl fmt::Display for PasswordHashError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PasswordHashError::Empty => write!(f, "password hash must not be empty"),
-        }
-    }
-}
-
-impl std::error::Error for PasswordHashError {}
 
 impl PasswordHash {
     pub fn new(value: String) -> Result<Self, PasswordHashError> {

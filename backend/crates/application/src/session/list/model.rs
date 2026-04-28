@@ -1,7 +1,7 @@
 use rc_log_domain::maneuver::id::ManeuverId;
-use rc_log_domain::session::transaction::{
-    SessionFilter, SessionSort, SessionSortField, SortDirection,
-};
+use rc_log_domain::session::transaction::{SessionFilter, SessionSort, SessionSortField};
+use rc_log_domain::shared::sort::SortDirection;
+use crate::shared::sort::SortDirectionDto;
 use serde::Serialize;
 use specta::Type;
 use uuid::Uuid;
@@ -42,10 +42,8 @@ impl Validate for SessionFilterDto {
             }
         }
 
-        if let Some(search_query) = &self.search_query {
-            if search_query.len() > 200 {
-                errors.push(ValidationError::new("searchQuery", "must not exceed 200 characters"));
-            }
+        if let Some(search_query) = &self.search_query && search_query.len() > 200 {
+            errors.push(ValidationError::new("searchQuery", "must not exceed 200 characters"));
         }
 
         if errors.is_empty() { Ok(()) } else { Err(errors) }
@@ -62,39 +60,33 @@ impl From<SessionFilterDto> for SessionFilter {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum SessionSortFieldDto {
+    Date,
+}
+
 #[derive(Debug, Clone)]
 pub struct SessionSortDto {
-    pub field: String,
-    pub direction: String,
+    pub field: Option<SessionSortFieldDto>,
+    pub direction: Option<SortDirectionDto>,
 }
 
 impl Validate for SessionSortDto {
     fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        let mut errors = Vec::new();
-        let valid_fields = ["", "date"];
-        if !valid_fields.contains(&self.field.as_str()) {
-            errors.push(ValidationError::new("sort.field", "must be 'date'"));
-        }
-
-        let valid_directions = ["", "asc", "desc"];
-        if !valid_directions.contains(&self.direction.as_str()) {
-            errors.push(ValidationError::new("sort.direction", "must be 'asc' or 'desc'"));
-        }
-
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
+        // validation is handled by the extractor; enum-backed DTOs are valid by construction
+        Ok(())
     }
 }
 
 impl From<SessionSortDto> for SessionSort {
     fn from(dto: SessionSortDto) -> Self {
-        let field = match dto.field.to_lowercase().as_str() {
-            "date" => SessionSortField::Date,
-            _ => SessionSortField::Date,
+        let field = match dto.field.unwrap_or(SessionSortFieldDto::Date) {
+            SessionSortFieldDto::Date => SessionSortField::Date,
         };
 
-        let direction = match dto.direction.to_lowercase().as_str() {
-            "asc" => SortDirection::Asc,
-            _ => SortDirection::Desc,
+        let direction = match dto.direction.unwrap_or(SortDirectionDto::default()) {
+            SortDirectionDto::Asc => SortDirection::Asc,
+            SortDirectionDto::Desc => SortDirection::Desc,
         };
 
         Self { field, direction }

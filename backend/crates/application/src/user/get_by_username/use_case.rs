@@ -7,7 +7,6 @@ use tracing::{debug, instrument};
 
 use super::error::GetUserByUsernameError;
 use super::model::{GetUserByUsernameInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct GetUserByUsernameUseCase<UoW> {
     uow: UoW,
@@ -26,7 +25,7 @@ where
     pub async fn execute(
         &mut self,
         input: GetUserByUsernameInput,
-    ) -> Result<UserDto, ApplicationError> {
+    ) -> Result<UserDto, GetUserByUsernameError> {
         let username =
             Username::new(input.username).map_err(|_| GetUserByUsernameError::InvalidUsername)?;
 

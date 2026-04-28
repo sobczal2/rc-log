@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use super::error::UpdateUserPhotoError;
 use super::model::{UpdateUserPhotoInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct UpdateUserPhotoUseCase<UoW, PS> {
     uow: UoW,
@@ -31,7 +30,7 @@ where
     pub async fn execute(
         &mut self,
         input: UpdateUserPhotoInput,
-    ) -> Result<UserDto, ApplicationError> {
+    ) -> Result<UserDto, UpdateUserPhotoError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(UpdateUserPhotoError::from)?;
 

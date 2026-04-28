@@ -3,8 +3,9 @@ use axum::{
     http::request::Parts,
 };
 use rc_log_application::maneuver::list::model::{
-    DifficultyDto, ListManeuversInput, ManeuverFilterDto, ManeuverSortDto,
+    DifficultyDto, ListManeuversInput, ManeuverFilterDto, ManeuverSortDto, ManeuverSortFieldDto,
 };
+use rc_log_application::shared::sort::SortDirectionDto;
 use rc_log_application::model::shared::TypeDto;
 use rc_log_application::shared::pagination::PaginationDto;
 use rc_log_application::shared::validator::{Validate, ValidationError};
@@ -81,10 +82,28 @@ where
 
         let search_query = if raw.search_query.is_empty() { None } else { Some(raw.search_query) };
 
+        let sort_field = match raw.sort_field.as_str() {
+            "" => None,
+            "name" => Some(ManeuverSortFieldDto::Name),
+            "difficulty" => Some(ManeuverSortFieldDto::Difficulty),
+            _ => {
+                return Err(ApiError::Validation(vec![ValidationError::new("sort.field", "must be 'name' or 'difficulty'")]))
+            }
+        };
+
+        let sort_direction = match raw.sort_direction.as_str() {
+            "" => None,
+            "asc" => Some(SortDirectionDto::Asc),
+            "desc" => Some(SortDirectionDto::Desc),
+            _ => {
+                return Err(ApiError::Validation(vec![ValidationError::new("sort.direction", "must be 'asc' or 'desc'")]))
+            }
+        };
+
         let input = ListManeuversInput {
             pagination: PaginationDto { page: raw.page, page_size: raw.page_size },
             filter: ManeuverFilterDto { tags, model_type, difficulty, search_query },
-            sort: ManeuverSortDto { field: raw.sort_field, direction: raw.sort_direction },
+            sort: ManeuverSortDto { field: sort_field, direction: sort_direction },
         };
 
         if let Err(errors) = input.validate() {

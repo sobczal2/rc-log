@@ -4,8 +4,8 @@ use rc_log_application::model::update_photo::UpdateModelPhotoUseCase;
 use rc_log_application::model::update_photo::model::UpdateModelPhotoInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::model::update_photo::error::Error;
 use crate::model::update_photo::extractor::UpdatePhotoRequest;
 use crate::model::update_photo::response::UpdatePhotoResponse;
 use crate::state::AppState;
@@ -15,7 +15,7 @@ pub async fn update_model_photo(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: UpdatePhotoRequest,
-) -> Result<Json<UpdatePhotoResponse>, ApiError> {
+) -> Result<Json<UpdatePhotoResponse>, Error> {
     debug!("Handling update_model_photo request");
     let mut use_case = UpdateModelPhotoUseCase::new(state.model_uow, state.photo_service);
     let dto = use_case

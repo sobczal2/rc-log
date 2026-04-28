@@ -1,4 +1,5 @@
 use rc_log_domain::shared::transaction::TransactionError;
+use rc_log_domain::shared::resolver::ResolverError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateSessionError {
@@ -17,6 +18,15 @@ impl From<TransactionError> for CreateSessionError {
         match err {
             TransactionError::InvalidData(msg) => CreateSessionError::InvalidData(msg),
             TransactionError::TransactionError(msg) => CreateSessionError::RepositoryError(msg),
+        }
+    }
+}
+
+impl From<ResolverError> for CreateSessionError {
+    fn from(err: ResolverError) -> Self {
+        match err {
+            ResolverError::InvalidData(msg) => CreateSessionError::InvalidData(msg),
+            ResolverError::ResolverError(msg) => CreateSessionError::RepositoryError(msg),
         }
     }
 }

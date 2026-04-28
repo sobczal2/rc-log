@@ -1,23 +1,13 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use thiserror::Error;
 use std::future::Future;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum TransactionError {
+    #[error("Invalid data: {0}")]
     InvalidData(String),
+    #[error("Transaction error: {0}")]
     TransactionError(String),
 }
-
-impl Display for TransactionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            TransactionError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
-            TransactionError::TransactionError(msg) => write!(f, "Transaction error: {}", msg),
-        }
-    }
-}
-
-impl Error for TransactionError {}
 
 pub trait Transaction<T>: Send {
     fn save(&mut self, entity: &T) -> impl Future<Output = Result<(), TransactionError>> + Send;

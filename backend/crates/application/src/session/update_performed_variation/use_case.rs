@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use super::error::UpdatePerformedVariationError;
 use super::model::UpdatePerformedVariationInput;
-use crate::error::ApplicationError;
 use crate::session::shared::rating::rating_from_dto;
 
 pub struct UpdatePerformedVariationUseCase<UoW> {
@@ -30,7 +29,7 @@ where
     pub async fn execute(
         &mut self,
         input: UpdatePerformedVariationInput,
-    ) -> Result<(), ApplicationError> {
+    ) -> Result<(), UpdatePerformedVariationError> {
         let quality = rating_from_dto(input.quality);
         let comfort = rating_from_dto(input.comfort);
         let repeatability = rating_from_dto(input.repeatability);
@@ -54,7 +53,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(UpdatePerformedVariationError::from)?;
-            return Err(UpdatePerformedVariationError::Forbidden.into());
+            return Err(UpdatePerformedVariationError::Forbidden);
         }
 
         let mut found = false;
@@ -80,7 +79,7 @@ where
 
         if !found {
             tx.rollback().await.map_err(UpdatePerformedVariationError::from)?;
-            return Err(UpdatePerformedVariationError::PerformedVariationNotFound.into());
+            return Err(UpdatePerformedVariationError::PerformedVariationNotFound);
         }
 
         performed_variations.sort_by_key(|pv| pv.id().as_uuid());

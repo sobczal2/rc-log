@@ -5,7 +5,6 @@ use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::{debug, instrument};
 
-use crate::error::ApplicationError;
 use crate::shared::pagination::PaginatedResult;
 
 use super::error::ListManeuversError;
@@ -29,7 +28,7 @@ where
     pub async fn execute(
         &mut self,
         input: ListManeuversInput,
-    ) -> Result<PaginatedResult<ManeuverDto>, ApplicationError> {
+    ) -> Result<PaginatedResult<ManeuverDto>, ListManeuversError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(ListManeuversError::from)?;
 

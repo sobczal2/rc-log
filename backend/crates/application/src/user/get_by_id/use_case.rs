@@ -7,7 +7,6 @@ use tracing::{debug, instrument};
 
 use super::error::GetUserByIdError;
 use super::model::{GetUserByIdInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct GetUserByIdUseCase<UoW> {
     uow: UoW,
@@ -23,7 +22,7 @@ where
     }
 
     #[instrument(skip(self), fields(user_id = %input.id))]
-    pub async fn execute(&mut self, input: GetUserByIdInput) -> Result<UserDto, ApplicationError> {
+    pub async fn execute(&mut self, input: GetUserByIdInput) -> Result<UserDto, GetUserByIdError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(GetUserByIdError::from)?;
 

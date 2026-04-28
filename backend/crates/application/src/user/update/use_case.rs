@@ -8,7 +8,6 @@ use tracing::{debug, instrument};
 
 use super::error::UpdateUserError;
 use super::model::{UpdateUserInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct UpdateUserUseCase<UoW> {
     uow: UoW,
@@ -24,7 +23,7 @@ where
     }
 
     #[instrument(skip(self), fields(user_id = %input.user_id, new_username = %input.new_username))]
-    pub async fn execute(&mut self, input: UpdateUserInput) -> Result<UserDto, ApplicationError> {
+    pub async fn execute(&mut self, input: UpdateUserInput) -> Result<UserDto, UpdateUserError> {
         let new_username = Username::new(input.new_username)
             .map_err(|e| UpdateUserError::ValidationError(e.to_string()))?;
 
@@ -34,11 +33,10 @@ where
         debug!("Checking username availability");
         if let Some(existing_by_name) =
             tx.get_by_username(&new_username).await.map_err(UpdateUserError::from)?
+            && existing_by_name.id() != UserId::new(input.user_id)
         {
-            if existing_by_name.id() != UserId::new(input.user_id) {
-                tx.rollback().await.map_err(UpdateUserError::from)?;
-                return Err(UpdateUserError::UsernameTaken.into());
-            }
+            tx.rollback().await.map_err(UpdateUserError::from)?;
+            return Err(UpdateUserError::UsernameTaken);
         }
 
         debug!("Fetching user from repository");

@@ -11,7 +11,6 @@ use uuid::Uuid;
 
 use super::error::UpdateModelError;
 use super::model::{ModelDto, UpdateModelInput};
-use crate::error::ApplicationError;
 use crate::model::shared::TypeDto;
 
 pub struct UpdateModelUseCase<UoW> {
@@ -28,7 +27,7 @@ where
     }
 
     #[instrument(skip(self), fields(model_id = %input.id, owner_id = %input.owner_id))]
-    pub async fn execute(&mut self, input: UpdateModelInput) -> Result<ModelDto, ApplicationError> {
+    pub async fn execute(&mut self, input: UpdateModelInput) -> Result<ModelDto, UpdateModelError> {
         let name =
             Name::new(input.name).map_err(|e| UpdateModelError::ValidationError(e.to_string()))?;
 
@@ -54,7 +53,7 @@ where
         if Uuid::from(existing.owner_id()) != input.owner_id {
             debug!("Model belongs to a different owner, returning Forbidden");
             tx.rollback().await.map_err(UpdateModelError::from)?;
-            return Err(UpdateModelError::Forbidden.into());
+            return Err(UpdateModelError::Forbidden);
         }
 
         let updated = Model::new(

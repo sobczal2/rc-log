@@ -9,7 +9,6 @@ use tracing::{debug, instrument};
 
 use super::error::SignInError;
 use super::model::{SignInInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct SignInUseCase<UoW> {
     uow: UoW,
@@ -25,7 +24,7 @@ where
     }
 
     #[instrument(skip(self, input), fields(username = %input.username))]
-    pub async fn execute(&mut self, input: SignInInput) -> Result<UserDto, ApplicationError> {
+    pub async fn execute(&mut self, input: SignInInput) -> Result<UserDto, SignInError> {
         let username =
             Username::new(input.username).map_err(|_| SignInError::InvalidCredentials)?;
 

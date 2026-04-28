@@ -3,8 +3,8 @@ use rc_log_application::session::update_performed_variation::UpdatePerformedVari
 use rc_log_application::session::update_performed_variation::model::UpdatePerformedVariationInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::session::update_performed_variation::error::Error;
 use crate::session::update_performed_variation::extractor::UpdatePerformedVariationRequest;
 use crate::state::AppState;
 
@@ -13,9 +13,8 @@ pub async fn update_performed_variation(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: UpdatePerformedVariationRequest,
-) -> Result<StatusCode, ApiError> {
+) -> Result<StatusCode, Error> {
     debug!("Handling update_performed_variation request");
-
     let mut use_case = UpdatePerformedVariationUseCase::new(state.session_uow);
     use_case
         .execute(UpdatePerformedVariationInput {
@@ -28,6 +27,5 @@ pub async fn update_performed_variation(
             note: input.note,
         })
         .await?;
-
     Ok(StatusCode::NO_CONTENT)
 }

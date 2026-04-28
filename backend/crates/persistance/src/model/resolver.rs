@@ -3,6 +3,7 @@ use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::model_resolver::ModelResolver;
 use rc_log_domain::model::transaction::ModelTransaction;
+use rc_log_domain::shared::resolver::ResolverError;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -12,6 +13,13 @@ use uuid::Uuid;
 use crate::shared::cache_settings::CacheSettings;
 
 use super::transaction::SqlxModelUnitOfWork;
+
+fn tx_err_to_resolver(e: TransactionError) -> ResolverError {
+    match e {
+        TransactionError::InvalidData(msg) => ResolverError::InvalidData(msg),
+        TransactionError::TransactionError(msg) => ResolverError::ResolverError(msg),
+    }
+}
 
 #[derive(Clone)]
 pub struct SqlxModelResolver {
@@ -28,7 +36,7 @@ impl SqlxModelResolver {
 }
 
 impl ModelResolver for SqlxModelResolver {
-    async fn get_by_id(&self, id: &ModelId) -> Result<Option<Model>, TransactionError> {
+    async fn get(&self, id: ModelId) -> Result<Option<Model>, ResolverError> {
         let key = id.as_uuid();
 
         if let Some(cached) = self.cache.get(&key).await {
@@ -36,19 +44,17 @@ impl ModelResolver for SqlxModelResolver {
         }
 
         let mut model_uow = self.model_uow.clone();
-        let mut tx = model_uow.begin().await?;
+        let mut tx = model_uow.begin().await.map_err(tx_err_to_resolver)?;
 
-        let model = match tx.get_by_id(*id).await {
+        let model = match tx.get_by_id(id).await {
             Ok(model) => model,
             Err(err) => {
-                return match tx.rollback().await {
-                    Ok(()) => Err(err),
-                    Err(rollback_err) => Err(rollback_err),
-                };
+                let _ = tx.rollback().await;
+                return Err(tx_err_to_resolver(err));
             }
         };
 
-        tx.commit().await?;
+        tx.commit().await.map_err(tx_err_to_resolver)?;
 
         match model {
             None => Ok(None),

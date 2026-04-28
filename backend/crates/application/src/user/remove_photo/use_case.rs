@@ -8,7 +8,6 @@ use tracing::{debug, instrument, warn};
 
 use super::error::RemoveUserPhotoError;
 use super::model::RemoveUserPhotoInput;
-use crate::error::ApplicationError;
 
 pub struct RemoveUserPhotoUseCase<UoW, PS> {
     uow: UoW,
@@ -26,7 +25,7 @@ where
     }
 
     #[instrument(skip(self, input), fields(user_id = %input.user_id))]
-    pub async fn execute(&mut self, input: RemoveUserPhotoInput) -> Result<(), ApplicationError> {
+    pub async fn execute(&mut self, input: RemoveUserPhotoInput) -> Result<(), RemoveUserPhotoError> {
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(RemoveUserPhotoError::from)?;
 

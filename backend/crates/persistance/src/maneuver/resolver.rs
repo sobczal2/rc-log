@@ -3,6 +3,7 @@ use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::id::ManeuverId;
 use rc_log_domain::maneuver::resolver::ManeuverResolver;
 use rc_log_domain::maneuver::transaction::ManeuverTransaction;
+use rc_log_domain::shared::resolver::ResolverError;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
@@ -11,6 +12,13 @@ use sqlx::PgPool;
 use crate::shared::cache_settings::CacheSettings;
 
 use super::transaction::SqlxManeuverUnitOfWork;
+
+fn tx_err_to_resolver(e: TransactionError) -> ResolverError {
+    match e {
+        TransactionError::InvalidData(msg) => ResolverError::InvalidData(msg),
+        TransactionError::TransactionError(msg) => ResolverError::ResolverError(msg),
+    }
+}
 
 #[derive(Clone)]
 pub struct SqlxManeuverResolver {
@@ -27,25 +35,23 @@ impl SqlxManeuverResolver {
 }
 
 impl ManeuverResolver for SqlxManeuverResolver {
-    async fn get(&self, id: ManeuverId) -> Result<Option<Maneuver>, TransactionError> {
+    async fn get(&self, id: ManeuverId) -> Result<Option<Maneuver>, ResolverError> {
         if let Some(cached) = self.cache.get(&id).await {
             return Ok(Some(cached));
         }
 
         let mut maneuver_uow = self.maneuver_uow.clone();
-        let mut tx = maneuver_uow.begin().await?;
+        let mut tx = maneuver_uow.begin().await.map_err(tx_err_to_resolver)?;
 
         let maneuver = match tx.get_by_id(id).await {
             Ok(maneuver) => maneuver,
             Err(err) => {
-                return match tx.rollback().await {
-                    Ok(()) => Err(err),
-                    Err(rollback_err) => Err(rollback_err),
-                };
+                let _ = tx.rollback().await;
+                return Err(tx_err_to_resolver(err));
             }
         };
 
-        tx.commit().await?;
+        tx.commit().await.map_err(tx_err_to_resolver)?;
 
         match maneuver {
             None => Ok(None),

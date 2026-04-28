@@ -6,6 +6,7 @@ use crate::maneuver::id::ManeuverId;
 use crate::maneuver::variation::{Variation, VariationId};
 use crate::model::Type;
 use crate::shared::pagination::Pagination;
+use crate::shared::sort::SortDirection;
 use crate::shared::transaction::{Transaction, TransactionError};
 
 /// Transaction trait extended with Maneuver-specific operations
@@ -40,12 +41,6 @@ pub struct ManeuverFilter {
 pub enum ManeuverSortField {
     Name,
     Difficulty,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SortDirection {
-    Asc,
-    Desc,
 }
 
 #[derive(Debug, Clone, Copy)]

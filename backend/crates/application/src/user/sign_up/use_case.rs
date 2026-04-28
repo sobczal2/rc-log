@@ -13,7 +13,6 @@ use uuid::Uuid;
 
 use super::error::SignUpError;
 use super::model::{SignUpInput, UserDto};
-use crate::error::ApplicationError;
 
 pub struct SignUpUseCase<UoW> {
     uow: UoW,
@@ -29,7 +28,7 @@ where
     }
 
     #[instrument(skip(self, input), fields(username = %input.username))]
-    pub async fn execute(&mut self, input: SignUpInput) -> Result<UserDto, ApplicationError> {
+    pub async fn execute(&mut self, input: SignUpInput) -> Result<UserDto, SignUpError> {
         let username = Username::new(input.username)
             .map_err(|e| SignUpError::ValidationError(e.to_string()))?;
         let email =
@@ -50,13 +49,13 @@ where
         debug!("Checking username availability");
         if tx.get_by_username(&username).await.map_err(SignUpError::from)?.is_some() {
             tx.rollback().await.map_err(SignUpError::from)?;
-            return Err(SignUpError::UsernameTaken.into());
+            return Err(SignUpError::UsernameTaken);
         }
 
         debug!("Checking email availability");
         if tx.get_by_email(&email).await.map_err(SignUpError::from)?.is_some() {
             tx.rollback().await.map_err(SignUpError::from)?;
-            return Err(SignUpError::EmailTaken.into());
+            return Err(SignUpError::EmailTaken);
         }
 
         debug!("Saving new user");

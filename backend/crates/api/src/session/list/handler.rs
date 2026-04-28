@@ -3,8 +3,8 @@ use rc_log_application::session::list::ListSessionsUseCase;
 use rc_log_application::session::list::model::ListSessionsInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::session::list::error::Error;
 use crate::session::list::extractor::ListRequest;
 use crate::session::list::response::ListResponse;
 use crate::state::AppState;
@@ -14,9 +14,8 @@ pub async fn list_sessions(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     input: ListRequest,
-) -> Result<Json<ListResponse>, ApiError> {
+) -> Result<Json<ListResponse>, Error> {
     debug!("Handling list_sessions request");
-
     let mut use_case = ListSessionsUseCase::new(
         state.session_uow,
         state.model_resolver,
@@ -31,7 +30,6 @@ pub async fn list_sessions(
             sort: input.sort,
         })
         .await?;
-
     debug!(total = result.total, count = result.items.len(), "Returning session list");
     Ok(Json(ListResponse::from(result)))
 }

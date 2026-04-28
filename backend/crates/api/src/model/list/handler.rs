@@ -3,8 +3,8 @@ use rc_log_application::model::list::ListModelsUseCase;
 use rc_log_application::model::list::model::ListModelsInput;
 use tracing::{debug, instrument};
 
-use crate::error::ApiError;
 use crate::extractors::auth::AuthenticatedUser;
+use crate::model::list::error::Error;
 use crate::model::list::extractor::ListRequest;
 use crate::model::list::response::ListResponse;
 use crate::state::AppState;
@@ -14,7 +14,7 @@ pub async fn list_models(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     pagination: ListRequest,
-) -> Result<Json<ListResponse>, ApiError> {
+) -> Result<Json<ListResponse>, Error> {
     debug!("Handling list_models request");
     let mut use_case = ListModelsUseCase::new(state.model_uow);
     let result =

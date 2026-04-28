@@ -16,7 +16,6 @@ use uuid::Uuid;
 
 use super::error::AddPerformedVariationError;
 use super::model::{AddPerformedVariationInput, PerformedVariationDto};
-use crate::error::ApplicationError;
 use crate::session::shared::rating::rating_from_dto;
 
 pub struct AddPerformedVariationUseCase<UoW, MR, ManR, VarR> {
@@ -47,7 +46,7 @@ where
     pub async fn execute(
         &mut self,
         input: AddPerformedVariationInput,
-    ) -> Result<PerformedVariationDto, ApplicationError> {
+    ) -> Result<PerformedVariationDto, AddPerformedVariationError> {
         let performed_variation_id = Uuid::new_v4();
 
         let quality = rating_from_dto(input.quality);
@@ -83,7 +82,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(AddPerformedVariationError::from)?;
-            return Err(AddPerformedVariationError::Forbidden.into());
+            return Err(AddPerformedVariationError::Forbidden);
         }
 
         let variation = self
@@ -110,7 +109,7 @@ where
         if let Some(model_id) = existing.model_id() {
             let model = self
                 .model_resolver
-                .get_by_id(&model_id)
+                .get(model_id)
                 .await
                 .map_err(AddPerformedVariationError::from)?
                 .ok_or_else(|| {
@@ -123,8 +122,7 @@ where
                 tx.rollback().await.map_err(AddPerformedVariationError::from)?;
                 return Err(AddPerformedVariationError::ValidationError(
                     "variation maneuver type must match session model type".to_string(),
-                )
-                .into());
+                ));
             }
         } else if let Some(first_existing) = existing.performed_variations().first() {
             let first_variation = self
@@ -156,8 +154,7 @@ where
                 return Err(AddPerformedVariationError::ValidationError(
                     "variation maneuver type must match existing performed variations type"
                         .to_string(),
-                )
-                .into());
+                ));
             }
         }
 
