@@ -1,4 +1,4 @@
-use moka::future::Cache;
+use crate::cache::store::Cache;
 use rc_log_domain::photo::resolver::PhotoResolver;
 use rc_log_domain::photo::transaction::PhotoTransaction;
 use rc_log_domain::photo::{Photo, PhotoId};
@@ -7,8 +7,6 @@ use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
-
-use crate::cache::settings::CacheSettings;
 
 use super::transaction::SqlxPhotoUnitOfWork;
 
@@ -26,9 +24,7 @@ pub struct SqlxPhotoResolver {
 }
 
 impl SqlxPhotoResolver {
-    pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
-        let cache =
-            Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
+    pub fn new(pool: PgPool, cache: Cache<String, Photo>) -> Self {
         Self { photo_uow: SqlxPhotoUnitOfWork::new(pool), cache }
     }
 }
@@ -37,7 +33,7 @@ impl PhotoResolver for SqlxPhotoResolver {
     async fn get(&self, id: PhotoId) -> Result<Option<Photo>, ResolverError> {
         let key = id.as_uuid().to_string();
 
-        if let Some(cached) = self.cache.get(&key).await {
+        if let Some(cached) = self.cache.get(key.clone()).await {
             return Ok(Some(cached));
         }
 

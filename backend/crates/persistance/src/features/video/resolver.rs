@@ -1,4 +1,4 @@
-use moka::future::Cache;
+use crate::cache::store::Cache;
 use rc_log_domain::video::resolver::VideoResolver;
 use rc_log_domain::video::transaction::VideoTransaction;
 use rc_log_domain::video::{Video, VideoId};
@@ -7,8 +7,6 @@ use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
-
-use crate::cache::settings::CacheSettings;
 
 use super::transaction::SqlxVideoUnitOfWork;
 
@@ -26,9 +24,7 @@ pub struct SqlxVideoResolver {
 }
 
 impl SqlxVideoResolver {
-    pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
-        let cache =
-            Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
+    pub fn new(pool: PgPool, cache: Cache<String, Video>) -> Self {
         Self { video_uow: SqlxVideoUnitOfWork::new(pool), cache }
     }
 }
@@ -37,7 +33,7 @@ impl VideoResolver for SqlxVideoResolver {
     async fn get(&self, id: VideoId) -> Result<Option<Video>, ResolverError> {
         let key = id.as_uuid().to_string();
 
-        if let Some(cached) = self.cache.get(&key).await {
+        if let Some(cached) = self.cache.get(key.clone()).await {
             return Ok(Some(cached));
         }
 

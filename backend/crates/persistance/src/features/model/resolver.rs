@@ -1,4 +1,4 @@
-use moka::future::Cache;
+use crate::cache::store::Cache;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::id::ModelId;
 use rc_log_domain::model::model_resolver::ModelResolver;
@@ -9,8 +9,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 use uuid::Uuid;
-
-use crate::cache::settings::CacheSettings;
 
 use super::transaction::SqlxModelUnitOfWork;
 
@@ -28,9 +26,7 @@ pub struct SqlxModelResolver {
 }
 
 impl SqlxModelResolver {
-    pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
-        let cache =
-            Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
+    pub fn new(pool: PgPool, cache: Cache<Uuid, Model>) -> Self {
         Self { model_uow: SqlxModelUnitOfWork::new(pool), cache }
     }
 }
@@ -39,7 +35,7 @@ impl ModelResolver for SqlxModelResolver {
     async fn get(&self, id: ModelId) -> Result<Option<Model>, ResolverError> {
         let key = id.as_uuid();
 
-        if let Some(cached) = self.cache.get(&key).await {
+        if let Some(cached) = self.cache.get(key.clone()).await {
             return Ok(Some(cached));
         }
 
