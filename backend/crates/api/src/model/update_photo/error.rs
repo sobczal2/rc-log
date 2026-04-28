@@ -1,4 +1,3 @@
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use rc_log_application::model::update_photo::error::UpdateModelPhotoError;
 use crate::error::ApiError;
@@ -7,8 +6,6 @@ use crate::error::ApiError;
 pub enum Error {
     #[error("Model not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("{0}")]
     InvalidPhotoContent(String),
     #[error("Internal server error")]
@@ -19,7 +16,6 @@ impl From<UpdateModelPhotoError> for Error {
     fn from(e: UpdateModelPhotoError) -> Self {
         match e {
             UpdateModelPhotoError::NotFound => Self::NotFound,
-            UpdateModelPhotoError::Forbidden => Self::Forbidden,
             UpdateModelPhotoError::InvalidPhotoContent(msg) => Self::InvalidPhotoContent(msg),
             UpdateModelPhotoError::InvalidData(_) => Self::Internal,
             UpdateModelPhotoError::RepositoryError(_) => Self::Internal,
@@ -31,9 +27,8 @@ impl From<UpdateModelPhotoError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::NotFound => ApiError::not_found(self).into_response(),
-            Error::Forbidden => ApiError::Custom(StatusCode::FORBIDDEN, self.to_string()).into_response(),
-            Error::InvalidPhotoContent(_) => ApiError::bad_request(self).into_response(),
+            Error::NotFound => ApiError::not_found(self.to_string()).into_response(),
+            Error::InvalidPhotoContent(_) => ApiError::bad_request(self.to_string()).into_response(),
             Error::Internal => ApiError::Internal.into_response(),
         }
     }

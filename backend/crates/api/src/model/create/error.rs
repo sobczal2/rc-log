@@ -28,7 +28,7 @@ impl From<CreateModelError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::ValidationError(_) => ApiError::bad_request(self).into_response(),
+            Error::ValidationError(_) => ApiError::bad_request(self.to_string()).into_response(),
             Error::Internal => ApiError::Internal.into_response(),
         }
     }

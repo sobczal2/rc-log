@@ -65,7 +65,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(UpdateSessionError::from)?;
-            return Err(UpdateSessionError::Forbidden);
+            return Err(UpdateSessionError::NotFound);
         }
 
         let model_id = input.model_id.map(ModelId::new);

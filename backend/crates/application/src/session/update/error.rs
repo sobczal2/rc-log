@@ -5,8 +5,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum UpdateSessionError {
     #[error("Session not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("Model not found")]
     ModelNotFound,
     #[error("Validation error: {0}")]

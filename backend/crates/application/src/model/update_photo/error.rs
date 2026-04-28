@@ -5,8 +5,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum UpdateModelPhotoError {
     #[error("Model not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("Invalid photo content: {0}")]
     InvalidPhotoContent(String),
     #[error("Invalid model data: {0}")]

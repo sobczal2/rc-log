@@ -27,8 +27,8 @@ impl From<UpdateUserPhotoError> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::NotFound => ApiError::not_found(self).into_response(),
-            Error::InvalidPhotoContent(_) => ApiError::bad_request(self).into_response(),
+            Error::NotFound => ApiError::not_found(self.to_string()).into_response(),
+            Error::InvalidPhotoContent(_) => ApiError::bad_request(self.to_string()).into_response(),
             Error::Internal => ApiError::Internal.into_response(),
         }
     }

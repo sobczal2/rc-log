@@ -3,14 +3,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use rc_log_application::model::get_by_id::error;
+use rc_log_application::shared::validator::ValidationError;
 use serde_json::json;
 use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
     #[error("Validation failed")]
-    Validation(Vec<rc_log_application::shared::validator::ValidationError>),
+    Validation(Vec<ValidationError>),
     #[error("Unauthorized")]
     Unauthorized,
     #[error("Internal server error")]
@@ -20,12 +20,16 @@ pub enum ApiError {
 }
 
 impl ApiError {
-    pub fn bad_request(msg: impl ToString) -> Self {
-        Self::Custom(StatusCode::BAD_REQUEST, msg.to_string())
+    pub fn bad_request(msg: impl Into<String>) -> Self {
+        Self::Custom(StatusCode::BAD_REQUEST, msg.into())
     }
 
-    pub fn not_found(msg: impl ToString) -> Self {
-        Self::Custom(StatusCode::NOT_FOUND, msg.to_string())
+    pub fn not_found(msg: impl Into<String>) -> Self {
+        Self::Custom(StatusCode::NOT_FOUND, msg.into())
+    }
+
+    pub fn conflict(msg: impl Into<String>) -> Self {
+        Self::Custom(StatusCode::CONFLICT, msg.into())
     }
 }
 

@@ -4,8 +4,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum UpdateModelError {
     #[error("Model not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("Validation error: {0}")]
     ValidationError(String),
     #[error("Invalid model data: {0}")]

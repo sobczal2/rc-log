@@ -51,9 +51,9 @@ where
             })?;
 
         if Uuid::from(existing.owner_id()) != input.owner_id {
-            debug!("Model belongs to a different owner, returning Forbidden");
+            debug!("Model belongs to a different owner, returning NotFound");
             tx.rollback().await.map_err(UpdateModelError::from)?;
-            return Err(UpdateModelError::Forbidden);
+            return Err(UpdateModelError::NotFound);
         }
 
         let updated = Model::new(

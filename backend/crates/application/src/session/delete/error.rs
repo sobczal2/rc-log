@@ -4,8 +4,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum DeleteSessionError {
     #[error("Session not found")]
     NotFound,
-    #[error("Access denied")]
-    Forbidden,
     #[error("Repository error: {0}")]
     RepositoryError(String),
 }

@@ -41,9 +41,9 @@ where
             })?;
 
         if Uuid::from(model.owner_id()) != input.owner_id {
-            debug!("Model belongs to a different owner, returning Forbidden");
+            debug!("Model belongs to a different owner, returning NotFound");
             tx.rollback().await.map_err(DeleteModelError::from)?;
-            return Err(DeleteModelError::Forbidden);
+            return Err(DeleteModelError::NotFound);
         }
 
         let photo_id = model.photo_asset_id().cloned();

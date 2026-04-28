@@ -38,7 +38,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(RemovePerformedVariationError::from)?;
-            return Err(RemovePerformedVariationError::Forbidden);
+            return Err(RemovePerformedVariationError::NotFound);
         }
 
         let before_count = existing.performed_variations().len();

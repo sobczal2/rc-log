@@ -38,9 +38,9 @@ where
             })?;
 
         if Uuid::from(session.user_id()) != input.owner_id {
-            debug!("Session belongs to a different owner, returning Forbidden");
+            debug!("Session belongs to a different owner, returning NotFound");
             tx.rollback().await.map_err(DeleteSessionError::from)?;
-            return Err(DeleteSessionError::Forbidden);
+            return Err(DeleteSessionError::NotFound);
         }
 
         debug!("Deleting session");

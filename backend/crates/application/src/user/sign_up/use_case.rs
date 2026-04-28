@@ -29,10 +29,9 @@ where
 
     #[instrument(skip(self, input), fields(username = %input.username))]
     pub async fn execute(&mut self, input: SignUpInput) -> Result<UserDto, SignUpError> {
-        let username = Username::new(input.username)
-            .map_err(|e| SignUpError::ValidationError(e.to_string()))?;
+        let username = Username::new(input.username)?;
         let email =
-            Email::new(input.email).map_err(|e| SignUpError::ValidationError(e.to_string()))?;
+            Email::new(input.email)?;
 
         debug!("Hashing password");
         let salt = SaltString::generate(&mut OsRng);
@@ -40,8 +39,7 @@ where
             .hash_password(input.password.as_bytes(), &salt)
             .map_err(|e| SignUpError::HashingError(e.to_string()))?
             .to_string();
-        let password_hash = PasswordHash::new(hash_string)
-            .map_err(|e| SignUpError::ValidationError(e.to_string()))?;
+        let password_hash = PasswordHash::new(hash_string)?;
 
         debug!("Beginning transaction");
         let mut tx = self.uow.begin().await.map_err(SignUpError::from)?;

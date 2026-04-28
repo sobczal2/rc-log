@@ -4,8 +4,6 @@ use rc_log_domain::shared::transaction::TransactionError;
 pub enum RemovePerformedVariationError {
     #[error("Session not found")]
     NotFound,
-    #[error("Forbidden")]
-    Forbidden,
     #[error("Performed variation not found")]
     PerformedVariationNotFound,
     #[error("Invalid session data: {0}")]

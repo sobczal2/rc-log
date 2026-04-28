@@ -53,7 +53,7 @@ where
 
         if Uuid::from(existing.user_id()) != input.owner_id {
             tx.rollback().await.map_err(UpdatePerformedVariationError::from)?;
-            return Err(UpdatePerformedVariationError::Forbidden);
+            return Err(UpdatePerformedVariationError::NotFound);
         }
 
         let mut found = false;
