@@ -3,7 +3,7 @@ pub mod resolver;
 
 pub use id::VariationId;
 
-use crate::asset::video::VideoId;
+use crate::video::VideoId;
 use crate::maneuver::difficulty::Difficulty;
 use crate::maneuver::id::ManeuverId;
 use crate::shared::markdown_text::MarkdownText;

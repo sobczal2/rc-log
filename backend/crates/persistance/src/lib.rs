@@ -1,4 +1,5 @@
-pub mod asset;
+pub mod photo;
+pub mod video;
 pub mod maneuver;
 pub mod model;
 pub mod session;

@@ -1,4 +1,4 @@
-use rc_log_domain::asset::photo::PhotoId;
+use rc_log_domain::photo::PhotoId;
 use rc_log_domain::shared::email::Email;
 use rc_log_domain::shared::password_hash::PasswordHash;
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};

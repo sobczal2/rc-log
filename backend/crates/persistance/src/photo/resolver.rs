@@ -1,15 +1,15 @@
 use crate::shared::cache_settings::CacheSettings;
 use moka::future::Cache;
-use rc_log_domain::asset::video::resolver::VideoResolver;
-use rc_log_domain::asset::video::transaction::VideoTransaction;
-use rc_log_domain::asset::video::{Video, VideoId};
+use rc_log_domain::photo::resolver::PhotoResolver;
+use rc_log_domain::photo::transaction::PhotoTransaction;
+use rc_log_domain::photo::{Photo, PhotoId};
 use rc_log_domain::shared::resolver::ResolverError;
 use rc_log_domain::shared::transaction::Transaction;
 use rc_log_domain::shared::transaction::TransactionError;
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::PgPool;
 
-use super::transaction::SqlxVideoUnitOfWork;
+use super::transaction::SqlxPhotoUnitOfWork;
 
 fn tx_err_to_resolver(e: TransactionError) -> ResolverError {
     match e {
@@ -19,32 +19,32 @@ fn tx_err_to_resolver(e: TransactionError) -> ResolverError {
 }
 
 #[derive(Clone)]
-pub struct SqlxVideoResolver {
-    video_uow: SqlxVideoUnitOfWork,
-    cache: Cache<String, Video>,
+pub struct SqlxPhotoResolver {
+    photo_uow: SqlxPhotoUnitOfWork,
+    cache: Cache<String, Photo>,
 }
 
-impl SqlxVideoResolver {
+impl SqlxPhotoResolver {
     pub fn new(pool: PgPool, settings: CacheSettings) -> Self {
         let cache =
             Cache::builder().max_capacity(settings.capacity).time_to_live(settings.ttl).build();
-        Self { video_uow: SqlxVideoUnitOfWork::new(pool), cache }
+        Self { photo_uow: SqlxPhotoUnitOfWork::new(pool), cache }
     }
 }
 
-impl VideoResolver for SqlxVideoResolver {
-    async fn get(&self, id: VideoId) -> Result<Option<Video>, ResolverError> {
+impl PhotoResolver for SqlxPhotoResolver {
+    async fn get(&self, id: PhotoId) -> Result<Option<Photo>, ResolverError> {
         let key = id.as_uuid().to_string();
 
         if let Some(cached) = self.cache.get(&key).await {
             return Ok(Some(cached));
         }
 
-        let mut video_uow = self.video_uow.clone();
-        let mut tx = video_uow.begin().await.map_err(tx_err_to_resolver)?;
+        let mut photo_uow = self.photo_uow.clone();
+        let mut tx = photo_uow.begin().await.map_err(tx_err_to_resolver)?;
 
-        let video = match tx.get_by_id(&id).await {
-            Ok(video) => video,
+        let photo = match tx.get_by_id(&id).await {
+            Ok(photo) => photo,
             Err(err) => {
                 let _ = tx.rollback().await;
                 return Err(tx_err_to_resolver(err));
@@ -53,11 +53,11 @@ impl VideoResolver for SqlxVideoResolver {
 
         tx.commit().await.map_err(tx_err_to_resolver)?;
 
-        match video {
+        match photo {
             None => Ok(None),
-            Some(video) => {
-                self.cache.insert(key, video.clone()).await;
-                Ok(Some(video))
+            Some(photo) => {
+                self.cache.insert(key, photo.clone()).await;
+                Ok(Some(photo))
             }
         }
     }

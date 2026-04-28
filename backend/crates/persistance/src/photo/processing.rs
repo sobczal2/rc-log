@@ -2,9 +2,9 @@ use std::io::Cursor;
 
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat};
-use rc_log_domain::asset::photo_service::PhotoServiceError;
+use rc_log_domain::photo::service::PhotoServiceError;
 
-// ─── Size constants ────────────────────────────────────────────────────────────
+// ─── Size constants ───────────────────────────────────────────────────────────
 
 /// Longest-side pixel targets for each size tier.
 pub(crate) const SMALL_PX: u32 = 400;
@@ -24,14 +24,6 @@ pub(crate) struct ProcessedPhoto {
 }
 
 /// Decode `data`, produce up to three WebP size tiers, and return them.
-///
-/// |  Source longest side  | Tiers produced         | Each tier's longest side |
-/// |-----------------------|------------------------|-------------------------|
-/// | < 400 px              | small                  | 400 px (upscaled)        |
-/// | 400 – 799 px          | small + medium         | 400 px / 800 px          |
-/// | ≥ 800 px              | small + medium + large | 400 / 800 / 1600 px      |
-///
-/// Every tier is always resized to exactly its target size (upscaling included).
 pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoServiceError> {
     let img = image::load_from_memory(data)
         .map_err(|e| PhotoServiceError::InvalidData(format!("Decode error: {e}")))?;
@@ -49,8 +41,6 @@ pub(crate) fn process_image(data: &[u8]) -> Result<ProcessedPhoto, PhotoServiceE
     Ok(ProcessedPhoto { small, medium, large })
 }
 
-/// Resize `img` so its longest side equals `target_px`, preserving aspect ratio.
-/// Both downscaling and upscaling are performed as needed.
 fn resize_to(img: &DynamicImage, target_px: u32) -> DynamicImage {
     let longest = img.width().max(img.height());
     let scale = target_px as f64 / longest as f64;
@@ -59,7 +49,6 @@ fn resize_to(img: &DynamicImage, target_px: u32) -> DynamicImage {
     img.resize_exact(new_w, new_h, FilterType::Lanczos3)
 }
 
-/// Encode `img` to lossy WebP bytes.
 fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoServiceError> {
     let mut buf = Cursor::new(Vec::new());
     img.write_to(&mut buf, ImageFormat::WebP)
@@ -67,13 +56,10 @@ fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, PhotoServiceError> {
     Ok(buf.into_inner())
 }
 
-// ─── Unit tests ───────────────────────────────────────────────────────────────
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Encode a blank RGBA image of the given dimensions to PNG bytes.
     fn make_png(width: u32, height: u32) -> Vec<u8> {
         let img = DynamicImage::ImageRgba8(image::RgbaImage::new(width, height));
         let mut buf = Cursor::new(Vec::new());
@@ -81,13 +67,10 @@ mod tests {
         buf.into_inner()
     }
 
-    /// Decode WebP bytes and return `(width, height)`.
     fn webp_dims(bytes: &[u8]) -> (u32, u32) {
         let img = image::load_from_memory(bytes).expect("valid WebP output");
         (img.width(), img.height())
     }
-
-    // ── Tier selection ────────────────────────────────────────────────────────
 
     #[test]
     fn small_only_when_image_below_400() {
@@ -124,8 +107,6 @@ mod tests {
         assert!(result.large.is_some());
     }
 
-    // ── Output dimensions ─────────────────────────────────────────────────────
-
     #[test]
     fn small_longest_side_is_400_when_downscaling() {
         let result = process_image(&make_png(800, 600)).unwrap();
@@ -154,19 +135,14 @@ mod tests {
         assert_eq!(w.max(h), LARGE_PX);
     }
 
-    // ── Aspect ratio ──────────────────────────────────────────────────────────
-
     #[test]
     fn aspect_ratio_preserved_in_small() {
-        // 2:1 landscape — after resize longest side = 400, shorter side ≈ 200.
         let result = process_image(&make_png(800, 400)).unwrap();
         let (w, h) = webp_dims(&result.small);
         assert_eq!(w.max(h), SMALL_PX);
         let ratio = w as f64 / h as f64;
         assert!((ratio - 2.0).abs() < 0.1, "expected ~2:1, got {w}×{h}");
     }
-
-    // ── Error handling ────────────────────────────────────────────────────────
 
     #[test]
     fn invalid_bytes_return_error() {

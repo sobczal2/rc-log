@@ -2,7 +2,7 @@ pub mod id;
 pub mod query;
 pub mod username;
 
-use crate::asset::photo::PhotoId;
+use crate::photo::PhotoId;
 use crate::shared::email::Email;
 use crate::shared::password_hash::PasswordHash;
 use id::UserId;

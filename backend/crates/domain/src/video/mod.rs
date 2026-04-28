@@ -1,23 +1,25 @@
 pub mod id;
+pub mod path;
+pub mod size;
 pub mod resolver;
 pub mod transaction;
 
-pub use id::PhotoId;
+pub use id::VideoId;
 
-use crate::asset::path::Path;
-use crate::asset::size::Size;
+use crate::video::path::Path;
+use crate::video::size::Size;
 
 #[derive(Debug, Clone)]
-pub struct Photo {
-    pub id: PhotoId,
+pub struct Video {
+    pub id: VideoId,
     pub small_path: Path,
     pub medium_path: Option<Path>,
     pub large_path: Option<Path>,
 }
 
-impl Photo {
+impl Video {
     pub fn new(
-        id: PhotoId,
+        id: VideoId,
         small_path: Path,
         medium_path: Option<Path>,
         large_path: Option<Path>,
@@ -40,52 +42,52 @@ impl Photo {
 mod tests {
     use uuid::Uuid;
 
-    use crate::asset::path::Path;
-    use crate::asset::size::Size;
+    use crate::video::path::Path;
+    use crate::video::size::Size;
 
-    use super::{Photo, PhotoId};
+    use super::{Video, VideoId};
 
     fn path(s: &str) -> Path {
         Path::new(s.to_string()).unwrap()
     }
 
-    fn make_photo(small: &str, medium: Option<&str>, large: Option<&str>) -> Photo {
-        Photo::new(PhotoId::new(Uuid::nil()), path(small), medium.map(path), large.map(path))
+    fn make_video(small: &str, medium: Option<&str>, large: Option<&str>) -> Video {
+        Video::new(VideoId::new(Uuid::nil()), path(small), medium.map(path), large.map(path))
     }
 
     #[test]
     fn small_returns_small_path() {
-        let p = make_photo("s.jpg", Some("m.jpg"), Some("l.jpg"));
-        assert_eq!(p.resolve_path(Size::Small).as_str(), "s.jpg");
+        let v = make_video("s.mp4", Some("m.mp4"), Some("l.mp4"));
+        assert_eq!(v.resolve_path(Size::Small).as_str(), "s.mp4");
     }
 
     #[test]
     fn medium_returns_medium_when_present() {
-        let p = make_photo("s.jpg", Some("m.jpg"), None);
-        assert_eq!(p.resolve_path(Size::Medium).as_str(), "m.jpg");
+        let v = make_video("s.mp4", Some("m.mp4"), None);
+        assert_eq!(v.resolve_path(Size::Medium).as_str(), "m.mp4");
     }
 
     #[test]
     fn medium_falls_back_to_small() {
-        let p = make_photo("s.jpg", None, None);
-        assert_eq!(p.resolve_path(Size::Medium).as_str(), "s.jpg");
+        let v = make_video("s.mp4", None, None);
+        assert_eq!(v.resolve_path(Size::Medium).as_str(), "s.mp4");
     }
 
     #[test]
     fn large_returns_large_when_present() {
-        let p = make_photo("s.jpg", Some("m.jpg"), Some("l.jpg"));
-        assert_eq!(p.resolve_path(Size::Large).as_str(), "l.jpg");
+        let v = make_video("s.mp4", Some("m.mp4"), Some("l.mp4"));
+        assert_eq!(v.resolve_path(Size::Large).as_str(), "l.mp4");
     }
 
     #[test]
     fn large_falls_back_to_medium() {
-        let p = make_photo("s.jpg", Some("m.jpg"), None);
-        assert_eq!(p.resolve_path(Size::Large).as_str(), "m.jpg");
+        let v = make_video("s.mp4", Some("m.mp4"), None);
+        assert_eq!(v.resolve_path(Size::Large).as_str(), "m.mp4");
     }
 
     #[test]
     fn large_falls_back_to_small_when_only_small() {
-        let p = make_photo("s.jpg", None, None);
-        assert_eq!(p.resolve_path(Size::Large).as_str(), "s.jpg");
+        let v = make_video("s.mp4", None, None);
+        assert_eq!(v.resolve_path(Size::Large).as_str(), "s.mp4");
     }
 }

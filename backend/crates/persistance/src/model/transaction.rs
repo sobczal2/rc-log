@@ -1,4 +1,4 @@
-use rc_log_domain::asset::photo::PhotoId;
+use rc_log_domain::photo::PhotoId;
 use rc_log_domain::model::Model;
 use rc_log_domain::model::Type;
 use rc_log_domain::model::id::ModelId;

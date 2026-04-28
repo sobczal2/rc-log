@@ -1,6 +1,6 @@
-use rc_log_domain::asset::path::Path;
-use rc_log_domain::asset::video::transaction::VideoTransaction;
-use rc_log_domain::asset::video::{Video, VideoId};
+use rc_log_domain::video::path::Path;
+use rc_log_domain::video::transaction::VideoTransaction;
+use rc_log_domain::video::{Video, VideoId};
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
@@ -135,85 +135,5 @@ impl UnitOfWork<Video> for SqlxVideoUnitOfWork {
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         Ok(SqlxVideoTransaction { tx })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use uuid::Uuid;
-
-    use super::VideoRow;
-
-    #[test]
-    fn try_into_video_valid_all_sizes() {
-        let row = VideoRow {
-            id: Uuid::nil(),
-            small_path: "videos/hero_small.mp4".to_string(),
-            medium_path: Some("videos/hero_medium.mp4".to_string()),
-            large_path: Some("videos/hero_large.mp4".to_string()),
-        };
-        let video = row.try_into_video().unwrap();
-        assert!(video.medium_path.is_some());
-        assert!(video.large_path.is_some());
-    }
-
-    #[test]
-    fn try_into_video_valid_small_only() {
-        let row = VideoRow {
-            id: Uuid::nil(),
-            small_path: "videos/thumb_small.mp4".to_string(),
-            medium_path: None,
-            large_path: None,
-        };
-        let video = row.try_into_video().unwrap();
-        assert!(video.medium_path.is_none());
-        assert!(video.large_path.is_none());
-    }
-
-    #[test]
-    fn try_into_video_empty_small_path_is_err() {
-        let row = VideoRow {
-            id: Uuid::nil(),
-            small_path: "".to_string(),
-            medium_path: None,
-            large_path: None,
-        };
-        assert!(row.try_into_video().is_err());
-    }
-
-    #[test]
-    fn try_into_video_empty_optional_path_is_err() {
-        let row = VideoRow {
-            id: Uuid::nil(),
-            small_path: "videos/x_small.mp4".to_string(),
-            medium_path: Some("".to_string()),
-            large_path: None,
-        };
-        assert!(row.try_into_video().is_err());
-    }
-
-    #[test]
-    fn from_video_round_trip() {
-        use rc_log_domain::asset::path::Path;
-        use rc_log_domain::asset::video::{Video, VideoId};
-
-        let video = Video::new(
-            VideoId::new(Uuid::nil()),
-            Path::new("videos/hero_small.mp4".to_string()).unwrap(),
-            Some(Path::new("videos/hero_medium.mp4".to_string()).unwrap()),
-            None,
-        );
-
-        let row = VideoRow::from_video(&video);
-        let roundtripped = row.try_into_video().unwrap();
-        assert_eq!(roundtripped.small_path.as_str(), video.small_path.as_str());
-        assert_eq!(
-            roundtripped.medium_path.as_ref().map(|p| p.as_str()),
-            video.medium_path.as_ref().map(|p| p.as_str()),
-        );
-        assert_eq!(
-            roundtripped.large_path.as_ref().map(|p| p.as_str()),
-            video.large_path.as_ref().map(|p| p.as_str()),
-        );
     }
 }

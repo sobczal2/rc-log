@@ -1,16 +1,16 @@
 use std::future::Future;
 
-use crate::asset::photo::{Photo, PhotoId};
+use crate::video::{Video, VideoId};
 use crate::shared::transaction::{Transaction, TransactionError};
 
-pub trait PhotoTransaction: Transaction<Photo> {
+pub trait VideoTransaction: Transaction<Video> {
     fn get_by_id(
         &mut self,
-        id: &PhotoId,
-    ) -> impl Future<Output = Result<Option<Photo>, TransactionError>> + Send;
+        id: &VideoId,
+    ) -> impl Future<Output = Result<Option<Video>, TransactionError>> + Send;
 
     fn delete_by_id(
         &mut self,
-        id: &PhotoId,
+        id: &VideoId,
     ) -> impl Future<Output = Result<(), TransactionError>> + Send;
 }

@@ -104,7 +104,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::asset::video::VideoId;
+    use crate::video::VideoId;
     use crate::maneuver::difficulty::Difficulty;
     use crate::maneuver::id::ManeuverId;
     use crate::maneuver::tag::{Tag, TagId};

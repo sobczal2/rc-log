@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::asset::video::{Video, VideoId};
+use crate::video::{Video, VideoId};
 use crate::shared::resolver::ResolverError;
 
 pub trait VideoResolver: Send + Sync {

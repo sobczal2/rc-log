@@ -1,10 +1,10 @@
-use super::super::asset_storage::{AssetStorage, AssetStorageError};
-use super::super::processing::process_image;
+use super::storage::{AssetStorage, AssetStorageError};
+use super::processing::process_image;
 use super::transaction::SqlxPhotoUnitOfWork;
-use rc_log_domain::asset::path::Path;
-use rc_log_domain::asset::photo::transaction::PhotoTransaction;
-use rc_log_domain::asset::photo::{Photo, PhotoId};
-use rc_log_domain::asset::photo_service::{PhotoService, PhotoServiceError};
+use rc_log_domain::photo::path::Path;
+use rc_log_domain::photo::transaction::PhotoTransaction;
+use rc_log_domain::photo::{Photo, PhotoId};
+use rc_log_domain::photo::service::{PhotoService, PhotoServiceError};
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use tracing::warn;

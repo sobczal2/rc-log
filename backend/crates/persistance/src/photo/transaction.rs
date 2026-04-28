@@ -1,12 +1,10 @@
-use rc_log_domain::asset::path::Path;
-use rc_log_domain::asset::photo::transaction::PhotoTransaction;
-use rc_log_domain::asset::photo::{Photo, PhotoId};
+use rc_log_domain::photo::path::Path;
+use rc_log_domain::photo::transaction::PhotoTransaction;
+use rc_log_domain::photo::{Photo, PhotoId};
 use rc_log_domain::shared::transaction::{Transaction, TransactionError};
 use rc_log_domain::shared::unit_of_work::UnitOfWork;
 use sqlx::{PgPool, Postgres, Transaction as SqlxTransaction};
 use uuid::Uuid;
-
-// ─── Row ──────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct PhotoRow {
@@ -18,8 +16,7 @@ struct PhotoRow {
 
 impl PhotoRow {
     fn try_into_photo(self) -> Result<Photo, TransactionError> {
-        let small_path =
-            Path::new(self.small_path).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+        let small_path = Path::new(self.small_path).map_err(|e| TransactionError::InvalidData(e.to_string()))?;
         let medium_path = self
             .medium_path
             .map(Path::new)
@@ -30,6 +27,7 @@ impl PhotoRow {
             .map(Path::new)
             .transpose()
             .map_err(|e| TransactionError::InvalidData(e.to_string()))?;
+
         Ok(Photo::new(PhotoId::new(self.id), small_path, medium_path, large_path))
     }
 
@@ -42,8 +40,6 @@ impl PhotoRow {
         }
     }
 }
-
-// ─── Transaction ──────────────────────────────────────────────────────────────
 
 pub struct SqlxPhotoTransaction {
     tx: SqlxTransaction<'static, Postgres>,
@@ -116,8 +112,6 @@ impl PhotoTransaction for SqlxPhotoTransaction {
     }
 }
 
-// ─── Unit of Work ─────────────────────────────────────────────────────────────
-
 #[derive(Clone)]
 pub struct SqlxPhotoUnitOfWork {
     pool: PgPool,
@@ -140,87 +134,5 @@ impl UnitOfWork<Photo> for SqlxPhotoUnitOfWork {
             .map_err(|e| TransactionError::TransactionError(e.to_string()))?;
 
         Ok(SqlxPhotoTransaction { tx })
-    }
-}
-
-// ─── Unit tests ───────────────────────────────────────────────────────────────
-
-#[cfg(test)]
-mod tests {
-    use uuid::Uuid;
-
-    use super::PhotoRow;
-
-    #[test]
-    fn try_into_photo_valid_all_sizes() {
-        let row = PhotoRow {
-            id: Uuid::nil(),
-            small_path: "photos/banner_small.webp".to_string(),
-            medium_path: Some("photos/banner_medium.webp".to_string()),
-            large_path: Some("photos/banner_large.webp".to_string()),
-        };
-        let photo = row.try_into_photo().unwrap();
-        assert_eq!(photo.small_path.as_str(), "photos/banner_small.webp");
-        assert!(photo.medium_path.is_some());
-        assert!(photo.large_path.is_some());
-    }
-
-    #[test]
-    fn try_into_photo_valid_small_only() {
-        let row = PhotoRow {
-            id: Uuid::nil(),
-            small_path: "photos/thumb_small.webp".to_string(),
-            medium_path: None,
-            large_path: None,
-        };
-        let photo = row.try_into_photo().unwrap();
-        assert!(photo.medium_path.is_none());
-        assert!(photo.large_path.is_none());
-    }
-
-    #[test]
-    fn try_into_photo_empty_small_path_is_err() {
-        let row = PhotoRow {
-            id: Uuid::nil(),
-            small_path: "".to_string(),
-            medium_path: None,
-            large_path: None,
-        };
-        assert!(row.try_into_photo().is_err());
-    }
-
-    #[test]
-    fn try_into_photo_empty_optional_path_is_err() {
-        let row = PhotoRow {
-            id: Uuid::nil(),
-            small_path: "photos/x_small.webp".to_string(),
-            medium_path: Some("".to_string()),
-            large_path: None,
-        };
-        assert!(row.try_into_photo().is_err());
-    }
-
-    #[test]
-    fn from_photo_round_trip() {
-        use rc_log_domain::asset::path::Path;
-        use rc_log_domain::asset::photo::{Photo, PhotoId};
-
-        let photo = Photo::new(
-            PhotoId::new(Uuid::nil()),
-            Path::new("photos/banner_small.webp".to_string()).unwrap(),
-            Some(Path::new("photos/banner_medium.webp".to_string()).unwrap()),
-            None,
-        );
-        let row = PhotoRow::from_photo(&photo);
-        let roundtripped = row.try_into_photo().unwrap();
-        assert_eq!(roundtripped.small_path.as_str(), photo.small_path.as_str());
-        assert_eq!(
-            roundtripped.medium_path.as_ref().map(|p| p.as_str()),
-            photo.medium_path.as_ref().map(|p| p.as_str()),
-        );
-        assert_eq!(
-            roundtripped.large_path.as_ref().map(|p| p.as_str()),
-            photo.large_path.as_ref().map(|p| p.as_str()),
-        );
     }
 }

@@ -1,7 +1,7 @@
 use thiserror::Error;
 use std::future::Future;
 
-use super::photo::{Photo, PhotoId};
+use super::{Photo, PhotoId};
 
 #[derive(Error, Debug)]
 pub enum PhotoServiceError {

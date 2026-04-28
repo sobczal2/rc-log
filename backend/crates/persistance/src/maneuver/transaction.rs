@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
-use rc_log_domain::asset::video::VideoId;
+use rc_log_domain::video::VideoId;
 use rc_log_domain::maneuver::Maneuver;
 use rc_log_domain::maneuver::difficulty::Difficulty;
 use rc_log_domain::maneuver::id::ManeuverId;
@@ -594,7 +594,7 @@ mod tests {
     // --- ManeuverRow ---
 
     fn make_default_variation() -> rc_log_domain::maneuver::variation::Variation {
-        use rc_log_domain::asset::video::VideoId;
+        use rc_log_domain::video::VideoId;
         use rc_log_domain::maneuver::difficulty::Difficulty;
         use rc_log_domain::maneuver::variation::VariationId;
         use rc_log_domain::shared::markdown_text::MarkdownText;
